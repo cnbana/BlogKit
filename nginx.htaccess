@@ -1,8 +1,8 @@
 # ============================================
 # BlogKit 主系统 Nginx 伪静态（被 vhost 的 location / include）
 # ============================================
-location ^~ /guanwangsite/ {
-    try_files $uri $uri/ /guanwangsite/index.php$uri?$args;
+location ^~ / {
+    try_files $uri $uri/ /index.php$uri?$args;
 }
 # 主系统：其余请求转发到主系统入口（PATH_INFO 模式，无需额外 rewrite）
 location / {
