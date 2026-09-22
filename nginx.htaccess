@@ -1,8 +1,6 @@
 # ============================================
 # BlogKit 主系统 Nginx 伪静态（被 vhost 的 location / include）
 # ============================================
-# 官网子目录优先匹配：guanwangsite/ 下所有请求转发到官网自己的入口，
-# 防止被下方主系统重写规则抢先接管（官网独立路由，方案 14.1）
 location ^~ /guanwangsite/ {
     try_files $uri $uri/ /guanwangsite/index.php$uri?$args;
 }
