@@ -1,0 +1,99 @@
+<?php $currentAction = 'market'; $pageTitle = $pageTitle ?? '应用详情'; include 'components/page_wrapper.html'; ?>
+
+<!-- ============ 应用详情子页（op=detail，内嵌完整详情替代跳转官网） ============ -->
+<!-- 数据流：MarketController::detail() 调官网 /api/market/app（响应含 detail 富文本
+     正文与全量版本历史），本模板只做展示；安装按钮复用 do_install 一键管线 -->
+
+<div class="action-section" style="display:flex; align-items:center;">
+    <a href="admin.php?action=market" class="btn btn-default">&laquo; 返回应用市场</a>
+    <!-- 官网完整介绍入口（富文本排版/截图大图等以官网为准） -->
+    <a href="<?php echo htmlspecialchars(Config::get('market_api_url', ''), ENT_QUOTES); ?>/apps/detail/<?php echo (int)$app['id']; ?>"
+       target="_blank" class="btn btn-default" style="margin-left:auto;">在官网查看完整介绍</a>
+</div>
+
+<!-- 详情头部：图 + 名称/徽章/状态/操作 -->
+<div style="background-color:#ffffff; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.05); margin-top:20px;">
+    <div style="display:flex; gap:20px; flex-wrap:wrap;">
+        <!-- 头部图：主题封面 / 插件图标；无图输出占位块（控制器预拼好 $imageHtml） -->
+        <div style="width:220px; height:140px; overflow:hidden; border-radius:6px; background:#eef1f5; flex-shrink:0;">
+            <?php echo $imageHtml; ?>
+        </div>
+        <div style="flex:1; min-width:260px;">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <h2 style="margin:0; font-size:20px; color:#333;"><?php echo htmlspecialchars($app['name'], ENT_QUOTES); ?></h2>
+                <span style="padding:2px 9px; border-radius:11px; font-size:12px; background:#eaf2fb; color:#337ab7;">
+                    <?php echo $type === 'theme' ? '主题' : '插件'; ?>
+                </span>
+                <?php if (trim((string)$app['category']) !== ''): ?>
+                <span style="padding:2px 9px; border-radius:11px; font-size:12px; background:#f2f4f7; color:#666;">
+                    <?php echo htmlspecialchars($app['category'], ENT_QUOTES); ?>
+                </span>
+                <?php endif; ?>
+                <?php echo $statusHtml; ?>
+            </div>
+            <p style="color:#777; font-size:13px; margin:10px 0 0;">
+                <?php echo htmlspecialchars($app['description'], ENT_QUOTES); ?>
+            </p>
+            <div style="color:#999; font-size:12px; margin-top:10px; display:flex; gap:16px; flex-wrap:wrap;">
+                <span>作者：<?php echo htmlspecialchars($app['author'], ENT_QUOTES); ?></span>
+                <span>最新版本：v<?php echo $latestVersion !== '' ? htmlspecialchars($latestVersion, ENT_QUOTES) : '-'; ?></span>
+                <span>更新时间：<?php echo htmlspecialchars($app['updated_at'], ENT_QUOTES); ?></span>
+                <span><?php echo (int)$app['installs']; ?> 次安装 / <?php echo (int)$app['download_count']; ?> 次下载</span>
+            </div>
+            <div style="margin-top:14px; display:flex; align-items:center; gap:10px; min-height:34px;">
+                <?php echo $installBtn; ?>
+                <?php if ($installBtn === '' && !$installed && $canInstall): ?>
+                <span style="color:#999; font-size:12px;">（安装按钮仅在卡片上，或刷新后重试）</span>
+                <?php endif; ?>
+                <span style="color:#999; font-size:12px;">安装完成后可在对应管理页启用（主题管理 / 插件管理）</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 详情正文（官网后台录入的富文本 HTML，与官网 /apps/detail 同口径原样输出） -->
+<?php $detailHtml = isset($app['detail']) ? (string)$app['detail'] : ''; if (trim($detailHtml) !== ''): ?>
+<div style="background-color:#ffffff; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.05); margin-top:15px;">
+    <h3 style="margin:0 0 12px; font-size:15px; color:#555; border-bottom:1px solid #f0f0f0; padding-bottom:8px;">应用介绍</h3>
+    <div style="font-size:13px; color:#444; line-height:1.8; overflow-wrap:break-word;">
+        <?php echo $detailHtml; ?>
+    </div>
+</div>
+<?php endif; ?>
+
+<!-- 版本历史（全量版本；安装动作只针对最新兼容版本，历史版本仅供查看变更说明） -->
+<div style="background-color:#ffffff; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.05); margin-top:15px;">
+    <h3 style="margin:0 0 12px; font-size:15px; color:#555; border-bottom:1px solid #f0f0f0; padding-bottom:8px;">版本历史（<?php echo count($versionRows); ?>）</h3>
+    <?php if (empty($versionRows)): ?>
+    <p style="color:#999; text-align:center; padding:16px 0;">暂无版本记录</p>
+    <?php else: ?>
+    <table class="table table-striped" style="width:100%;">
+        <thead>
+        <tr>
+            <th style="width:110px;">版本</th>
+            <th style="width:160px;">发布时间</th>
+            <th style="width:80px;">大小</th>
+            <th>更新说明</th>
+        </tr>
+        </thead>
+        <tbody>
+        <?php foreach ($versionRows as $vrow): ?>
+        <tr>
+            <td>
+                v<?php echo $vrow['version']; ?>
+                <?php if ((int)$vrow['incompatible'] === 1): ?>
+                <!-- 当前主系统版本不在该版本兼容区间内 -->
+                <span class="label label-default" title="与当前系统版本不兼容">不兼容</span>
+                <?php endif; ?>
+            </td>
+            <td><?php echo $vrow['published']; ?></td>
+            <td><?php echo $vrow['size']; ?></td>
+            <td style="color:#666;"><?php echo $vrow['changelog'] !== '' ? $vrow['changelog'] : '—'; ?></td>
+        </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
+    <?php endif; ?>
+</div>
+
+<?php include 'components/footer_wrapper.html'; ?>

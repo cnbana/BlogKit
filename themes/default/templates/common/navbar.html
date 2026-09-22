@@ -1,0 +1,420 @@
+<!-- 导航栏 -->
+<nav class="main-nav">
+    <div class="nav-container">
+        <!-- 左侧：Logo 区域 -->
+        <div class="nav-logo">
+            <a href="{site.url}" class="logo-link">
+                {if condition="(site.logo_display_mode == 'auto' && site.logo) || (site.logo_display_mode == 'image' && site.logo)"}
+                    <img src="{site.logo}" alt="{site.name}" class="logo-image">
+                {else}
+                    {site.name}
+                {/if}
+            </a>
+        </div>
+        
+        <!-- 左侧中间：横向主导航菜单（桌面端） -->
+        <div class="nav-menu">
+            <ul class="main-menu">
+                <li class="menu-item {if equal="current_url" value="{site.url}"}active{/if}{if equal="current_url" value="{site.url}/"}active{/if}">
+                    <a href="{site.url}" class="menu-link">首页</a>
+                </li>
+                
+                <!-- 分类菜单（使用 {url:category} 动态生成 URL，自动支持 slug/别名） -->
+                {loop name="categories"}
+                <li class="menu-item category-menu-item {if equal="current_url" value="{url:category}"}active{/if}">
+                    <a href="{url:category}" class="menu-link">{field name='name'}</a>
+                </li>
+                {/loop}
+                
+                <!-- 页面菜单（使用 {url:page} 动态生成 URL，自动支持 slug/别名；无别名时回退到 ID） -->
+                {loop name="pages"}
+                <li class="menu-item {if equal="current_url" value="{url:page}"}active{/if}">
+                    <a href="{url:page}" class="menu-link">{field name='title'}</a>
+                </li>
+                {/loop}
+
+                <!-- 更多分类/页面下拉菜单 -->
+                <li class="menu-item has-dropdown more-menu-item">
+                    <a href="#" class="menu-link">更多</a>
+                    <ul class="dropdown-menu">
+                        <!-- 动态添加超出的分类和页面 -->
+                    </ul>
+                </li>
+            </ul>
+        </div>
+        
+        <!-- 右侧中间：搜索框 -->
+        <div class="nav-search">
+            <form action="{url:search}" method="get" class="search-form">
+                <input type="hidden" name="s" value="search">
+                <div class="search-input-wrapper">
+                    <input type="text" name="keyword" placeholder="搜索内容" class="search-input" required>
+                    <button type="submit" class="search-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- 主题切换按钮 -->
+        <button class="theme-toggle-btn" id="theme-toggle" aria-label="切换主题" title="切换深色/浅色模式">
+            <svg id="theme-icon-dark" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+            <svg id="theme-icon-light" class="theme-icon-hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            <svg id="theme-icon-auto" class="theme-icon-hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 2a10 10 0 0 0 0 20V2z"></path>
+            </svg>
+        </button>
+        <!--
+            说明：≤480px 时页头仅保留 Logo/用户/汉堡三个元素（见 style.css 媒体查询），
+            顶部搜索框与主题切换按钮移入下方 .mobile-nav-tools（汉堡面板顶部），
+            通过 JS 同步状态保证两处主题按钮行为一致。
+        -->
+
+        <!-- 右侧固定：登录 / 注册 -->
+        <div class="nav-user">
+            {if isset="user.id"}
+            <!-- 用户菜单 -->
+            <div class="user-menu-container">
+                <button class="user-menu-toggle">
+                    <div class="user-avatar-container">
+                        <img src="{if field='user.avatar'}{field name='user.avatar'}{else}/themes/default/assets/images/avatar.png{endif}" alt="{field name='user.nickname'}" class="user-avatar">
+                        {if total_notifications}<span class="notification-badge">{total_notifications}</span>{/if}
+                    </div>
+                </button>
+                <div class="user-dropdown">
+                    <a href="{url:profile}" class="dropdown-item">个人中心</a>
+                    <a href="{url:profile}?m=messages" class="dropdown-item">
+                        消息中心
+                        {if total_notifications}<span class="dropdown-notification-count">{total_notifications}</span>{/if}
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a href="{url:logout}" class="dropdown-item">退出登录</a>
+                </div>
+            </div>
+            {else}
+            <!-- 登录 -->
+            <div class="auth-links">
+                <a href="{url:login:redirect}" class="auth-link login-link">登录</a>
+            </div>
+            {endif}
+        </div>
+        
+        <!-- 右侧：汉堡菜单按钮（移动端） -->
+        <button class="mobile-menu-toggle">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </div>
+    
+    <!-- 移动端导航菜单 -->
+    <div class="mobile-nav-menu">
+        <!-- 面板顶部工具行：搜索框 + 主题切换（仅移动端显示，桌面端隐藏） -->
+        <div class="mobile-nav-tools">
+            <form action="{url:search}" method="get" class="search-form mobile-search-form">
+                <input type="hidden" name="s" value="search">
+                <div class="search-input-wrapper">
+                    <input type="text" name="keyword" placeholder="搜索内容" class="search-input" required>
+                    <button type="submit" class="search-btn" aria-label="搜索">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                    </button>
+                </div>
+            </form>
+            <!-- 移动端主题切换：复用 #theme-toggle 的逻辑，通过 data-theme-mirror 关联 -->
+            <button class="theme-toggle-btn mobile-theme-toggle" id="theme-toggle-mobile" data-theme-mirror aria-label="切换主题" title="切换深色/浅色模式">
+                <svg class="theme-icon-dark" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+                <svg class="theme-icon-light theme-icon-hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+                <svg class="theme-icon-auto theme-icon-hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M12 2a10 10 0 0 0 0 20V2z"></path>
+                </svg>
+            </button>
+        </div>
+        <ul class="main-menu">
+            <li class="menu-item {if equal="current_url" value="{site.url}"}active{/if}{if equal="current_url" value="{site.url}/"}active{/if}">
+                <a href="{site.url}" class="menu-link">首页</a>
+            </li>
+            
+            <!-- 分类菜单（使用 {url:category} 动态生成 URL，自动支持 slug/别名） -->
+            {loop name="categories"}
+            <li class="menu-item {if equal="current_url" value="{url:category}"}active{/if}">
+                <a href="{url:category}" class="menu-link">{field name='name'}</a>
+            </li>
+            {/loop}
+            
+            <!-- 页面菜单（使用 {url:page} 动态生成 URL，自动支持 slug/别名；无别名时回退到 ID） -->
+            {loop name="pages"}
+            <li class="menu-item {if equal="current_url" value="{url:page}"}active{/if}">
+                <a href="{url:page}" class="menu-link">{field name='title'}</a>
+            </li>
+            {/loop}
+        </ul>
+    </div>
+</nav>
+
+<script nonce="{csp_nonce}">
+// 用户菜单下拉功能
+document.addEventListener('DOMContentLoaded', function() {
+    const userMenuToggle = document.querySelector('.user-menu-toggle');
+    const userDropdown = document.querySelector('.user-dropdown');
+    
+    if (userMenuToggle && userDropdown) {
+        userMenuToggle.addEventListener('click', function() {
+            userDropdown.classList.toggle('active');
+        });
+        
+        // 点击其他区域关闭下拉菜单
+        document.addEventListener('click', function(e) {
+            if (!userMenuToggle.contains(e.target) && !userDropdown.contains(e.target)) {
+                userDropdown.classList.remove('active');
+            }
+        });
+    }
+    
+    // 移动端菜单功能
+    const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+    const mobileNavMenu = document.querySelector('.mobile-nav-menu');
+    
+    function openMobileMenu() {
+        mobileMenuToggle.classList.add('active');
+        mobileNavMenu.classList.add('active');
+        document.body.style.overflow = 'hidden'; // 防止背景滚动
+    }
+    
+    function closeMobileMenu() {
+        mobileMenuToggle.classList.remove('active');
+        mobileNavMenu.classList.remove('active');
+        document.body.style.overflow = ''; // 恢复背景滚动
+    }
+    
+    if (mobileMenuToggle && mobileNavMenu) {
+        // 切换菜单开关
+        mobileMenuToggle.addEventListener('click', function() {
+            if (mobileNavMenu.classList.contains('active')) {
+                closeMobileMenu();
+            } else {
+                openMobileMenu();
+            }
+        });
+
+        // 点击菜单链接后关闭菜单
+        const mobileMenuLinks = mobileNavMenu.querySelectorAll('.menu-link');
+        mobileMenuLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const href = this.getAttribute('href');
+                closeMobileMenu();
+                setTimeout(() => {
+                    window.location.href = href;
+                }, 300); // 等待菜单关闭动画完成
+            });
+        });
+
+        // 点击其他区域关闭菜单（面板内的搜索/主题控件不关闭面板）
+        document.addEventListener('click', function(e) {
+            // 镜像主题按钮转发时会对主按钮（.nav-container 内）派发合成 click，
+            // 该事件同样冒泡到这里，若不排除会把刚打开的面板误关
+            if (mainThemeToggle && mainThemeToggle.contains(e.target)) {
+                return;
+            }
+            if (!mobileMenuToggle.contains(e.target) && !mobileNavMenu.contains(e.target)) {
+                closeMobileMenu();
+            }
+        });
+
+        // 按ESC键关闭菜单
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && mobileNavMenu.classList.contains('active')) {
+                closeMobileMenu();
+            }
+        });
+    }
+
+    // 移动端面板内主题切换按钮：与顶部 #theme-toggle 状态互相同步
+    // （主按钮由主题系统 JS 接管；面板内为镜像按钮，点击时转发给主按钮即可）
+    const mainThemeToggle = document.getElementById('theme-toggle');
+    const mirrorThemeToggle = document.getElementById('theme-toggle-mobile');
+    if (mainThemeToggle && mirrorThemeToggle) {
+        mirrorThemeToggle.addEventListener('click', function() {
+            mainThemeToggle.click(); // 复用主按钮的完整切换逻辑（含图标旋转/存储）
+        });
+    }
+    
+    // 导航菜单响应式处理
+    function handleNavigationOverflow() {
+        const navContainer = document.querySelector('.nav-container');
+        const navMenu = document.querySelector('.nav-menu');
+        const mainMenu = document.querySelector('.main-menu');
+        const categoryItems = mainMenu.querySelectorAll('.category-menu-item');
+        const pageItems = mainMenu.querySelectorAll('.menu-item:not(.category-menu-item):not(.more-menu-item)');
+        const moreMenuItem = document.querySelector('.more-menu-item');
+        const dropdownMenu = document.querySelector('.dropdown-menu');
+        
+        if (!navContainer || !navMenu || !mainMenu || !moreMenuItem || !dropdownMenu) return;
+        
+        // 重置所有菜单项
+        const allMenuItems = mainMenu.querySelectorAll('.menu-item:not(.more-menu-item)');
+        allMenuItems.forEach(item => {
+            if (item.parentElement === dropdownMenu) {
+                mainMenu.insertBefore(item, moreMenuItem);
+            }
+        });
+        
+        // 检查是否有菜单项超出
+        const navContainerWidth = navContainer.offsetWidth;
+        const logoWidth = document.querySelector('.nav-logo').offsetWidth;
+        const searchWidth = document.querySelector('.nav-search').offsetWidth;
+        const userWidth = document.querySelector('.nav-user').offsetWidth;
+        const themeToggleWidth = document.querySelector('.theme-toggle-btn').offsetWidth;
+        const mobileMenuToggleWidth = document.querySelector('.mobile-menu-toggle').offsetWidth;
+        
+        // 计算可用宽度，考虑实际间距
+        const spacing = 40; // 总间距和安全边距
+        const availableWidth = navContainerWidth - (logoWidth + searchWidth + userWidth + themeToggleWidth + mobileMenuToggleWidth + spacing);
+        
+        // 计算更多菜单项的宽度
+        const moreMenuItemWidth = moreMenuItem.offsetWidth;
+        
+        // 计算所有菜单项的总宽度，包括间距
+        let totalMenuWidth = 0;
+        const menuGap = 8; // 菜单项之间的间距（px）
+        
+        allMenuItems.forEach((item, index) => {
+            totalMenuWidth += item.offsetWidth;
+            if (index < allMenuItems.length - 1) {
+                totalMenuWidth += menuGap;
+            }
+        });
+        
+        // 只有当总宽度确实超出可用宽度时才显示"更多"菜单
+        if (totalMenuWidth > availableWidth) {
+            // 计算需要移到下拉菜单的项目
+            let currentWidth = 0;
+            let itemsToMove = [];
+            
+            allMenuItems.forEach((item, index) => {
+                const itemWidth = item.offsetWidth;
+                const gapWidth = (index < allMenuItems.length - 1) ? menuGap : 0;
+                
+                // 检查添加当前项后是否会超出
+                if (currentWidth + itemWidth + gapWidth > availableWidth - moreMenuItemWidth - menuGap) {
+                    itemsToMove.push(item);
+                } else {
+                    currentWidth += itemWidth + gapWidth;
+                }
+            });
+            
+            // 将超出的菜单项移到下拉菜单
+            itemsToMove.forEach(item => {
+                dropdownMenu.appendChild(item);
+            });
+            
+            // 显示"更多"菜单项
+            moreMenuItem.style.display = 'block';
+        } else {
+            // 隐藏"更多"菜单项
+            moreMenuItem.style.display = 'none';
+        }
+        
+        // 检查是否有下拉菜单中的菜单项处于active状态，如果有，给"更多"菜单项添加active类
+        const dropdownActiveItems = dropdownMenu.querySelectorAll('.menu-item.active');
+        if (dropdownActiveItems.length > 0) {
+            moreMenuItem.classList.add('active');
+        } else {
+            moreMenuItem.classList.remove('active');
+        }
+    }
+    
+    // 通知角标动态刷新
+    {if isset="user.id"}
+    function updateNotificationBadge() {
+        fetch('{site.url}/api.php/v1/notifications/unread', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.code === 200 && data.data) {
+                const count = parseInt(data.data.unread_count) || 0;
+                const badge = document.querySelector('.notification-badge');
+                const dropdownCount = document.querySelector('.dropdown-notification-count');
+
+                if (count > 0) {
+                    if (badge) {
+                        badge.textContent = count > 99 ? '99+' : count;
+                        badge.style.display = 'flex';
+                    } else {
+                        // 如果不存在则创建角标
+                        const avatarContainer = document.querySelector('.user-avatar-container');
+                        if (avatarContainer) {
+                            const newBadge = document.createElement('span');
+                            newBadge.className = 'notification-badge';
+                            newBadge.textContent = count > 99 ? '99+' : count;
+                            avatarContainer.appendChild(newBadge);
+                        }
+                    }
+                    if (dropdownCount) {
+                        dropdownCount.textContent = count > 99 ? '99+' : count;
+                        dropdownCount.style.display = 'inline-block';
+                    }
+                } else {
+                    if (badge) badge.style.display = 'none';
+                    if (dropdownCount) dropdownCount.style.display = 'none';
+                }
+            }
+        })
+        .catch(err => console.error('获取通知数量失败:', err));
+    }
+
+    // 页面加载3秒后首次刷新，之后每60秒刷新一次
+    setTimeout(updateNotificationBadge, 3000);
+    setInterval(updateNotificationBadge, 60000);
+    {/if}
+
+    // 防抖函数
+    function debounce(func, wait) {
+        let timeout;
+        return function() {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, arguments), wait);
+        };
+    }
+    
+    // 初始化和窗口大小改变时调用
+    window.addEventListener('DOMContentLoaded', handleNavigationOverflow);
+    window.addEventListener('resize', debounce(handleNavigationOverflow, 250));
+});
+</script>

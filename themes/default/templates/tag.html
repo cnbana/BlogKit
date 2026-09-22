@@ -1,0 +1,78 @@
+{assign var="page_title" value="{field name='name'}"}
+{include file="header"}
+{if theme_show_breadcrumb}{breadcrumb}{/if}
+    <main>
+        <div class="container">
+            <div class="content-area">
+                <div class="content">
+
+                    {if articles}
+                        {loop name="articles"}
+                            <article class="post">
+                                <!-- 封面图显示：仅使用 cover_image 字段（不自动提取首图，站长需手动设置） -->
+                                {picture src="cover_image" alt="title" class="lazy-img" wrap_url="article" url_field="id"}
+                                
+                                <div class="post-content">
+                                    <h3 class="post-title">
+                                        {top_badge}
+                                        <a href="{url:article:id}">{field name="title"}</a>
+                                    </h3>
+                                    <div class="post-excerpt">
+                                        {field name='description'}
+                                    </div>
+                                    <div class="post-footer">
+                                        <div class="post-meta">
+                                            <span class="post-author">
+                                                <a href="/index.php?c=Auth&m=user&id={field name='user_id'}">{field name="author"}</a>
+                                            </span>
+                                            <span class="post-date">
+                                                {field name="created_at" filter="relative1"}
+                                            </span>
+                                            {if field='category_name'}
+                                            <span class="post-category">
+                                                <a href="{url:category:category_id}">{field name="category_name"}</a>
+                                            </span>
+                                            {endif}
+                                            <span class="post-views">
+                                                {field name="view_count" filter="cn_number"} 浏览
+                                            </span>
+                                            <span class="post-likes">
+                                                {field name="like_count" filter="cn_number"} 点赞
+                                            </span>
+                                            <span class="post-favorites">
+                                                {field name="favorite_count" filter="cn_number"} 收藏
+                                            </span>
+                                            {if config.comment_enabled}
+                                            <span class="post-comments">
+                                                <a href="{url:article:id}#comments">{field name="comment_count" filter="cn_number"} 评论</a>
+                                            </span>
+                                            {endif}
+                                        </div>
+                                        <div class="post-tags-list">
+                                            {loop name=":tags"}
+                                                <a href="{url:tag:id}" class="tag">{field name="name"}</a>
+                                            {/loop}
+                                        </div>
+                                    </div>
+                                </div>
+                            </article>
+                        {/loop}
+                        
+                        <!-- 分页导航 -->
+                        {include file="common/pagination.html"}
+                    {else}
+                        <!-- 空状态 -->
+                        <div class="empty-state">
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="8" y1="12" x2="16" y2="12"></line>
+                            </svg>
+                            <p>该标签下暂无文章，敬请期待！</p>
+                        </div>
+                    {/if}
+                </div>
+                {include file="sidebar"}
+            </div>
+        </div>
+    </main>
+{include file="footer"}

@@ -1,0 +1,92 @@
+/* ========================================
+ * 评论管理页面样式 (comment.css)
+ * 适用页面：comment.html（列表）、comment_edit.html（编辑）
+ * 由模板内嵌 <style> 归拢而来（2026-09 样式统一）
+ * 约定：页面专属样式只放本文件，通用样式进 components.css
+ * ======================================== */
+
+/* ===== 列表页：层级缩进行 ===== */
+
+/* 顶楼（一级评论）行底色加粗，与楼中楼区分 */
+.comment-row:hover {
+    background-color: #f8f9fa;
+}
+.level-root {
+    background-color: #f8f9fa;
+}
+.level-root td {
+    font-weight: 500;
+}
+
+/* 楼层徽章（一级/回复层级标识） */
+.level-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: white;
+    font-size: 11px;
+    font-weight: bold;
+}
+.level-root-badge {
+    background-color: #3498db !important;
+}
+
+/* 楼中楼内容与"回复 @xx"指示 */
+.comment-content-nested {
+    font-size: 13px;
+    color: #555;
+}
+.reply-to {
+    font-size: 12px;
+}
+.reply-indicator {
+    color: #3498db;
+    margin-right: 5px;
+}
+
+/* 回复数气泡 */
+.reply-count {
+    display: inline-block;
+    background-color: #e74c3c;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+/* ===== 编辑页：评论原信息卡片 ===== */
+.comment-info {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+}
+.comment-info h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+}
+.comment-info p {
+    margin: 8px 0;
+}
+
+/* ===== 暗色主题适配 ===== */
+body.dark-theme .comment-row:hover {
+    background-color: #24324a;
+}
+body.dark-theme .level-root {
+    background-color: #24324a;
+}
+body.dark-theme .comment-content-nested {
+    color: #94a3b8;
+}
+body.dark-theme .comment-info {
+    background: #1e293b;
+}
+body.dark-theme .comment-info h3 {
+    color: #e2e8f0;
+}
+body.dark-theme .comment-info p {
+    color: #94a3b8;
+}

@@ -1,0 +1,69 @@
+<?php $currentAction = 'user'; $pageTitle = '编辑用户'; include 'components/page_wrapper.html'; ?>
+    
+    <div class="form-container">
+        <?php if (isset($error)): ?>
+        <div class="error-message"><?php echo $error; ?></div>
+        <?php endif; ?>
+        
+        <form method="post" action="admin.php?action=user&sub=edit&id=<?php echo $user['id']; ?>">
+            <div class="form-group">
+                <label for="username">用户名 *</label>
+                <input type="text" id="username" name="username" value="<?php echo $user['username']; ?>" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="nickname">昵称</label>
+                <input type="text" id="nickname" name="nickname" value="<?php echo $user['nickname']; ?>">
+            </div>
+            
+            <div class="form-group">
+                <label for="email">邮箱</label>
+                <input type="email" id="email" name="email" value="<?php echo $user['email']; ?>">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">新密码（留空表示不修改）</label>
+                <input type="password" id="password" name="password">
+            </div>
+            
+            <div class="form-group">
+                <label for="password_confirm">确认新密码</label>
+                <input type="password" id="password_confirm" name="password_confirm">
+            </div>
+            
+            <div class="form-group">
+                <label for="role">角色</label>
+                <select id="role" name="role" <?php echo $user['id'] == 1 ? 'disabled' : ''; ?>>
+                    <?php foreach ($roles as $roleId => $roleName): ?>
+                    <?php if ($roleId != 2): // 排除游客角色 ?>
+                    <option value="<?php echo $roleId; ?>" <?php echo $user['role'] == $roleId ? 'selected' : ''; ?>>
+                        <?php echo $roleName; ?>
+                    </option>
+                    <?php endif; ?>
+                    <?php endforeach; ?>
+                </select>
+                <?php if ($user['id'] == 1): ?>
+                <span class="admin-role-note">（系统初始管理员角色不可修改）</span>
+                <?php endif; ?>
+            </div>
+            
+            <div class="form-group">
+                <label for="status">状态</label>
+                <select id="status" name="status" <?php echo $user['id'] == 1 ? 'disabled' : ''; ?>>
+                    <option value="1" <?php echo $user['status'] == 1 ? 'selected' : ''; ?>>激活</option>
+                    <option value="0" <?php echo $user['status'] == 0 ? 'selected' : ''; ?>>禁用</option>
+                </select>
+                <?php if ($user['id'] == 1): ?>
+                <span class="admin-role-note">（系统初始管理员状态不可修改）</span>
+                <?php endif; ?>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">保存修改</button>
+                <a href="admin.php?action=user" class="btn btn-secondary">取消</a>
+            </div>
+        </form>
+    </div>
+</main>
+
+<?php include 'components/footer_wrapper.html'; ?>

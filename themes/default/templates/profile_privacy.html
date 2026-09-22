@@ -1,0 +1,181 @@
+{assign var="page_title" value="隐私设置"}
+{include file="header"}
+
+    <main class="main-content">
+        <div class="container">
+            <div class="profile-container">
+                {include file="common/profile_nav.html"}
+
+                <div class="profile-content">
+                    <!-- 提示信息 -->
+                    {if isset="success_msg"}
+                        <div class="alert alert-success">{success_msg}</div>
+                    {/if}
+                    {if isset="error_msg"}
+                        <div class="alert alert-danger">{error_msg}</div>
+                    {/if}
+
+                    <!-- 隐私设置区域 -->
+                    <div class="profile-section">
+                        <h3 class="section-title">隐私设置</h3>
+                        <p class="privacy-hint">
+                            设置哪些人可以查看您主页中的「关注、粉丝、点赞、收藏」列表。
+                            顶部数字仍然显示实际数量，不会因隐私设置而隐藏。
+                        </p>
+
+                        <form method="post" action="">
+                            <input type="hidden" name="action" value="update_privacy_settings">
+
+                            <div class="privacy-table-wrapper">
+                                <table class="privacy-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="privacy-th privacy-th-label">列表</th>
+                                            <th class="privacy-th">公开</th>
+                                            <th class="privacy-th">仅我的粉丝</th>
+                                            <th class="privacy-th">仅我的关注</th>
+                                            <th class="privacy-th">仅相互关注</th>
+                                            <th class="privacy-th">私密</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- 关注列表 -->
+                                        <tr class="privacy-row">
+                                            <td class="privacy-td">我的关注列表</td>
+                                            <td class="privacy-td privacy-td-center"><label><input type="radio" name="show_following" value="public" {if condition="privacy_show_following == 'public'"}checked{/if}></label></td>
+                                            <td class="privacy-td privacy-td-center"><label><input type="radio" name="show_following" value="followers" {if condition="privacy_show_following == 'followers'"}checked{/if}></label></td>
+                                            <td class="privacy-td privacy-td-center"><label><input type="radio" name="show_following" value="following" {if condition="privacy_show_following == 'following'"}checked{/if}></label></td>
+                                            <td class="privacy-td privacy-td-center"><label><input type="radio" name="show_following" value="mutual_follow" {if condition="privacy_show_following == 'mutual_follow'"}checked{/if}></label></td>
+                                            <td class="privacy-td privacy-td-center"><label><input type="radio" name="show_following" value="private" {if condition="privacy_show_following == 'private'"}checked{/if}></label></td>
+                                        </tr>
+                                        <!-- 粉丝列表 -->
+                                        <tr class="privacy-row">
+                                            <td class="privacy-td">我的粉丝列表</td>
+                                            <td class="privacy-td privacy-td-center"><label><input type="radio" name="show_followers" value="public" {if condition="privacy_show_followers == 'public'"}checked{/if}></label></td>
+                                            <td class="privacy-td privacy-td-center"><label><input type="radio" name="show_followers" value="followers" {if condition="privacy_show_followers == 'followers'"}checked{/if}></label></td>
+                                            <td class="privacy-td privacy-td-center"><label><input type="radio" name="show_followers" value="following" {if condition="privacy_show_followers == 'following'"}checked{/if}></label></td>
+                                            <td class="privacy-td privacy-td-center"><label><input type="radio" name="show_followers" value="mutual_follow" {if condition="privacy_show_followers == 'mutual_follow'"}checked{/if}></label></td>
+                                            <td class="privacy-td privacy-td-center"><label><input type="radio" name="show_followers" value="private" {if condition="privacy_show_followers == 'private'"}checked{/if}></label></td>
+                                        </tr>
+                                        <!-- 点赞列表 -->
+                                        <tr class="privacy-row">
+                                            <td class="privacy-td">我的点赞列表</td>
+                                            <td class="privacy-td privacy-td-center"><label><input type="radio" name="show_likes" value="public" {if condition="privacy_show_likes == 'public'"}checked{/if}></label></td>
+                                            <td class="privacy-td privacy-td-center"><label><input type="radio" name="show_likes" value="followers" {if condition="privacy_show_likes == 'followers'"}checked{/if}></label></td>
+                                            <td class="privacy-td privacy-td-center"><label><input type="radio" name="show_likes" value="following" {if condition="privacy_show_likes == 'following'"}checked{/if}></label></td>
+                                            <td class="privacy-td privacy-td-center"><label><input type="radio" name="show_likes" value="mutual_follow" {if condition="privacy_show_likes == 'mutual_follow'"}checked{/if}></label></td>
+                                            <td class="privacy-td privacy-td-center"><label><input type="radio" name="show_likes" value="private" {if condition="privacy_show_likes == 'private'"}checked{/if}></label></td>
+                                        </tr>
+                                        <!-- 收藏列表 -->
+                                        <tr>
+                                            <td class="privacy-td">我的收藏列表</td>
+                                            <td class="privacy-td privacy-td-center"><label><input type="radio" name="show_favorites" value="public" {if condition="privacy_show_favorites == 'public'"}checked{/if}></label></td>
+                                            <td class="privacy-td privacy-td-center"><label><input type="radio" name="show_favorites" value="followers" {if condition="privacy_show_favorites == 'followers'"}checked{/if}></label></td>
+                                            <td class="privacy-td privacy-td-center"><label><input type="radio" name="show_favorites" value="following" {if condition="privacy_show_favorites == 'following'"}checked{/if}></label></td>
+                                            <td class="privacy-td privacy-td-center"><label><input type="radio" name="show_favorites" value="mutual_follow" {if condition="privacy_show_favorites == 'mutual_follow'"}checked{/if}></label></td>
+                                            <td class="privacy-td privacy-td-center"><label><input type="radio" name="show_favorites" value="private" {if condition="privacy_show_favorites == 'private'"}checked{/if}></label></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="privacy-submit">
+                                <button type="submit" class="btn btn-primary btn-primary-blue">
+                                    保存设置
+                                </button>
+                            </div>
+                        </form>
+
+                        <div class="privacy-description">
+                            <strong>说明：</strong><br>
+                            · <strong>公开</strong>：所有访问者都可以看到该列表<br>
+                            · <strong>仅我的粉丝</strong>：只有关注了您的用户才能看到该列表<br>
+                            · <strong>仅我的关注</strong>：只有您关注的用户才能看到该列表<br>
+                            · <strong>仅相互关注</strong>：只有与您互相关注的用户才能看到该列表<br>
+                            · <strong>私密</strong>：只有您自己可以看到该列表<br>
+                            · 无论哪种设置，顶部「关注 xx、粉丝 xx」等数字依然显示。
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <style>
+        /* 隐私设置页样式（独立样式：字号与颜色使用主题变量保持一致） */
+
+        .privacy-hint {
+            color: var(--text-secondary, #666);
+            font-size: var(--font-size-sm);             /* 14px */
+            margin-bottom: 16px;
+            line-height: 1.6;
+        }
+
+        .privacy-table-wrapper {
+            border: 1px solid var(--border-color, #eee);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .privacy-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: var(--font-size-base);
+        }
+
+        .privacy-table thead tr {
+            background: var(--background-muted, #fafafa);
+        }
+
+        .privacy-th {
+            text-align: center;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border-color, #eee);
+            font-weight: 600;
+            font-size: var(--font-size-base);
+        }
+
+        .privacy-th-label {
+            text-align: left;
+        }
+
+        .privacy-row {
+            border-bottom: 1px solid var(--border-light, #f0f0f0);
+        }
+
+        .privacy-td {
+            padding: 12px 14px;
+            font-size: var(--font-size-base);
+        }
+
+        .privacy-td-center {
+            text-align: center;
+        }
+
+        .privacy-submit {
+            margin-top: 18px;
+            text-align: right;
+        }
+
+        .privacy-submit .btn {
+            padding: 8px 22px;
+            background-color: var(--primary-color, #3b82f6);
+            color: var(--text-invert);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: var(--font-size-base);
+        }
+
+        .privacy-description {
+            margin-top: 24px;
+            padding: 12px 16px;
+            background-color: var(--background-muted, #f8fafc);
+            border-radius: 6px;
+            color: var(--text-secondary, #555);
+            font-size: var(--font-size-sm);
+            line-height: 1.8;
+        }
+    </style>
+
+{include file="footer"}

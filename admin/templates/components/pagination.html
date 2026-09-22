@@ -1,0 +1,169 @@
+<?php
+/**
+ * 公共分页组件
+ * 使用方法：
+ * 1. 引入组件：include ADMIN_PATH . '/templates/components/pagination.html';
+ * 2. 传入参数：
+ *    - $page: 当前页码
+ *    - $totalPages: 总页数
+ *    - $total: 总记录数
+ *    - $limit: 每页记录数
+ *    - $action: 控制器动作
+ *    - $filters: 过滤参数数组（可选）
+ */
+
+// 确保必要参数存在
+if (!isset($page)) $page = 1;
+if (!isset($totalPages)) $totalPages = 1;
+if (!isset($total)) $total = 0;
+if (!isset($limit)) $limit = 20;
+// action 未由调用方指定时，自动取当前 URL 的 action 参数（修复部分页面未传 action 导致链接跳错的问题）
+if (!isset($action)) $action = isset($_GET['action']) ? $_GET['action'] : 'log';
+if (!isset($filters)) $filters = [];
+// 每页条数可选项（由调用方传入；未传入时使用默认集合，保持向后兼容）
+if (!isset($pageSizes) || !is_array($pageSizes) || empty($pageSizes)) {
+    $pageSizes = [10, 20, 50, 100];
+    // 当前每页条数不在集合中时并入，避免下拉框选中值丢失
+    if (!in_array($limit, $pageSizes)) {
+        $pageSizes[] = $limit;
+        sort($pageSizes);
+    }
+}
+
+// 构建查询参数字符串
+function buildQueryString($pageNum, $filters) {
+    global $action, $limit;
+    $params = ['action' => $action, 'page' => $pageNum];
+
+    // 只添加非空的过滤器参数
+    foreach ($filters as $key => $value) {
+        if (!empty($value)) {
+            $params[$key] = $value;
+        }
+    }
+
+    // 每页条数自动并入所有分页链接（控制器已统一支持 limit 白名单）
+    $params['limit'] = $limit;
+
+    return http_build_query($params);
+}
+?>
+
+<?php if ($total > 0): ?>
+    <div class="pagination">
+        <nav>
+            <ul>
+                <!-- 上一页 -->
+                <li>
+                    <?php if ($page > 1): ?>
+                        <a href="admin.php?<?php echo buildQueryString(max(1, $page - 1), $filters); ?>">
+                            上一页
+                        </a>
+                    <?php else: ?>
+                        <span class="disabled">上一页</span>
+                    <?php endif; ?>
+                </li>
+                
+                <!-- 页码 -->
+                <?php 
+                    // 智能分页显示逻辑
+                    $showPages = 5;
+                    $halfPages = floor($showPages / 2);
+                    $startPage = max(1, $page - $halfPages);
+                    $endPage = min($totalPages, $startPage + $showPages - 1);
+                    
+                    if ($endPage - $startPage + 1 < $showPages) {
+                        $startPage = max(1, $endPage - $showPages + 1);
+                    }
+                ?>
+                
+                <!-- 第一页 -->
+                <?php if ($startPage > 1): ?>
+                    <li>
+                        <a href="admin.php?<?php echo buildQueryString(1, $filters); ?>">1</a>
+                    </li>
+                    <?php if ($startPage > 2): ?>
+                        <li class="ellipsis">...</li>
+                    <?php endif; ?>
+                <?php endif; ?>
+                
+                <!-- 中间页码 -->
+                <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                    <?php if ($i == $page): ?>
+                        <li>
+                            <span class="active"><?php echo $i; ?></span>
+                        </li>
+                    <?php else: ?>
+                        <li>
+                            <a href="admin.php?<?php echo buildQueryString($i, $filters); ?>"><?php echo $i; ?></a>
+                        </li>
+                    <?php endif; ?>
+                <?php endfor; ?>
+                
+                <!-- 最后一页 -->
+                <?php if ($endPage < $totalPages): ?>
+                    <?php if ($endPage < $totalPages - 1): ?>
+                        <li class="ellipsis">...</li>
+                    <?php endif; ?>
+                    <li>
+                        <a href="admin.php?<?php echo buildQueryString($totalPages, $filters); ?>"><?php echo $totalPages; ?></a>
+                    </li>
+                <?php endif; ?>
+                
+                <!-- 页码跳转 -->
+                <li class="jump-form">
+                    <label>跳转到</label>
+                    <form method="GET" action="admin.php">
+                        <input type="hidden" name="action" value="<?php echo $action; ?>">
+                        <!-- 每页条数随表单提交，避免跳转后丢失 -->
+                        <input type="hidden" name="limit" value="<?php echo (int)$limit; ?>">
+                        <?php foreach ($filters as $key => $value): ?>
+                            <?php if (!empty($value) && $key !== 'limit'): ?>
+                                <input type="hidden" name="<?php echo $key; ?>" value="<?php echo urlencode($value); ?>">
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                        <input type="number" name="page" min="1" max="<?php echo $totalPages; ?>" value="<?php echo $page; ?>">
+                        <button type="submit">跳转</button>
+                    </form>
+                </li>
+                
+                <!-- 下一页 -->
+                <li>
+                    <?php if ($page < $totalPages): ?>
+                        <a href="admin.php?<?php echo buildQueryString(min($totalPages, $page + 1), $filters); ?>">下一页</a>
+                    <?php else: ?>
+                        <span class="disabled">下一页</span>
+                    <?php endif; ?>
+                </li>
+            </ul>
+        </nav>
+        
+        <!-- 分页信息 + 每页条数选择 -->
+        <div class="info">
+            共 <?php echo $total; ?> 条记录，共 <?php echo $totalPages; ?> 页
+            <!-- 每页条数下拉：切换后回到第 1 页，保留其他筛选/排序参数 -->
+            <span class="page-size">
+                <label for="page-size-select">每页</label>
+                <select id="page-size-select">
+                    <?php foreach ($pageSizes as $size): ?>
+                        <option value="<?php echo (int)$size; ?>" <?php echo ((int)$size === (int)$limit) ? 'selected' : ''; ?>><?php echo (int)$size; ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <span>条</span>
+            </span>
+            <script>
+            (function() {
+                // 切换每页条数：基于当前 URL 修改 limit 参数并移除页码参数后跳转
+                var select = document.getElementById('page-size-select');
+                if (!select) return;
+                select.addEventListener('change', function() {
+                    var params = new URLSearchParams(window.location.search);
+                    params.set('limit', this.value); // 设置新的每页条数
+                    params.delete('page');           // 回到第一页
+                    window.location.search = params.toString();
+                });
+            })();
+            </script>
+        </div>
+    </div>
+<?php endif; ?>

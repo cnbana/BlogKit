@@ -1,0 +1,58 @@
+<?php $currentAction = 'friendlink'; $pageTitle = '添加友情链接'; include 'components/page_wrapper.html'; ?>
+    
+    <!-- 操作栏 -->
+    <div class="action-section">
+        <a href="admin.php?action=friendlink" class="btn btn-secondary">返回友情链接列表</a>
+    </div>
+    
+    <!-- 添加友情链接表单 -->
+    <div class="content-section" style="margin-top: 20px;">
+        <div class="card">
+            <div class="card-header">
+                <h3>友情链接信息</h3>
+            </div>
+            <div class="card-body">
+                <form method="post" action="admin.php?action=friendlink&sub=save_add">
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="name" style="display: block; margin-bottom: 8px; font-weight: 600;">链接名称 <span style="color: #dc3545;">*</span></label>
+                        <input type="text" id="name" name="name" class="form-control" style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 16px;" required>
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="url" style="display: block; margin-bottom: 8px; font-weight: 600;">链接地址 <span style="color: #dc3545;">*</span></label>
+                        <input type="url" id="url" name="url" class="form-control" style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 16px;" required>
+                        <small style="color: #6c757d; display: block; margin-top: 5px;">请输入完整的URL地址，如：https://example.com</small>
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="description" style="display: block; margin-bottom: 8px; font-weight: 600;">链接描述</label>
+                        <textarea id="description" name="description" rows="3" class="form-control" style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 16px; font-family: inherit;"></textarea>
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="logo" style="display: block; margin-bottom: 8px; font-weight: 600;">链接Logo</label>
+                        <input type="text" id="logo" name="logo" class="form-control" style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 16px;">
+                        <small style="color: #6c757d; display: block; margin-top: 5px;">请输入Logo图片的完整URL地址</small>
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="sort" style="display: block; margin-bottom: 8px; font-weight: 600;">排序</label>
+                        <input type="number" id="sort" name="sort" value="0" class="form-control" style="width: 100px; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 16px;">
+                        <small style="color: #6c757d; display: block; margin-top: 5px;">数值越小，排序越靠前</small>
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <div class="form-check">
+                            <input type="checkbox" id="status" name="status" class="form-check-input" checked>
+                            <label for="status" class="form-check-label" style="margin-left: 10px;">启用</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions" style="margin-top: 30px; text-align: right;">
+                        <button type="submit" class="btn btn-primary" style="padding: 10px 30px; font-size: 16px;">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+<?php include 'components/footer_wrapper.html'; ?>

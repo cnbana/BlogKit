@@ -1,0 +1,35 @@
+<?php $currentAction = 'theme'; $pageTitle = '导入主题设置'; include 'components/page_wrapper.html'; ?>
+    
+    <!-- 操作栏 -->
+    <div class="action-section">
+        <a href="admin.php?action=theme&sub=settings&theme=<?php echo $theme; ?>" class="btn btn-secondary">返回设置</a>
+    </div>
+    
+    <!-- 导入表单 -->
+    <div class="settings-form" style="background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-top: 20px;">
+        <form action="admin.php?action=theme&sub=import_settings" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="theme" value="<?php echo $theme; ?>">
+            
+            <div class="form-group" style="margin-bottom: 25px;">
+                <label for="settings-file" style="display: block; margin-bottom: 8px; font-weight: 600; color: #495057;">
+                    选择设置文件
+                </label>
+                <p style="margin-bottom: 10px; font-size: 14px; color: #6c757d;">
+                    请选择一个JSON格式的主题设置文件进行导入。
+                </p>
+                <input 
+                    type="file" 
+                    id="settings-file" 
+                    name="settings_file" 
+                    accept=".json" 
+                    required
+                    style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 16px;"
+                >
+            </div>
+            
+            <div class="form-actions" style="margin-top: 30px; text-align: right;">
+                <button type="submit" class="btn btn-primary" style="padding: 12px 30px; font-size: 16px;">导入设置</button>
+            </div>
+        </form>
+    </div>
+<?php include 'components/footer_wrapper.html'; ?>

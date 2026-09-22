@@ -1,0 +1,121 @@
+<?php $currentAction = 'theme'; $pageTitle = '主题管理'; include 'components/page_wrapper.html'; ?>
+
+    <!--
+        主题管理页
+        安全说明：
+        1. 出于安全考虑已移除上传主题功能入口，主题仅可通过 FTP 等方式部署到 themes 目录
+        2. "设为默认/卸载"为 POST 表单提交并携带 CSRF 令牌，不再使用 GET 链接（防跨站请求伪造）
+        3. 已彻底移除主题预览功能（preview 方法、theme_preview.html 模板及前台 ?theme_preview= 参数支持）
+    -->
+
+    <!-- 操作栏 -->
+    <div class="action-section theme-toolbar">
+        <div></div>
+        <div class="theme-toolbar-controls">
+            <input type="text" id="theme-search" placeholder="搜索主题...">
+            <select id="theme-filter">
+                <option value="all">全部主题</option>
+                <option value="active">当前默认</option>
+                <option value="inactive">非默认</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- 主题统计信息 -->
+    <div class="stats-section theme-stats">
+        <div class="stat-item">
+            <strong>主题总数：</strong><?php echo count($themes); ?>
+        </div>
+        <div class="stat-item">
+            <strong>当前默认：</strong><?php echo $defaultTheme; ?>
+        </div>
+        <div class="stat-item">
+            <strong>可定制主题：</strong><?php
+                $customizableThemes = 0;
+                foreach ($themes as $theme) {
+                    $themePath = ROOT_PATH . '/themes/' . $theme['slug'] . '/theme.json';
+                    if (file_exists($themePath)) {
+                        $themeJson = json_decode(file_get_contents($themePath), true);
+                        if ($themeJson && isset($themeJson['settings']) && !empty($themeJson['settings'])) {
+                            $customizableThemes++;
+                        }
+                    }
+                }
+                echo $customizableThemes;
+            ?>
+        </div>
+    </div>
+
+    <!-- 主题网格 -->
+    <div class="theme-grid">
+        <?php foreach ($themes as $theme): ?>
+        <div class="theme-card">
+            <!-- 主题截图（无截图时显示占位图，支持暗色主题） -->
+            <?php if (!empty($theme['screenshot'])): ?>
+                <div class="theme-screenshot">
+                    <img src="../themes/<?php echo $theme['slug']; ?>/<?php echo $theme['screenshot']; ?>" alt="<?php echo $theme['name']; ?>">
+                </div>
+            <?php else: ?>
+                <div class="theme-screenshot theme-screenshot-placeholder">
+                    <span>无截图</span>
+                </div>
+            <?php endif; ?>
+
+            <div class="theme-card-header">
+                <h3><?php echo $theme['name']; ?></h3>
+                <?php if ($theme['slug'] == $defaultTheme): ?>
+                    <span class="default-badge">当前默认</span>
+                <?php endif; ?>
+            </div>
+
+            <!-- 主题详细信息 -->
+            <div class="theme-info">
+                <p><strong>版本：</strong><?php echo $theme['version']; ?></p>
+                <p><strong>作者：</strong><?php echo $theme['author']; ?></p>
+                <p class="theme-desc"><strong>描述：</strong><?php echo $theme['description']; ?></p>
+            </div>
+
+            <!-- 主题标签 -->
+            <div class="theme-tags">
+                <?php
+                // 检查主题是否有设置配置
+                $themePath = ROOT_PATH . '/themes/' . $theme['slug'] . '/theme.json';
+                $hasSettings = false;
+                if (file_exists($themePath)) {
+                    $themeJson = json_decode(file_get_contents($themePath), true);
+                    if ($themeJson && isset($themeJson['settings']) && !empty($themeJson['settings'])) {
+                        $hasSettings = true;
+                        echo '<span class="theme-tag theme-tag-custom">可定制</span>';
+                    }
+                }
+                echo '<span class="theme-tag theme-tag-slug">' . $theme['slug'] . '</span>';
+                ?>
+            </div>
+
+            <!-- 操作按钮（设为默认/卸载改用 POST 表单 + CSRF 令牌） -->
+            <div class="theme-actions">
+                <?php if ($theme['slug'] == $defaultTheme): ?>
+                    <button type="button" class="btn btn-secondary" disabled>已激活</button>
+                <?php else: ?>
+                    <form method="POST" action="admin.php?action=theme&sub=set_default" class="theme-action-form">
+                        <input type="hidden" name="theme" value="<?php echo $theme['slug']; ?>">
+                        <?php echo Security::getCsrfField(); ?>
+                        <button type="submit" class="btn btn-primary">设为默认</button>
+                    </form>
+                <?php endif; ?>
+                <?php if ($hasSettings): ?>
+                    <!-- 主题设置按钮（GET 只读页面，无风险） -->
+                    <a href="admin.php?action=theme&sub=settings&theme=<?php echo $theme['slug']; ?>" class="btn btn-info">主题设置</a>
+                <?php endif; ?>
+                <?php if ($theme['slug'] != $defaultTheme): ?>
+                    <form method="POST" action="admin.php?action=theme&sub=uninstall" class="theme-action-form" onsubmit="return confirm('确定要卸载这个主题吗？主题文件将被彻底删除！');">
+                        <input type="hidden" name="theme" value="<?php echo $theme['slug']; ?>">
+                        <?php echo Security::getCsrfField(); ?>
+                        <button type="submit" class="btn btn-danger">卸载</button>
+                    </form>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endforeach; ?>
+    </div>
+<?php include 'components/footer_wrapper.html'; ?>

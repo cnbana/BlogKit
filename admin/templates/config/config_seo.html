@@ -1,0 +1,556 @@
+            <!-- SEO设置内容 -->
+            <div class="form-container">
+                <form method="post" action="admin.php?action=<?php echo $currentAction; ?>&method=save">
+                    <input type="hidden" name="sub_page" value="<?php echo $sub; ?>">
+                    
+                    <!-- 首页SEO设置 -->
+                    <div class="form-section">
+                        <h4>首页SEO设置</h4>
+                        <div class="template-help">
+                            <h5>模板标签使用说明</h5>
+                            <ul>
+                                <li>点击模板标签即可将其添加到输入框中</li>
+                                <li>{site.name} - 显示站点名称</li>
+                                <li>{site.description} - 显示站点描述</li>
+                                <li>{site.keywords} - 显示站点关键词</li>
+                            </ul>
+                        </div>
+                        <div class="form-group">
+                            <label for="home_seo_title">标题</label>
+                            <input type="text" id="home_seo_title" name="home_seo_title" value="<?php echo isset($config['home_seo_title']) ? $config['home_seo_title'] : ''; ?>" placeholder="请输入首页标题">
+    
+                        </div>
+                        <div class="form-group">
+                            <label for="home_seo_description">描述</label>
+                            <textarea id="home_seo_description" name="home_seo_description" rows="3" placeholder="请输入首页描述"><?php echo isset($config['home_seo_description']) ? $config['home_seo_description'] : ''; ?></textarea>
+
+                        </div>
+                        <div class="form-group">
+                            <label for="home_seo_keywords">关键词</label>
+                            <input type="text" id="home_seo_keywords" name="home_seo_keywords" value="<?php echo isset($config['home_seo_keywords']) ? $config['home_seo_keywords'] : ''; ?>" placeholder="请输入首页关键词">
+
+                        </div>
+                    </div>
+                    
+                    <!-- 文章SEO设置 -->
+                    <div class="form-section">
+                        <h4>文章SEO设置</h4>
+                        <div class="template-help">
+                            <h5>模板标签使用说明</h5>
+                            <ul>
+                                <li>点击模板标签即可将其添加到输入框中</li>
+                                <li>{article.title} - 显示文章标题</li>
+                                <li>{article.category} - 显示文章分类</li>
+                                <li>{article.summary} - 显示文章摘要</li>
+                                <li>{article.tags} - 显示文章标签</li>
+                                <li>{site.name} - 显示站点名称</li>
+                            </ul>
+                        </div>
+                        <div class="form-group">
+                            <label for="article_seo_title">标题</label>
+                            <input type="text" id="article_seo_title" name="article_seo_title" value="<?php echo isset($config['article_seo_title']) ? $config['article_seo_title'] : ''; ?>" placeholder="请输入文章标题规则">
+
+                        </div>
+                        <div class="form-group">
+                            <label for="article_seo_description">描述</label>
+                            <textarea id="article_seo_description" name="article_seo_description" rows="3" placeholder="请输入文章描述规则"><?php echo isset($config['article_seo_description']) ? $config['article_seo_description'] : ''; ?></textarea>
+
+                        </div>
+                        <div class="form-group">
+                            <label for="article_seo_keywords">关键词</label>
+                            <input type="text" id="article_seo_keywords" name="article_seo_keywords" value="<?php echo isset($config['article_seo_keywords']) ? $config['article_seo_keywords'] : ''; ?>" placeholder="请输入文章关键词规则">
+
+                        </div>
+                    </div>
+                    
+                    <!-- 分类SEO设置 -->
+                    <div class="form-section">
+                        <h4>分类SEO设置</h4>
+                        <div class="template-help">
+                            <h5>模板标签使用说明</h5>
+                            <ul>
+                                <li>点击模板标签即可将其添加到输入框中</li>
+                                <li>{category.name} - 显示分类名称</li>
+                                <li>{category.description} - 显示分类描述</li>
+                                <li>{category.keywords} - 显示分类关键词</li>
+                                <li>{site.name} - 显示站点名称</li>
+                            </ul>
+                        </div>
+                        <div class="form-group">
+                            <label for="category_seo_title">标题</label>
+                            <input type="text" id="category_seo_title" name="category_seo_title" value="<?php echo isset($config['category_seo_title']) ? $config['category_seo_title'] : ''; ?>" placeholder="请输入分类标题规则">
+
+                        </div>
+                        <div class="form-group">
+                            <label for="category_seo_description">描述</label>
+                            <textarea id="category_seo_description" name="category_seo_description" rows="3" placeholder="请输入分类描述规则"><?php echo isset($config['category_seo_description']) ? $config['category_seo_description'] : ''; ?></textarea>
+
+                        </div>
+                        <div class="form-group">
+                            <label for="category_seo_keywords">关键词</label>
+                            <input type="text" id="category_seo_keywords" name="category_seo_keywords" value="<?php echo isset($config['category_seo_keywords']) ? $config['category_seo_keywords'] : ''; ?>" placeholder="请输入分类关键词规则">
+
+                        </div>
+                    </div>
+                    
+                    <!-- 标签SEO设置 -->
+                    <div class="form-section">
+                        <h4>标签SEO设置</h4>
+                        <div class="template-help">
+                            <h5>模板标签使用说明</h5>
+                            <ul>
+                                <li>点击模板标签即可将其添加到输入框中</li>
+                                <li>{tag.name} - 显示标签名称</li>
+                                <li>{site.name} - 显示站点名称</li>
+                                <li>{site.description} - 显示站点描述</li>
+                                <li>{site.keywords} - 显示站点关键词</li>
+                            </ul>
+                        </div>
+                        <div class="form-group">
+                            <label for="tag_seo_title">标题</label>
+                            <input type="text" id="tag_seo_title" name="tag_seo_title" value="<?php echo isset($config['tag_seo_title']) ? $config['tag_seo_title'] : ''; ?>" placeholder="请输入标签标题规则">
+
+                        </div>
+                        <div class="form-group">
+                            <label for="tag_seo_description">描述</label>
+                            <textarea id="tag_seo_description" name="tag_seo_description" rows="3" placeholder="请输入标签描述规则"><?php echo isset($config['tag_seo_description']) ? $config['tag_seo_description'] : ''; ?></textarea>
+
+                        </div>
+                        <div class="form-group">
+                            <label for="tag_seo_keywords">关键词</label>
+                            <input type="text" id="tag_seo_keywords" name="tag_seo_keywords" value="<?php echo isset($config['tag_seo_keywords']) ? $config['tag_seo_keywords'] : ''; ?>" placeholder="请输入标签关键词规则">
+
+                        </div>
+                    </div>
+                    
+                    <!-- 页面SEO设置 -->
+                    <div class="form-section">
+                        <h4>页面SEO设置</h4>
+                        <div class="template-help">
+                            <h5>模板标签使用说明</h5>
+                            <ul>
+                                <li>点击模板标签即可将其添加到输入框中</li>
+                                <li>{page.title} - 显示页面标题</li>
+                                <li>{page.description} - 显示页面描述</li>
+                                <li>{page.keywords} - 显示页面关键词</li>
+                                <li>{site.name} - 显示站点名称</li>
+                            </ul>
+                        </div>
+                        <div class="form-group">
+                            <label for="page_seo_title">标题</label>
+                            <input type="text" id="page_seo_title" name="page_seo_title" value="<?php echo isset($config['page_seo_title']) ? $config['page_seo_title'] : ''; ?>" placeholder="请输入页面标题规则">
+
+                        </div>
+                        <div class="form-group">
+                            <label for="page_seo_description">描述</label>
+                            <textarea id="page_seo_description" name="page_seo_description" rows="3" placeholder="请输入页面描述规则"><?php echo isset($config['page_seo_description']) ? $config['page_seo_description'] : ''; ?></textarea>
+
+                        </div>
+                        <div class="form-group">
+                            <label for="page_seo_keywords">关键词</label>
+                            <input type="text" id="page_seo_keywords" name="page_seo_keywords" value="<?php echo isset($config['page_seo_keywords']) ? $config['page_seo_keywords'] : ''; ?>" placeholder="请输入页面关键词规则">
+
+                        </div>
+                    </div>
+                    
+                    <!-- 搜索SEO设置 -->
+                    <div class="form-section">
+                        <h4>搜索SEO设置</h4>
+                        <div class="template-help">
+                            <h5>模板标签使用说明</h5>
+                            <ul>
+                                <li>点击模板标签即可将其添加到输入框中</li>
+                                <li>{search.keyword} - 显示搜索关键词</li>
+                                <li>{site.name} - 显示站点名称</li>
+                                <li>{site.description} - 显示站点描述</li>
+                                <li>{site.keywords} - 显示站点关键词</li>
+                            </ul>
+                        </div>
+                        <div class="form-group">
+                            <label for="search_seo_title">标题</label>
+                            <input type="text" id="search_seo_title" name="search_seo_title" value="<?php echo isset($config['search_seo_title']) ? $config['search_seo_title'] : ''; ?>" placeholder="请输入搜索标题规则">
+
+                        </div>
+                        <div class="form-group">
+                            <label for="search_seo_description">描述</label>
+                            <textarea id="search_seo_description" name="search_seo_description" rows="3" placeholder="请输入搜索描述规则"><?php echo isset($config['search_seo_description']) ? $config['search_seo_description'] : ''; ?></textarea>
+
+                        </div>
+                        <div class="form-group">
+                            <label for="search_seo_keywords">关键词</label>
+                            <input type="text" id="search_seo_keywords" name="search_seo_keywords" value="<?php echo isset($config['search_seo_keywords']) ? $config['search_seo_keywords'] : ''; ?>" placeholder="请输入搜索关键词规则">
+
+                        </div>
+                    </div>
+                    
+                    <!-- 用户主页SEO设置 -->
+                    <div class="form-section">
+                        <h4>用户主页SEO设置</h4>
+                        <div class="template-help">
+                            <h5>模板标签使用说明</h5>
+                            <ul>
+                                <li>点击模板标签即可将其添加到输入框中</li>
+                                <li>{user.nickname} - 显示用户昵称</li>
+                                <li>{site.name} - 显示站点名称</li>
+                                <li>{site.description} - 显示站点描述</li>
+                                <li>{site.keywords} - 显示站点关键词</li>
+                            </ul>
+                        </div>
+                        <div class="form-group">
+                            <label for="user_seo_title">标题</label>
+                            <input type="text" id="user_seo_title" name="user_seo_title" value="<?php echo isset($config['user_seo_title']) ? $config['user_seo_title'] : ''; ?>" placeholder="请输入用户主页标题规则">
+
+                        </div>
+                        <div class="form-group">
+                            <label for="user_seo_description">描述</label>
+                            <textarea id="user_seo_description" name="user_seo_description" rows="3" placeholder="请输入用户主页描述规则"><?php echo isset($config['user_seo_description']) ? $config['user_seo_description'] : ''; ?></textarea>
+
+                        </div>
+                        <div class="form-group">
+                            <label for="user_seo_keywords">关键词</label>
+                            <input type="text" id="user_seo_keywords" name="user_seo_keywords" value="<?php echo isset($config['user_seo_keywords']) ? $config['user_seo_keywords'] : ''; ?>" placeholder="请输入用户主页关键词规则">
+
+                        </div>
+                    </div>
+
+                    <!-- 归档页面 SEO 设置 -->
+                    <div class="form-section">
+                        <h4>归档页面 SEO 设置</h4>
+                        <div class="template-help">
+                            <h5>归档页面设置说明</h5>
+                            <ul>
+                                <li>归档页面展示按时间维度归档的文章列表（如 /archives/2024）</li>
+                                <li>独立的标题和描述有助于搜索引擎理解归档页面对内容的组织方式</li>
+                            </ul>
+                        </div>
+                        <div class="form-group">
+                            <label for="archives_seo_title">归档页面标题</label>
+                            <input type="text" id="archives_seo_title" name="archives_seo_title" value="<?php echo isset($config['archives_seo_title']) ? htmlspecialchars($config['archives_seo_title']) : ''; ?>" placeholder="例如：文章归档 - {site.name}">
+                        </div>
+                        <div class="form-group">
+                            <label for="archives_seo_description">归档页面描述</label>
+                            <textarea id="archives_seo_description" name="archives_seo_description" rows="3" placeholder="请输入归档页面的 meta description 内容"><?php echo isset($config['archives_seo_description']) ? htmlspecialchars($config['archives_seo_description']) : ''; ?></textarea>
+                        </div>
+                    </div>
+                    
+                    <!-- robots.txt设置 -->
+                    <div class="form-section">
+                        <h4>robots.txt设置</h4>
+                        <div class="template-help">
+                            <h5>robots.txt设置说明</h5>
+                            <ul>
+                                <li>robots.txt是告诉搜索引擎哪些页面可以爬取，哪些页面不可以爬取的文件</li>
+                                <li>您可以使用预设模板快速生成标准的robots.txt内容</li>
+                                <li>也可以根据需要自定义robots.txt内容</li>
+                            </ul>
+                        </div>
+                        <div class="form-group">
+                            <label>预设模板</label>
+                            <div class="preset-templates">
+                                <button type="button" class="btn btn-sm btn-default" onclick="setRobotsTemplate('default')">默认模板</button>
+                                <button type="button" class="btn btn-sm btn-default" onclick="setRobotsTemplate('allow-all')">允许所有</button>
+                                <button type="button" class="btn btn-sm btn-default" onclick="setRobotsTemplate('disallow-all')">禁止所有</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="robots_txt">robots.txt内容</label>
+                            <textarea id="robots_txt" name="robots_txt" rows="10" placeholder="请输入robots.txt内容"><?php echo isset($config['robots_txt']) ? $config['robots_txt'] : ''; ?></textarea>
+                        </div>
+                    </div>
+                    
+                    <!-- 站点地图设置 -->
+                    <div class="form-section">
+                        <h4>站点地图设置</h4>
+                        <div class="template-help">
+                            <h5>站点地图设置说明</h5>
+                            <ul>
+                                <li>站点地图(sitemap)是告诉搜索引擎网站结构的文件，有助于提高网站的索引覆盖率</li>
+                                <li>启用站点地图后，系统会自动生成和更新sitemap.xml文件</li>
+                                <li>您可以设置更新间隔和包含的内容类型</li>
+                            </ul>
+                        </div>
+                        <div class="form-group">
+                            <label for="sitemap_enabled">启用站点地图</label>
+                            <select id="sitemap_enabled" name="sitemap_enabled">
+                                <option value="1" <?php echo isset($config['sitemap_enabled']) && $config['sitemap_enabled'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo !isset($config['sitemap_enabled']) || $config['sitemap_enabled'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="sitemap_filename">站点地图文件名</label>
+                            <input type="text" id="sitemap_filename" name="sitemap_filename" value="<?php echo isset($config['sitemap_filename']) ? $config['sitemap_filename'] : 'sitemap.xml'; ?>" placeholder="请输入站点地图文件名">
+                        </div>
+                        <div class="form-group">
+                            <label>包含内容类型</label>
+                            <div class="checkbox-group">
+                                <label><input type="checkbox" name="sitemap_include_articles" value="1" <?php echo isset($config['sitemap_include_articles']) && $config['sitemap_include_articles'] == '1' ? 'checked' : 'checked'; ?>> 文章</label>
+                                <label><input type="checkbox" name="sitemap_include_categories" value="1" <?php echo isset($config['sitemap_include_categories']) && $config['sitemap_include_categories'] == '1' ? 'checked' : 'checked'; ?>> 分类</label>
+                                <label><input type="checkbox" name="sitemap_include_tags" value="1" <?php echo isset($config['sitemap_include_tags']) && $config['sitemap_include_tags'] == '1' ? 'checked' : 'checked'; ?>> 标签</label>
+                                <label><input type="checkbox" name="sitemap_include_pages" value="1" <?php echo isset($config['sitemap_include_pages']) && $config['sitemap_include_pages'] == '1' ? 'checked' : 'checked'; ?>> 页面</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <button type="button" class="btn btn-sm btn-primary" onclick="generateSitemap()">手动生成站点地图</button>
+                            <span class="help-text">点击按钮手动生成或更新站点地图</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 提交按钮 -->
+                    <div class="buttons">
+                        <button type="submit" class="btn btn-primary">保存设置</button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- 模板标签点击填充脚本 -->
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    // 跟踪当前活动的输入框
+                    let currentActiveInput = null;
+                    
+                    // 监听所有输入框的聚焦事件，记录当前活动输入框
+                    document.querySelectorAll('input[name$="_seo_title"], input[name$="_seo_description"], input[name$="_seo_keywords"], textarea[name$="_seo_title"], textarea[name$="_seo_description"], textarea[name$="_seo_keywords"]').forEach(function(input) {
+                        input.addEventListener('focus', function() {
+                            currentActiveInput = this;
+                        });
+                    });
+                    
+                    // 为模板标签使用说明中的标签添加点击事件
+                    document.querySelectorAll('.template-help li').forEach(function(li) {
+                        // 提取标签内容（如 {site.name}）
+                        const tagMatch = li.textContent.match(/\{[^}]+\}/);
+                        if (tagMatch) {
+                            const tagContent = tagMatch[0];
+                            // 为包含模板标签的列表项添加点击事件
+                            li.style.cursor = 'pointer';
+                            li.style.color = '#0066cc';
+                            li.style.fontWeight = '500';
+                            li.addEventListener('click', function() {
+                                if (currentActiveInput) {
+                                    // 将标签内容添加到当前活动输入框
+                                    currentActiveInput.value += tagContent;
+                                    // 聚焦到输入框
+                                    currentActiveInput.focus();
+                                }
+                            });
+                            // 添加悬停效果
+                            li.addEventListener('mouseenter', function() {
+                                this.style.backgroundColor = '#f8f9fa';
+                                this.style.borderRadius = '4px';
+                                this.style.padding = '0 4px';
+                            });
+                            li.addEventListener('mouseleave', function() {
+                                this.style.backgroundColor = '';
+                                this.style.borderRadius = '';
+                                this.style.padding = '';
+                            });
+                        }
+                    });
+                });
+            </script>
+            
+            <!-- 模板标签样式 -->
+            <style>
+                .template-help {
+                    margin-bottom: 15px;
+                    padding: 10px;
+                    background-color: #fff3cd;
+                    border: 1px solid #ffeaa7;
+                    border-radius: 5px;
+                    font-size: 13px;
+                    color: #856404;
+                }
+                .template-help h5 {
+                    margin-top: 0;
+                    margin-bottom: 5px;
+                    font-weight: bold;
+                }
+                .template-help ul {
+                    margin: 0;
+                    padding-left: 20px;
+                }
+                .template-help li {
+                    margin-bottom: 3px;
+                }
+                .preset-templates {
+                    margin-top: 5px;
+                }
+                .preset-templates button {
+                    margin-right: 10px;
+                    margin-bottom: 5px;
+                }
+                .checkbox-group {
+                    margin-top: 5px;
+                }
+                .checkbox-group label {
+                    display: inline-block;
+                    margin-right: 15px;
+                    margin-bottom: 5px;
+                }
+                .help-text {
+                    margin-left: 10px;
+                    font-size: 12px;
+                    color: #6c757d;
+                }
+            </style>
+            
+            <!-- robots.txt和站点地图相关脚本 -->
+            <script>
+                // 设置robots.txt模板
+                function setRobotsTemplate(type) {
+                    const robotsTxt = document.getElementById('robots_txt');
+                    if (!robotsTxt) return;
+                    
+                    let templateContent = '';
+                    
+                    switch (type) {
+                        case 'default':
+                            templateContent = `User-agent: *
+Disallow: /admin/
+Disallow: /api/
+Disallow: /includes/
+Disallow: /core/
+Disallow: /themes/
+
+Sitemap: ${window.location.origin}/sitemap.xml`;
+                            break;
+                        case 'allow-all':
+                            templateContent = `User-agent: *
+Allow: /
+
+Sitemap: ${window.location.origin}/sitemap.xml`;
+                            break;
+                        case 'disallow-all':
+                            templateContent = `User-agent: *
+Disallow: /`;
+                            break;
+                    }
+                    
+                    robotsTxt.value = templateContent;
+                }
+                
+                // 手动生成站点地图
+                function generateSitemap() {
+                    if (confirm('确定要手动生成站点地图吗？')) {
+                        const button = event.target;
+                        const originalText = button.textContent;
+                        
+                        // 显示生成中状态
+                        button.disabled = true;
+                        
+                        // 添加进度条到按钮
+                        const progressBar = document.createElement('div');
+                        progressBar.style.width = '0%';
+                        progressBar.style.height = '100%';
+                        progressBar.style.backgroundColor = '#4CAF50';
+                        progressBar.style.position = 'absolute';
+                        progressBar.style.top = '0';
+                        progressBar.style.left = '0';
+                        progressBar.style.zIndex = '1';
+                        progressBar.style.transition = 'width 0.3s ease';
+                        
+                        const progressText = document.createElement('span');
+                        progressText.style.position = 'relative';
+                        progressText.style.zIndex = '2';
+                        progressText.textContent = '生成中... 0%';
+                        
+                        button.style.position = 'relative';
+                        button.innerHTML = '';
+                        button.appendChild(progressBar);
+                        button.appendChild(progressText);
+                        
+                        // 模拟进度更新
+                        let progress = 0;
+                        const interval = setInterval(() => {
+                            progress += 10;
+                            if (progress <= 100) {
+                                progressBar.style.width = progress + '%';
+                                progressText.textContent = '生成中... ' + progress + '%';
+                            } else {
+                                clearInterval(interval);
+                            }
+                        }, 200);
+                        
+                        // 调用后端API生成站点地图
+                        fetch('admin.php?action=sitemap_generate', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded'
+                            },
+                            body: 'sub_page=seo'
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            // 清除进度条
+                            button.style.position = '';
+                            button.innerHTML = originalText;
+                            button.disabled = false;
+                            
+                            // 显示生成结果
+                            const resultDiv = document.createElement('div');
+                            if (data.success) {
+                                resultDiv.className = 'alert alert-success';
+                                resultDiv.style.marginTop = '10px';
+                                resultDiv.style.padding = '15px';
+                                resultDiv.style.border = '1px solid #c3e6cb';
+                                resultDiv.style.borderRadius = '5px';
+                                resultDiv.style.backgroundColor = '#d4edda';
+                                resultDiv.style.color = '#155724';
+                                resultDiv.style.position = 'relative';
+                                resultDiv.innerHTML = `
+                                    <button type="button" class="close" onclick="this.parentElement.remove();" style="position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 16px; cursor: pointer;">&times;</button>
+                                    <strong>站点地图生成成功！</strong>
+                                    <p>站点地图文件已生成，您可以通过以下方式验证：</p>
+                                    <ul>
+                                        <li>访问：<a href="${data.url}" target="_blank">${data.url}</a></li>
+                                        <li>检查文件是否存在且包含网站内容</li>
+                                        <li>在Google Search Console中提交站点地图</li>
+                                    </ul>
+                                `;
+                            } else {
+                                resultDiv.className = 'alert alert-danger';
+                                resultDiv.style.marginTop = '10px';
+                                resultDiv.style.padding = '15px';
+                                resultDiv.style.border = '1px solid #f5c6cb';
+                                resultDiv.style.borderRadius = '5px';
+                                resultDiv.style.backgroundColor = '#f8d7da';
+                                resultDiv.style.color = '#721c24';
+                                resultDiv.style.position = 'relative';
+                                resultDiv.innerHTML = `
+                                    <button type="button" class="close" onclick="this.parentElement.remove();" style="position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 16px; cursor: pointer;">&times;</button>
+                                    <strong>站点地图生成失败！</strong>
+                                    <p>${data.message}</p>
+                                `;
+                            }
+                            
+                            // 插入结果提示
+                            button.parentElement.appendChild(resultDiv);
+                        })
+                        .catch(error => {
+                            // 清除进度条
+                            button.style.position = '';
+                            button.innerHTML = originalText;
+                            button.disabled = false;
+                            
+                            // 显示错误结果
+                            const resultDiv = document.createElement('div');
+                            resultDiv.className = 'alert alert-danger';
+                            resultDiv.style.marginTop = '10px';
+                            resultDiv.style.padding = '15px';
+                            resultDiv.style.border = '1px solid #f5c6cb';
+                            resultDiv.style.borderRadius = '5px';
+                            resultDiv.style.backgroundColor = '#f8d7da';
+                            resultDiv.style.color = '#721c24';
+                            resultDiv.style.position = 'relative';
+                            resultDiv.innerHTML = `
+                                <button type="button" class="close" onclick="this.parentElement.remove();" style="position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 16px; cursor: pointer;">&times;</button>
+                                <strong>站点地图生成失败！</strong>
+                                <p>网络错误，请稍后重试。</p>
+                            `;
+                            
+                            // 插入结果提示
+                            button.parentElement.appendChild(resultDiv);
+                        });
+                    }
+                }
+            </script>

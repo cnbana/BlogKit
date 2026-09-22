@@ -1,0 +1,72 @@
+<?php $currentAction = 'comment'; $pageTitle = '编辑评论'; $pageCss = 'comment.css'; include 'components/page_wrapper.html'; ?>
+    
+    <div class="form-container">
+        <div style="margin-bottom: 20px;">
+            <a href="admin.php?action=comment" class="btn btn-secondary">&larr; 返回评论列表</a>
+        </div>
+        
+        <div class="comment-info">
+            <h3>评论基本信息</h3>
+            <p><strong>评论ID:</strong> <?php echo $comment['id']; ?></p>
+            <p><strong>文章:</strong> <a href="admin.php?action=article&sub=edit&id=<?php echo $comment['article_id']; ?>" target="_blank"><?php echo htmlspecialchars($comment['article_title']); ?></a></p>
+            <p><strong>用户:</strong> <?php echo htmlspecialchars($comment['nickname'] ?: $comment['username']); ?></p>
+            <p><strong>评论时间:</strong> <?php echo $comment['created_at']; ?></p>
+            <?php if (!empty($comment['updated_at'])): ?>
+            <p><strong>更新时间:</strong> <?php echo date('Y-m-d H:i:s', $comment['updated_at']); ?></p>
+            <?php endif; ?>
+            <p><strong>状态:</strong> <?php echo $comment['status'] == 1 ? '<span class="badge badge-success">已审核</span>' : '<span class="badge badge-warning">待审核</span>'; ?></p>
+            <p><strong>置顶:</strong> <?php echo $comment['is_top'] == 1 ? '<span class="badge badge-info">已置顶</span>' : '<span class="badge badge-secondary">未置顶</span>'; ?></p>
+        </div>
+        
+        <form method="POST" id="comment-form">
+            <input type="hidden" name="id" value="<?php echo $comment['id']; ?>">
+            
+            <div class="form-group">
+                <label for="content">评论内容</label>
+                <textarea id="content" name="content" rows="10" required><?php echo htmlspecialchars($comment['content']); ?></textarea>
+            </div>
+            
+            <div class="form-group">
+                <button type="button" class="btn btn-success btn-lg" onclick="saveComment()">保存修改</button>
+                <a href="admin.php?action=comment" class="btn btn-secondary">取消</a>
+            </div>
+        </form>
+    </div>
+</main>
+
+<!-- 页面专属样式已归拢至 assets/css/comment.css（经 $pageCss 加载，2026-09 样式统一） -->
+
+<script>
+function saveComment() {
+    var form = document.getElementById('comment-form');
+    var content = document.getElementById('content').value.trim();
+    
+    if (!content) {
+        alert('评论内容不能为空');
+        return;
+    }
+    
+    // 使用 AJAX 提交
+    var formData = new FormData(form);
+    
+    fetch('admin.php?action=comment&sub=update', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.code === 200) {
+            alert(data.msg);
+            window.location.href = 'admin.php?action=comment';
+        } else {
+            alert(data.msg || '操作失败');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('操作失败，请重试');
+    });
+}
+</script>
+
+<?php include 'components/footer_wrapper.html'; ?>

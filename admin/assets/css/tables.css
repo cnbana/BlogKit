@@ -1,0 +1,182 @@
+/* ============================================================
+   BlogKit Admin - Tables CSS
+   统一表格样式：基本表格、增强表格、数据表格、暗色主题适配
+   ============================================================ */
+
+/* 表格样式 */
+.table-container {
+    background-color: white;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+    color: #333;
+}
+
+tr:hover {
+    background-color: #f5f5f5;
+}
+
+/* 表格样式增强 */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th,
+.table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+    color: #333;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.table-striped tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.075);
+}
+
+/* 选中行高亮样式 */
+.table tbody tr.selected,
+table tbody tr.selected {
+    background-color: #e7f3ff !important;
+}
+
+.table tbody tr.selected td,
+table tbody tr.selected td {
+    background-color: #e7f3ff !important;
+}
+
+/* ==================== 暗色主题表格适配 ==================== */
+
+/* 表格组件深色主题 */
+body.dark-theme .table-container {
+    background-color: #1e293b;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-theme table th,
+body.dark-theme .table th {
+    background-color: #334155;
+    color: #e2e8f0;
+    border-bottom-color: #475569;
+}
+
+body.dark-theme table td,
+body.dark-theme .table td {
+    color: #e2e8f0;
+    border-bottom-color: #334155;
+}
+
+body.dark-theme tr:hover,
+body.dark-theme .table-striped tbody tr:hover {
+    background-color: #334155;
+}
+
+body.dark-theme .table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* 表格容器深色主题 */
+body.dark-theme .table-container {
+    background-color: #1e293b !important;
+}
+
+/* 小表格深色主题 */
+body.dark-theme .data-table th {
+    background-color: #334155 !important;
+    color: #e2e8f0 !important;
+}
+
+body.dark-theme .data-table td {
+    color: #e2e8f0 !important;
+    border-bottom-color: #334155 !important;
+}
+
+body.dark-theme .data-table tr:hover {
+    background-color: #334155 !important;
+}
+
+/* 选中行高亮暗色主题 */
+body.dark-theme .table tbody tr.selected,
+body.dark-theme table tbody tr.selected {
+    background-color: #1e40af !important;
+}
+
+body.dark-theme .table tbody tr.selected td,
+body.dark-theme table tbody tr.selected td {
+    background-color: #1e40af !important;
+}
+
+/* ==================== 表格行悬停深色模式增强 ==================== */
+
+/* 所有表格行悬停深色主题（优先级最高） */
+body.dark-theme tr:hover,
+body.dark-theme table tr:hover,
+body.dark-theme .table tr:hover,
+body.dark-theme .data-table tr:hover,
+body.dark-theme .table-striped tbody tr:hover {
+    background-color: #334155 !important;
+}
+
+/* 所有表格单元格悬停深色主题 */
+body.dark-theme tr:hover td,
+body.dark-theme table tr:hover td,
+body.dark-theme .table tr:hover td,
+body.dark-theme .data-table tr:hover td {
+    background-color: #334155 !important;
+}
+
+/* 斑马纹表格奇数行悬停深色主题 */
+body.dark-theme .table-striped tbody tr:nth-of-type(odd):hover {
+    background-color: #334155 !important;
+}
+
+/* 内联样式表格行悬停深色主题 */
+body.dark-theme [style*="background-color:"] tr:hover,
+body.dark-theme [style*="background-color:"] table tr:hover {
+    background-color: #334155 !important;
+}
+
+/* 数据表格深色主题 */
+body.dark-theme .data-table {
+    background-color: #1e293b !important;
+    color: #e2e8f0 !important;
+}
+
+body.dark-theme .data-table th {
+    background-color: #334155 !important;
+    color: #e2e8f0 !important;
+    border-bottom-color: #475569 !important;
+}
+
+body.dark-theme .data-table td {
+    color: #e2e8f0 !important;
+    border-bottom-color: #334155 !important;
+}
+
+body.dark-theme .data-table tr:hover {
+    background-color: #334155 !important;
+}

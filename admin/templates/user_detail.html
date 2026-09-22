@@ -1,0 +1,99 @@
+<?php $currentAction = 'user'; $pageTitle = '用户详情'; include 'components/page_wrapper.html'; ?>
+    
+    <!-- 操作栏-->
+    <div class="action-section">
+                <a href="admin.php?action=user" class="btn btn-info">返回用户列表</a>
+                <a href="admin.php?action=user&sub=edit&id=<?php echo $user['id']; ?>" class="btn btn-primary">编辑用户</a>
+            </div>
+            
+            <!-- 用户基本信息 -->
+            <div class="info-card">
+                <h3>基本信息</h3>
+                <div class="info-row">
+                    <div class="info-label">用户ID</div>
+                    <div class="info-value"><?php echo $user['id']; ?></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">用户名</div>
+                    <div class="info-value"><?php echo $user['username']; ?></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">昵称</div>
+                    <div class="info-value"><?php echo $user['nickname']; ?></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">邮箱</div>
+                    <div class="info-value"><?php echo $user['email']; ?></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">角色</div>
+                    <div class="info-value">
+                        <span class="role-tag <?php echo $user['role_class']; ?>">
+                            <?php echo $user['role_name']; ?>
+                        </span>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">状态</div>
+                    <div class="info-value">
+                        <span class="status-tag status-<?php echo $user['status'] == 1 ? 'active' : 'inactive'; ?>">
+                            <?php echo $user['status_name']; ?>
+                        </span>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">创建时间</div>
+                    <div class="info-value"><?php echo $user['created_at']; ?></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">更新时间</div>
+                    <div class="info-value"><?php echo $user['updated_at']; ?></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">最后登录</div>
+                    <div class="info-value"><?php echo isset($user['last_login_at']) && $user['last_login_at'] ? $user['last_login_at'] : '从未登录'; ?></div>
+                </div>
+            </div>
+            
+            <!-- 注册信息 -->
+            <div class="info-card">
+                <h3>注册信息</h3>
+                <div class="info-row">
+                    <div class="info-label">注册IP</div>
+                    <div class="info-value"><?php echo isset($user['register_ip']) && $user['register_ip'] ? htmlspecialchars($user['register_ip']) : '未记录'; ?></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">注册来源</div>
+                    <div class="info-value" style="word-break: break-all;"><?php echo isset($user['register_referer']) && $user['register_referer'] ? htmlspecialchars($user['register_referer']) : '直接访问'; ?></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">设备类型</div>
+                    <div class="info-value"><?php echo isset($user['register_device_type']) && $user['register_device_type'] ? htmlspecialchars($user['register_device_type']) : '未记录'; ?></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">操作系统</div>
+                    <div class="info-value"><?php echo isset($user['register_os']) && $user['register_os'] ? htmlspecialchars($user['register_os']) : '未记录'; ?></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">浏览器</div>
+                    <div class="info-value"><?php echo isset($user['register_browser']) && $user['register_browser'] ? htmlspecialchars($user['register_browser']) : '未记录'; ?></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">浏览器版本</div>
+                    <div class="info-value"><?php echo isset($user['register_browser_version']) && $user['register_browser_version'] ? htmlspecialchars($user['register_browser_version']) : '未记录'; ?></div>
+                </div>
+                <?php if (isset($user['register_user_agent']) && $user['register_user_agent']): ?>
+                <div class="info-row">
+                    <div class="info-label">User-Agent</div>
+                    <div class="info-value" style="word-break: break-all; font-size: 12px; color: #666; max-height: 100px; overflow-y: auto; background: #f5f5f5; padding: 10px; border-radius: 4px;">
+                        <?php echo htmlspecialchars($user['register_user_agent']); ?>
+                    </div>
+                </div>
+                <?php endif; ?>
+            </div>
+    
+    <!-- 引入公共JS文件 -->
+    
+
+</main>
+<?php include 'components/footer_wrapper.html'; ?>

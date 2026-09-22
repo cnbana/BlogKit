@@ -1,0 +1,65 @@
+<!-- 调试设置内容 -->
+            <p style="font-size: 13px; color: #f39c12; margin-top: 10px; margin-bottom: 20px; font-style: italic;">（警告：开启调试模式可能会泄露系统敏感信息，建议仅在开发环境使用）</p>
+            
+            <div class="form-container">
+                <form method="post" action="admin.php?action=<?php echo $currentAction; ?>&method=save">
+                    <input type="hidden" name="sub_page" value="<?php echo $sub; ?>">
+                    
+                    <!-- 调试基本设置 -->
+                    <div class="form-section">
+                        <h4>调试基本设置</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="debug_enabled">调试功能开关</label>
+                                <select id="debug_enabled" name="debug_enabled">
+                                    <option value="1" <?php echo $config['debug_enabled'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                    <option value="0" <?php echo $config['debug_enabled'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                                </select>
+                                <small class="help-text">开启后将启用所有调试功能</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="debug_panel_enabled">调试面板开关</label>
+                                <select id="debug_panel_enabled" name="debug_panel_enabled">
+                                    <option value="1" <?php echo $config['debug_panel_enabled'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                    <option value="0" <?php echo $config['debug_panel_enabled'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                                </select>
+                                <small class="help-text">开启后将在页面底部显示调试面板</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="debug_error_display">错误显示</label>
+                                <select id="debug_error_display" name="debug_error_display">
+                                    <option value="1" <?php echo $config['debug_error_display'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                    <option value="0" <?php echo $config['debug_error_display'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                                </select>
+                                <small class="help-text">开启后将在页面上显示错误信息</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 高级调试设置 -->
+                    <div class="form-section">
+                        <h4>高级调试设置</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="debug_slow_query_log">慢查询日志</label>
+                                <select id="debug_slow_query_log" name="debug_slow_query_log">
+                                    <option value="1" <?php echo $config['debug_slow_query_log'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                    <option value="0" <?php echo $config['debug_slow_query_log'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                                </select>
+                                <small class="help-text">开启后将记录执行时间超过指定阈值的SQL查询</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="debug_slow_query_time">慢查询时间阈值(秒)</label>
+                                <input type="number" id="debug_slow_query_time" name="debug_slow_query_time" value="<?php echo $config['debug_slow_query_time']; ?>" min="0.1" max="10" step="0.1">
+                                <small class="help-text">SQL查询执行时间超过此值将被记录为慢查询</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 提交按钮 -->
+                    <div class="buttons">
+                        <button type="submit" class="btn btn-primary">保存设置</button>
+                        <button type="reset" class="btn btn-secondary">重置</button>
+                    </div>
+                </form>
+            </div>

@@ -1,0 +1,57 @@
+            <!-- 搜索设置内容 -->
+            <div class="form-container">
+                <form method="post" action="admin.php?action=<?php echo $currentAction; ?>&method=save">
+                    <input type="hidden" name="sub_page" value="<?php echo $sub; ?>">
+                    
+                    <!-- 搜索基础设置 -->
+                    <div class="form-section">
+                        <h4>搜索基础设置</h4>
+                        <div class="form-group">
+                            <label for="search_min_length">最小搜索长度</label>
+                            <input type="number" id="search_min_length" name="search_min_length" 
+                                   value="<?php echo htmlspecialchars($config['search_min_length'] ?? '1'); ?>" 
+                                   placeholder="请输入最小搜索长度（字符）" min="1" max="50">
+                            <small>用户输入的搜索关键词长度必须至少达到此值才能搜索</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="search_max_length">最大搜索长度</label>
+                            <input type="number" id="search_max_length" name="search_max_length" 
+                                   value="<?php echo htmlspecialchars($config['search_max_length'] ?? '100'); ?>" 
+                                   placeholder="请输入最大搜索长度（字符）" min="1" max="500">
+                            <small>用户输入的搜索关键词长度不能超过此值</small>
+                        </div>
+                    </div>
+                    
+                    <!-- 搜索内容过滤 -->
+                    <div class="form-section">
+                        <h4>搜索内容过滤</h4>
+                        <div class="form-group">
+                            <label for="search_enable_blacklist">启用关键词黑名单</label>
+                            <select id="search_enable_blacklist" name="search_enable_blacklist">
+                                <option value="1" <?php echo (isset($config['search_enable_blacklist']) && $config['search_enable_blacklist'] == '1') ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo (isset($config['search_enable_blacklist']) && $config['search_enable_blacklist'] == '0') ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                            <small>开启后，包含黑名单关键词的搜索将被拒绝</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="search_blacklist">搜索关键词黑名单</label>
+                            <textarea id="search_blacklist" name="search_blacklist" rows="5" 
+                                      placeholder="请输入需要禁止搜索的关键词，每行一个关键词"><?php echo htmlspecialchars($config['search_blacklist'] ?? ''); ?></textarea>
+                            <small>每个关键词占一行，包含这些关键词的搜索将被拒绝</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="search_enable_code_filter">启用恶意代码检测</label>
+                            <select id="search_enable_code_filter" name="search_enable_code_filter">
+                                <option value="1" <?php echo (isset($config['search_enable_code_filter']) && $config['search_enable_code_filter'] == '1') ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo (isset($config['search_enable_code_filter']) && $config['search_enable_code_filter'] == '0') ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                            <small>开启后，将检测并拒绝包含 SQL 注入、XSS、PHP 代码等恶意内容的搜索</small>
+                        </div>
+                    </div>
+                    
+                    <!-- 提交按钮 -->
+                    <div class="buttons">
+                        <button type="submit" class="btn btn-primary">保存设置</button>
+                    </div>
+                </form>
+            </div>

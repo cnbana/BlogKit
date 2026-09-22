@@ -1,0 +1,465 @@
+{assign var="page_title" value="用户主页"}
+{include file="header"}
+
+<main class="main-content">
+    <div class="container">
+        <!-- ============ 顶部档案条 ============ -->
+        <div class="profile-header-card" style="background: var(--bg-white); border-radius: 8px; padding: var(--spacing-2xl); margin-bottom: var(--spacing-lg); box-shadow: var(--shadow-sm);">
+            <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+                <!-- 头像 -->
+                <img src="{if profile_user.avatar}{profile_user.avatar}{else}/themes/default/assets/images/avatar.png{/if}"
+                     alt="用户头像"
+                     style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-color);">
+
+                <!-- 用户信息区 -->
+                <div style="flex: 1; min-width: 200px;">
+                    <h2 style="margin: 0 0 8px 0; font-size: var(--font-size-2xl); color: var(--text-primary);">
+                        {if empty="profile_user.nickname"}{profile_user.username}{else}{profile_user.nickname}{/endif}
+                    </h2>
+
+                    <!-- 统计数字区（中文风格：千/万/亿） -->
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 10px;">
+                        <!-- 关注数 - 点击切换到关注 Tab -->
+                        <a href="/index.php?c=Auth&m=user&id={profile_user.id}&tab=following"
+                           style="text-decoration: none; color: var(--text-secondary);">
+                            <span style="font-size: var(--font-size-base); font-weight: 600; color: var(--text-primary);">{following_count|cn_number}</span>
+                            <span style="font-size: var(--font-size-sm); color: var(--text-muted);">关注</span>
+                        </a>
+                        <!-- 粉丝数 - 点击切换到粉丝 Tab -->
+                        <a href="/index.php?c=Auth&m=user&id={profile_user.id}&tab=followers"
+                           style="text-decoration: none; color: var(--text-secondary);">
+                            <span style="font-size: var(--font-size-base); font-weight: 600; color: var(--text-primary);">{followers_count|cn_number}</span>
+                            <span style="font-size: var(--font-size-sm); color: var(--text-muted);">粉丝</span>
+                        </a>
+                        <!-- 文章数 -->
+                        <a href="/index.php?c=Auth&m=user&id={profile_user.id}&tab=articles"
+                           style="text-decoration: none; color: var(--text-secondary);">
+                            <span style="font-size: var(--font-size-base); font-weight: 600; color: var(--text-primary);">{article_count|cn_number}</span>
+                            <span style="font-size: var(--font-size-sm); color: var(--text-muted);">文章</span>
+                        </a>
+                        <!-- 总获赞 -->
+                        <span>
+                            <span style="font-size: var(--font-size-base); font-weight: 600; color: var(--text-primary);">{total_likes|cn_number}</span>
+                            <span style="font-size: var(--font-size-sm); color: var(--text-muted);">获赞</span>
+                        </span>
+                        <!-- 总浏览量 -->
+                        <span>
+                            <span style="font-size: var(--font-size-base); font-weight: 600; color: var(--text-primary);">{total_views|cn_number}</span>
+                            <span style="font-size: var(--font-size-sm); color: var(--text-muted);">浏览</span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- 关注按钮 - 仅当访客已登录且不是自己时显示 -->
+                {if isset="user.id"}
+                    {if is_not_self}
+                        <a href="javascript:void(0);"
+                           data-user-id="{profile_user.id}"
+                           class="btn {if is_following}btn-secondary{else}btn-primary{/if} follow-btn"
+                           style="padding: 8px 24px;">
+                            {if is_following}取消关注{else}关注{/if}
+                        </a>
+                    {/if}
+                {/if}
+            </div>
+        </div>
+
+        <!-- ============ 主体内容区（左右双栏） ============ -->
+        <!-- 类名用于移动端响应式：≤768px 时双栏堆叠（样式见 style.css 的 .up-body 等） -->
+        <div class="up-body" style="display: flex; gap: 20px; align-items: flex-start;">
+
+            <!-- 左侧：内容区（约 68%） -->
+            <div class="up-main" style="flex: 0 0 68%; max-width: 68%;">
+                <div style="background: var(--bg-white); border-radius: 8px; padding: var(--spacing-xl); box-shadow: var(--shadow-sm);">
+
+                    <!-- Tab 导航 + 搜索按钮 -->
+                    <div style="display: flex; align-items: center; border-bottom: 1px solid var(--border-color); margin-bottom: 20px; padding-bottom: 12px;">
+                        <div style="display: flex; gap: 4px; flex: 1; flex-wrap: wrap;">
+                            <a href="/index.php?c=Auth&m=user&id={profile_user.id}&tab=articles"
+                               class="tab-btn {if condition="is_articles_tab && is_not_search"}tab-active{/if}"
+                               style="padding: 8px 16px; border-radius: 4px; text-decoration: none; color: var(--text-secondary); font-size: var(--font-size-sm);">
+                                文章
+                            </a>
+                            <a href="/index.php?c=Auth&m=user&id={profile_user.id}&tab=following"
+                               class="tab-btn {if is_following_tab}tab-active{/if}"
+                               style="padding: 8px 16px; border-radius: 4px; text-decoration: none; color: var(--text-secondary); font-size: var(--font-size-sm);">
+                                关注
+                            </a>
+                            <a href="/index.php?c=Auth&m=user&id={profile_user.id}&tab=followers"
+                               class="tab-btn {if is_followers_tab}tab-active{/if}"
+                               style="padding: 8px 16px; border-radius: 4px; text-decoration: none; color: var(--text-secondary); font-size: var(--font-size-sm);">
+                                粉丝
+                            </a>
+                            <a href="/index.php?c=Auth&m=user&id={profile_user.id}&tab=likes"
+                               class="tab-btn {if condition="is_likes_tab && is_not_search"}tab-active{/if}"
+                               style="padding: 8px 16px; border-radius: 4px; text-decoration: none; color: var(--text-secondary); font-size: var(--font-size-sm);">
+                                点赞
+                            </a>
+                            <a href="/index.php?c=Auth&m=user&id={profile_user.id}&tab=favorites"
+                               class="tab-btn {if condition="is_favorites_tab && is_not_search"}tab-active{/if}"
+                               style="padding: 8px 16px; border-radius: 4px; text-decoration: none; color: var(--text-secondary); font-size: var(--font-size-sm);">
+                                收藏
+                            </a>
+                            {if is_search}
+                                <span class="tab-btn tab-active"
+                                      style="padding: 8px 16px; border-radius: 4px; text-decoration: none; font-size: var(--font-size-sm); background: var(--primary-color); color: var(--text-invert);">
+                                    搜索结果
+                                </span>
+                            {/if}
+                        </div>
+
+                        <!-- 搜索按钮（所有 Tab 都显示，始终可搜索该用户的文章/点赞/收藏） -->
+                        <button id="search-toggle-btn"
+                                onclick="toggleSearchBox()"
+                                style="background: none; border: 1px solid transparent; border-radius: 4px; padding: 6px 12px; cursor: pointer; font-size: var(--font-size-sm); color: var(--text-secondary); display: inline-flex; align-items: center; gap: 6px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: block; flex-shrink: 0;">
+                                <circle cx="11" cy="11" r="7"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- 搜索框（默认隐藏） -->
+                    <div id="search-box" style="display: none; margin-bottom: 16px; padding: 12px; background: var(--bg-tertiary); border-radius: 4px;">
+                        <form method="GET" action="/index.php" style="display: flex; gap: 8px;">
+                            <input type="hidden" name="c" value="Auth">
+                            <input type="hidden" name="m" value="user">
+                            <input type="hidden" name="id" value="{profile_user.id}">
+                            <input type="text"
+                                   name="keyword"
+                                   placeholder="搜索该用户的文章/点赞/收藏..."
+                                   value="{if is_search}{search_keyword}{/if}"
+                                   style="flex: 1; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 4px; font-size: var(--font-size-sm);"
+                                   id="search-input"
+                                   {if is_search}autofocus{/if}>
+                            <button type="submit" class="btn btn-primary" style="padding: 8px 20px;">搜索</button>
+                            {if is_search}
+                                <a href="/index.php?c=Auth&m=user&id={profile_user.id}"
+                                   class="btn btn-secondary"
+                                   style="padding: 8px 20px; text-decoration: none;">清空</a>
+                            {/if}
+                        </form>
+                    </div>
+
+                    <!-- 搜索模式时显示的提示 -->
+                    {if is_search}
+                        <div style="padding: 10px 14px; background: var(--info-bg); border-radius: 4px; margin-bottom: 16px; font-size: var(--font-size-sm); color: var(--primary-color);">
+                            搜索 "<strong>{search_keyword}</strong>" 的结果：共 <strong>{total_count}</strong> 条
+                            <a href="/index.php?c=Auth&m=user&id={profile_user.id}" style="margin-left: 10px; color: var(--primary-color);">查看全部</a>
+                        </div>
+                    {/if}
+
+                    <!-- 内容列表：用三个独立的 simple if 控制（互斥，避免嵌套 if 解析问题） -->
+                    <!-- 1) 被隐私屏蔽时：显示隐私提示 -->
+                    {if show_privacy_tip}
+                        <div style="padding: 60px 20px; text-align: center; color: var(--text-secondary); font-size: var(--font-size-sm);">
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 16px;color: var(--text-muted);">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                            </svg>
+                            <p style="font-size: var(--font-size-base); color: var(--text-secondary);">{privacy_tip}</p>
+                        </div>
+                    {/if}
+
+                    <!-- 2) 内容为空时：显示暂无内容 -->
+                    {if show_empty_state}
+                        <div class="empty-state" style="padding: 60px 20px; text-align: center;">
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="8" y1="12" x2="16" y2="12"></line>
+                            </svg>
+                            <p>{if is_search}没有找到相关内容{else}暂无内容{/if}</p>
+                        </div>
+                    {/if}
+
+                    <!-- 3) 有内容时：显示列表 + 分页 -->
+                    {if show_content_list}
+                        <!-- 文章/点赞/收藏列表：文章卡片 -->
+                        {if is_article_list_tab}
+                            <div class="articles-list">
+                            {loop name="content_list"}
+                                <div class="article-item post">
+                                    <!-- 搜索结果来源标签 -->
+                                    {if is_search}
+                                        {if field='source' == 'published'}
+                                            <span style="display: inline-block; padding: 2px 8px; background: var(--info-bg); color: var(--primary-color); border-radius: 3px; font-size: var(--font-size-xs); margin-bottom: 8px;">发布</span>
+                                        {elseif field='source' == 'liked'}
+                                            <span style="display: inline-block; padding: 2px 8px; background: var(--danger-bg); color: var(--danger-color); border-radius: 3px; font-size: var(--font-size-xs); margin-bottom: 8px;">点赞</span>
+                                        {elseif field='source' == 'favorited'}
+                                            <span style="display: inline-block; padding: 2px 8px; background: var(--success-bg); color: var(--success-color); border-radius: 3px; font-size: var(--font-size-xs); margin-bottom: 8px;">收藏</span>
+                                        {/if}
+                                    {/if}
+
+                                    <!-- 封面图 -->
+                                    {picture src="cover_image,first_image" alt="title" class="lazy-img" wrap_class="post-cover"}
+
+                                    <div class="post-content">
+                                        <h4 class="post-title">
+                                            <a href="/index.php?c=Article&m=detail&id={field name='id'}" target="_blank">{field name='title'}</a>
+                                        </h4>
+                                        <div class="post-excerpt">
+                                            {field name='excerpt'}
+                                        </div>
+                                        <div class="post-footer">
+                                            <div class="post-meta">
+                                                {if field='category_name'}
+                                                    <span class="post-category">分类：{field name='category_name'}</span>
+                                                {/if}
+                                                <span class="post-date">{field name="created_at_formatted"}</span>
+                                                <span class="post-views">{field name='view_count' filter="cn_number"} 浏览</span>
+                                                {if field='like_count'}
+                                                    <span class="post-likes">{field name='like_count' filter="cn_number"} 点赞</span>
+                                                {/if}
+                                                {if field='favorite_count'}
+                                                    <span class="post-favorites">{field name='favorite_count' filter="cn_number"} 收藏</span>
+                                                {/if}
+                                                {if field='comment_count'}
+                                                    <span class="post-comments">{field name='comment_count' filter="cn_number"} 评论</span>
+                                                {/if}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {/loop}
+                        </div>
+                        {/if}
+
+                        <!-- 关注/粉丝列表：用户卡片 -->
+                        {if is_user_list_tab}
+                            <div class="user-list" style="display: flex; flex-direction: column; gap: 12px;">
+                                {loop name="content_list"}
+                                    <div class="user-card" style="display: flex; align-items: center; gap: 16px; padding: 16px; border: 1px solid var(--border-color-light); border-radius: 8px; background: var(--bg-secondary);">
+                                        <!-- 用户头像 -->
+                                        <a href="/index.php?c=Auth&m=user&id={field name='id'}" style="flex-shrink: 0;">
+                                            <img src="{if field='avatar'}{field name='avatar'}{else}/themes/default/assets/images/avatar.png{/if}"
+                                                 alt="用户头像"
+                                                 onerror="this.src='/themes/default/assets/images/avatar.png'"
+                                                 style="width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-color-light);">
+                                        </a>
+
+                                        <!-- 用户信息 -->
+                                        <div style="flex: 1; min-width: 0;">
+                                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                                <a href="/index.php?c=Auth&m=user&id={field name='id'}"
+                                                   style="font-size: var(--font-size-base); font-weight: 600; color: var(--text-primary); text-decoration: none;">
+                                                    {if field='nickname'}{field name='nickname'}{else}{field name='username'}{/if}
+                                                </a>
+                                                {if field='is_following_by_visitor'}
+                                                    <span style="padding: 2px 6px; background: var(--info-bg); color: var(--primary-color); border-radius: 3px; font-size: var(--font-size-xs);">
+                                                        已关注
+                                                    </span>
+                                                {/if}
+                                            </div>
+                                            <div style="margin-top: 4px; font-size: var(--font-size-sm); color: var(--text-muted);">
+                                                {if is_following_tab}关注时间{else}关注于{/if}：{field name='follow_time_formatted'}
+                                            </div>
+                                            {if field='bio'}
+                                                <div style="margin-top: 4px; font-size: var(--font-size-sm); color: var(--text-secondary); line-height: 1.5;">{field name='bio'}</div>
+                                            {/if}
+                                        </div>
+
+                                        <!-- 快捷操作按钮 - 仅当访客已登录且不是该用户自己时显示 -->
+                                        {if isset="user.id"}
+                                            {if !field='is_current_visitor'}
+                                                <a href="javascript:void(0);"
+                                                   data-user-id="{field name='id'}"
+                                                   class="btn follow-btn profile-follow-btn {if field='is_following_by_visitor'}btn-secondary{else}btn-primary{/if}"
+                                                   style="padding: 8px 16px; font-size: var(--font-size-sm); flex-shrink: 0;">
+                                                    {if field='is_following_by_visitor'}已关注{else}+ 关注{/if}
+                                                </a>
+                                            {/if}
+                                        {/if}
+                                    </div>
+                                {/loop}
+                            </div>
+                        {/if}
+
+                        <!-- 分页 -->
+                        <div class="pagination-wrapper" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color-light);">
+                            <div class="pagination-info" style="margin-bottom: 12px; font-size: var(--font-size-sm); color: var(--text-muted); text-align: center;">
+                                共 {pagination_info.total} 条记录，第 {pagination_info.current_page} / {pagination_info.total_pages} 页
+                            </div>
+                            {pagination}
+                        </div>
+                    {/if}
+                </div>
+            </div>
+
+            <!-- 右侧：个人信息区（约 30%） -->
+            <div class="up-side" style="flex: 0 0 30%; max-width: 30%; position: sticky; top: 20px;">
+                <div style="background: var(--bg-white); border-radius: 8px; padding: var(--spacing-xl); box-shadow: var(--shadow-sm);">
+                    <h3 style="margin: 0 0 16px 0; font-size: var(--font-size-base); color: var(--text-primary); border-bottom: 1px solid var(--border-color-light); padding-bottom: 12px;">
+                        个人信息
+                    </h3>
+
+                    <table style="width: 100%; border-collapse: collapse; font-size: var(--font-size-sm);">
+                        <tr style="border-bottom: 1px solid var(--border-color-light);">
+                            <td style="padding: 10px 0; color: var(--text-muted);">注册时间</td>
+                            <td style="padding: 10px 0; color: var(--text-primary);">{profile_user.created_at_formatted}</td>
+                        </tr>
+                        {if profile_user.website}
+                            <tr style="border-bottom: 1px solid var(--border-color-light);">
+                                <td style="padding: 10px 0; color: var(--text-muted);">个人网站</td>
+                                <td style="padding: 10px 0;">
+                                    <a href="{profile_user.website}" target="_blank"
+                                       style="color: var(--primary-color); text-decoration: none; word-break: break-all;">
+                                        {profile_user.website}
+                                    </a>
+                                </td>
+                            </tr>
+                        {/if}
+                        {if profile_user.bio}
+                            <tr>
+                                <td style="padding: 10px 0; color: var(--text-muted); vertical-align: top;">个人简介</td>
+                                <td style="padding: 10px 0; color: var(--text-primary); line-height: 1.6;">{profile_user.bio}</td>
+                            </tr>
+                        {/if}
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</main>
+
+{include file="footer"}
+
+<script>
+    // 搜索相关状态（从模板变量注入，避免依赖 {if} 解析）
+    const USER_PROFILE_IS_SEARCH = {is_search_var};
+    const USER_PROFILE_HAS_KEYWORD = {is_search_var};
+    const USER_PROFILE_CURRENT_TAB = '{current_tab}';
+
+    // 搜索框展开/收起
+    function toggleSearchBox() {
+        const box = document.getElementById('search-box');
+        const input = document.getElementById('search-input');
+        if (!box) return;
+        if (box.style.display === 'none' || box.style.display === '') {
+            box.style.display = 'block';
+            if (input) input.focus();
+        } else {
+            box.style.display = 'none';
+        }
+    }
+
+    // 页面加载后，如果是搜索结果模式，自动展开搜索框
+    // 注意：用 JS 变量判断而非模板 {if} 标签，避免模板解析问题
+    document.addEventListener('DOMContentLoaded', function() {
+        if (USER_PROFILE_IS_SEARCH) {
+            const box = document.getElementById('search-box');
+            if (box) {
+                box.style.display = 'block';
+                const input = document.getElementById('search-input');
+                if (input) input.focus();
+            }
+        }
+    });
+
+    // 关注/取消关注
+    document.addEventListener('DOMContentLoaded', function() {
+        const followButtons = document.querySelectorAll('.follow-btn');
+        followButtons.forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const userId = this.getAttribute('data-user-id');
+                const currentBtn = this;
+
+                if (!userId) {
+                    alert('操作失败，请重试');
+                    return;
+                }
+
+                fetch('/index.php?c=Auth&m=followAjax', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'id=' + userId
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        if (data.is_following) {
+                            currentBtn.className = 'btn btn-secondary follow-btn';
+                            currentBtn.textContent = '取消关注';
+                        } else {
+                            currentBtn.className = 'btn btn-primary follow-btn';
+                            currentBtn.textContent = '关注';
+                        }
+                    } else {
+                        alert(data.message || '操作失败');
+                    }
+                })
+                .catch(error => {
+                    console.error('请求失败:', error);
+                    alert('操作失败，请重试');
+                });
+            });
+        });
+    });
+</script>
+
+<style>
+    .tab-btn.tab-active {
+        background: var(--primary-color) !important;
+        color: var(--text-invert) !important;
+        font-weight: 500;
+    }
+    .tab-btn:hover:not(.tab-active) {
+        background: var(--bg-secondary);
+    }
+
+    /* 分页控件样式 */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .pagination .page-link {
+        display: inline-block;
+        min-width: 34px;
+        height: 34px;
+        line-height: 32px;
+        padding: 0 12px;
+        border: 1px solid var(--border-color);
+        background-color: var(--bg-white);
+        color: var(--text-secondary);
+        text-decoration: none;
+        border-radius: 4px;
+        text-align: center;
+        font-size: var(--font-size-sm);
+        transition: all 0.2s ease;
+        box-sizing: border-box;
+    }
+
+    .pagination a.page-link:hover {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        color: var(--text-invert);
+    }
+
+    .pagination .page-link.active {
+        background-color: var(--primary-color);
+        color: var(--text-invert);
+        border-color: var(--primary-color);
+        font-weight: 500;
+        cursor: default;
+    }
+
+    .pagination .page-link.disabled {
+        background-color: var(--bg-secondary);
+        color: var(--text-muted);
+        border-color: var(--border-color-light);
+        cursor: not-allowed;
+    }
+
+    .pagination .ellipsis {
+        display: inline-block;
+        padding: 0 6px;
+        color: var(--text-muted);
+        font-size: var(--font-size-sm);
+    }
+</style>

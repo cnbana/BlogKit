@@ -1,0 +1,77 @@
+<?php $currentAction = 'market'; $pageTitle = '系统升级'; include 'components/page_wrapper.html'; ?>
+
+<!-- ============ 系统升级（U1 在线升级，方案 blogkit-online-update-plan.md） ============ -->
+<!-- 升级链路：市场页红点横幅 → 本页确认 → POST 执行（下载→校验→备份→覆盖→引导迁移） -->
+
+<?php if (!$bound): ?>
+<!-- 未绑定官网：升级入口不可用，引导先完成市场设置 -->
+<div style="background-color:#fcf8e3; border:1px solid #faebcc; color:#8a6d3b; padding:12px 15px; border-radius:4px; margin-top:15px;">
+    在线升级依赖官网绑定。请先在
+    <a href="admin.php?action=market&op=settings">市场设置</a>
+    中填写官网地址与站点密钥完成绑定。
+</div>
+<?php elseif (empty($hasNewVersion)): ?>
+<!-- 已是最新版本：无升级动作 -->
+<div style="background-color:#dff0d8; border:1px solid #d6e9c6; color:#3c763d; padding:12px 15px; border-radius:4px; margin-top:15px;">
+    当前已是最新版本 BlogKit <?php echo htmlspecialchars($currentVersion, ENT_QUOTES); ?>，无需升级。
+</div>
+<?php else: ?>
+<!-- 有新版本：版本对比 + 升级执行 -->
+<div style="background-color:#d9edf7; border:1px solid #bce8f1; color:#31708f; padding:15px; border-radius:4px; margin-top:15px;">
+    <p style="margin:0 0 10px 0; font-size:15px;">
+        发现新版本：
+        <strong>BlogKit <?php echo htmlspecialchars($currentVersion, ENT_QUOTES); ?></strong>
+        →
+        <strong style="color:#2e6da4;">BlogKit <?php echo htmlspecialchars($latestVersion, ENT_QUOTES); ?></strong>
+    </p>
+    <!-- 升级动作（POST + CSRF）：执行 下载→校验→备份→覆盖 全链路，任一步失败自动中止 -->
+    <form method="post" action="admin.php?action=update&op=run" id="updateForm"
+          onsubmit="if(!confirm('升级将自动备份现有文件与数据库后覆盖程序文件，过程约需 1-2 分钟且不可中途取消，确定开始升级吗？')){return false;}document.getElementById('updateBtn').disabled=true;document.getElementById('updateBtn').value='升级进行中，请勿关闭页面...';return true;">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Security::generateCsrfToken(), ENT_QUOTES); ?>">
+        <button type="submit" class="btn btn-primary" id="updateBtn">开始升级</button>
+    </form>
+</div>
+
+<!-- 备份与恢复说明 -->
+<div style="background-color:#f9f9f9; border:1px solid #eee; padding:12px 15px; border-radius:4px; margin-top:15px; color:#666; font-size:13px;">
+    <p style="margin:0 0 6px 0; font-weight:bold; color:#333;">升级前自动备份（保存在 storage/backups/，可在
+        <a href="admin.php?action=backup">数据备份</a> 页查看与恢复）：</p>
+    <ul style="margin:0; padding-left:20px;">
+        <li>程序文件：白名单目录（app / core / public / admin 等）打包为 pre-update-*.zip，保留最近 3 份；</li>
+        <li>数据库：全量导出为 backup_db_*.sql.gz，与「数据备份」页同格式，可直接恢复；</li>
+        <li>用户数据（uploads/、plugins/、themes/、config.php 等）不在覆盖范围内，升级不受影响。</li>
+    </ul>
+</div>
+<?php endif; ?>
+
+<!-- DB 迁移引导：install.sql 目标版本与已迁移版本不一致时提示（升级包带新 install.sql 即出现） -->
+<?php if (!empty($needMigrate)): ?>
+<div style="background-color:#fcf8e3; border:1px solid #faebcc; padding:12px 15px; border-radius:4px; margin-top:15px;">
+    <strong>检测到新的数据库版本：</strong>
+    已迁移 <?php echo htmlspecialchars($dbCurrentVersion !== '' ? $dbCurrentVersion : '（未记录）', ENT_QUOTES); ?>
+    → 目标 <?php echo htmlspecialchars($dbTargetVersion, ENT_QUOTES); ?>。
+    请前往 <a href="admin.php?action=migrate">数据库迁移</a> 页执行迁移（未升级前数据库结构与程序可能不匹配）。
+</div>
+<?php endif; ?>
+
+<!-- 升级历史（bk_config.last_update_info，一期只读展示最近一次） -->
+<?php if (!empty($lastUpdateInfo) && is_array($lastUpdateInfo)): ?>
+<div style="background-color:#ffffff; padding:15px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.05); margin-top:20px;">
+    <h4 style="margin:0 0 10px 0;">最近一次升级</h4>
+    <p style="margin:0; color:#666; font-size:13px;">
+        <?php
+        // 时间 / 版本变迁 / 备份文件名（控制器侧已保证结构，此处逐字段转义输出）
+        echo htmlspecialchars(
+            (isset($lastUpdateInfo['time']) ? $lastUpdateInfo['time'] : '') . '：'
+            . (isset($lastUpdateInfo['from']) ? $lastUpdateInfo['from'] : '?') . ' → '
+            . (isset($lastUpdateInfo['to']) ? $lastUpdateInfo['to'] : '?')
+            . '（文件备份 ' . (isset($lastUpdateInfo['file_backup']) ? $lastUpdateInfo['file_backup'] : '-') 
+            . '，数据库备份 ' . (isset($lastUpdateInfo['db_backup']) ? $lastUpdateInfo['db_backup'] : '-') . '）',
+            ENT_QUOTES
+        );
+        ?>
+    </p>
+</div>
+<?php endif; ?>
+
+<?php include 'components/footer_wrapper.html'; ?>

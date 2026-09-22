@@ -1,0 +1,79 @@
+{
+    "id": "default",
+    "name": "默认主题",
+    "version": "1.0.0",
+    "author": "BlogKit Team",
+    "description": "BlogKit 默认主题，提供简洁美观的用户界面",
+    "settings": [
+        {
+            "key": "show_back_to_top",
+            "label": "显示回到顶部按钮",
+            "type": "checkbox",
+            "default": "1",
+            "description": "是否在页面显示回到顶部按钮"
+        },
+        {
+            "key": "show_breadcrumb",
+            "label": "显示面包屑导航",
+            "type": "checkbox",
+            "default": "1",
+            "description": "是否在页面显示面包屑导航"
+        },
+        {
+            "key": "sidebar_show_categories",
+            "label": "侧边栏显示分类模块",
+            "type": "checkbox",
+            "default": "1",
+            "description": "是否在侧边栏显示分类模块"
+        },
+        {
+            "key": "sidebar_show_latest_articles",
+            "label": "侧边栏显示最新文章模块",
+            "type": "checkbox",
+            "default": "1",
+            "description": "是否在侧边栏显示最新文章模块"
+        },
+        {
+            "key": "sidebar_show_tags",
+            "label": "侧边栏显示标签模块",
+            "type": "checkbox",
+            "default": "1",
+            "description": "是否在侧边栏显示标签模块"
+        },
+        {
+            "key": "sidebar_show_friendlinks",
+            "label": "侧边栏显示友情链接模块",
+            "type": "checkbox",
+            "default": "1",
+            "description": "是否在侧边栏显示友情链接模块"
+        },
+        {
+            "key": "sidebar_show_subscribe",
+            "label": "侧边栏显示订阅模块",
+            "type": "checkbox",
+            "default": "1",
+            "description": "是否在侧边栏显示订阅模块"
+        },
+        {
+            "key": "sidebar_custom_html",
+            "label": "自定义侧边栏内容",
+            "type": "textarea",
+            "default": "",
+            "description": "在侧边栏添加自定义HTML内容"
+        },
+        {
+            "key": "custom_header",
+            "label": "自定义全局头部内容",
+            "type": "textarea",
+            "default": "",
+            "description": "在页面头部添加自定义内容，如统计代码、SEO标签等"
+        },
+        {
+            "key": "custom_footer",
+            "label": "自定义全局底部内容",
+            "type": "textarea",
+            "default": "",
+            "description": "在页面底部添加自定义内容，如统计代码、版权信息等"
+        }
+    ]
+}

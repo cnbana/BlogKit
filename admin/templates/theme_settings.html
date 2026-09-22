@@ -1,0 +1,94 @@
+<?php $currentAction = 'theme'; $pageTitle = '主题设置'; include 'components/page_wrapper.html'; ?>
+    
+    <!-- 操作栏 -->
+    <div class="action-section">
+        <a href="admin.php?action=theme" class="btn btn-secondary">返回主题列表</a>
+        <a href="admin.php?action=theme&sub=export_settings&theme=<?php echo $theme; ?>" class="btn btn-info">导出设置</a>
+        <a href="admin.php?action=theme&sub=import_settings&theme=<?php echo $theme; ?>" class="btn btn-warning">导入设置</a>
+    </div>
+    
+
+    
+    <!-- 设置表单 -->
+    <div class="settings-form" style="background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+        <form action="admin.php?action=theme&sub=save_settings" method="post">
+            <input type="hidden" name="theme" value="<?php echo $theme; ?>">
+            <?php echo Security::getCsrfField(); ?>
+            
+            <?php foreach ($settingsConfig as $setting): ?>
+                <div class="form-group" style="margin-bottom: 25px;">
+                    <label for="setting-<?php echo $setting['key']; ?>" style="display: block; margin-bottom: 8px; font-weight: 600; color: #495057;">
+                        <?php echo $setting['label']; ?>
+                        <?php if (isset($setting['required']) && $setting['required']): ?>
+                            <span style="color: #dc3545;">*</span>
+                        <?php endif; ?>
+                    </label>
+                    
+                    <?php if (isset($setting['description'])): ?>
+                        <p style="margin-bottom: 10px; font-size: 14px; color: #6c757d;"><?php echo $setting['description']; ?></p>
+                    <?php endif; ?>
+                    
+                    <?php $value = $settingsValues[$setting['key']] ?? $setting['default'] ?? ''; ?>
+                    
+                    <?php if ($setting['type'] == 'text'): ?>
+                        <input 
+                            type="text" 
+                            id="setting-<?php echo $setting['key']; ?>" 
+                            name="settings[<?php echo $setting['key']; ?>]" 
+                            value="<?php echo htmlspecialchars($value); ?>" 
+                            style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 16px;"
+                            <?php if (isset($setting['required']) && $setting['required']): ?>required<?php endif; ?>
+                        >
+                    
+                    <?php elseif ($setting['type'] == 'textarea'): ?>
+                        <textarea 
+                            id="setting-<?php echo $setting['key']; ?>" 
+                            name="settings[<?php echo $setting['key']; ?>]" 
+                            rows="4" 
+                            style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 16px; font-family: inherit;"
+                            <?php if (isset($setting['required']) && $setting['required']): ?>required<?php endif; ?>
+                        ><?php echo htmlspecialchars($value); ?></textarea>
+                    
+                    <?php elseif ($setting['type'] == 'checkbox'): ?>
+                        <input 
+                            type="checkbox" 
+                            id="setting-<?php echo $setting['key']; ?>" 
+                            name="settings[<?php echo $setting['key']; ?>]" 
+                            value="1" 
+                            <?php if ($value): ?>checked<?php endif; ?>
+                            style="margin-right: 10px;"
+                        >
+                        <label for="setting-<?php echo $setting['key']; ?>" style="display: inline-block; font-weight: normal;"><?php echo $setting['label']; ?></label>
+                    
+                    <?php elseif ($setting['type'] == 'select'): ?>
+                        <select 
+                            id="setting-<?php echo $setting['key']; ?>" 
+                            name="settings[<?php echo $setting['key']; ?>]" 
+                            style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 16px;"
+                            <?php if (isset($setting['required']) && $setting['required']): ?>required<?php endif; ?>
+                        >
+                            <?php foreach ($setting['options'] as $optionValue => $optionLabel): ?>
+                                <option value="<?php echo $optionValue; ?>" <?php if ($value == $optionValue): ?>selected<?php endif; ?>>
+                                    <?php echo $optionLabel; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    
+                    <?php elseif ($setting['type'] == 'color'): ?>
+                        <input 
+                            type="color" 
+                            id="setting-<?php echo $setting['key']; ?>" 
+                            name="settings[<?php echo $setting['key']; ?>]" 
+                            value="<?php echo htmlspecialchars($value); ?>" 
+                            style="width: 100px; height: 40px; border: 1px solid #ced4da; border-radius: 4px;"
+                        >
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+            
+            <div class="form-actions" style="margin-top: 30px; text-align: right;">
+                <button type="submit" class="btn btn-primary" style="padding: 12px 30px; font-size: 16px;">保存设置</button>
+            </div>
+        </form>
+    </div>
+<?php include 'components/footer_wrapper.html'; ?>

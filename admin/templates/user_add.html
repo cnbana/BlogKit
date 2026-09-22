@@ -1,0 +1,53 @@
+<?php $currentAction = 'user'; $pageTitle = '添加用户'; include 'components/page_wrapper.html'; ?>
+            
+            <div class="form-container">
+                <?php if (isset($error)): ?>
+                <div class="error-message"><?php echo $error; ?></div>
+                <?php endif; ?>
+                
+                <form method="post" action="admin.php?action=user&sub=add">
+                    <div class="form-group">
+                        <label for="username">用户名 *</label>
+                        <input type="text" id="username" name="username" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">密码 *</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="nickname">昵称</label>
+                        <input type="text" id="nickname" name="nickname">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">邮箱</label>
+                        <input type="email" id="email" name="email">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="role">角色 *</label>
+                        <select id="role" name="role" required>
+                            <?php foreach ($roles as $roleId => $roleName): ?>
+                            <?php if ($roleId != 2): // 排除游客角色 ?>
+                            <option value="<?php echo $roleId; ?>"><?php echo $roleName; ?></option>
+                            <?php endif; ?>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" name="status" checked> 启用
+                        </label>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">创建用户</button>
+                        <a href="admin.php?action=user" class="btn btn-secondary">返回列表</a>
+                    </div>
+                </form>
+            </div>
+        </main>
+<?php include 'components/footer_wrapper.html'; ?>

@@ -1,0 +1,101 @@
+            <!-- 评论设置内容 -->
+            <div class="form-container">
+                <form method="post" action="admin.php?action=<?php echo $currentAction; ?>&method=save">
+                    <input type="hidden" name="sub_page" value="<?php echo $sub; ?>">
+                    <!-- 评论基本设置 -->
+                    <div class="form-section">
+                        <h4>评论基本设置</h4>
+                        <div class="form-group">
+                            <label for="comment_enabled">允许评论</label>
+                            <select id="comment_enabled" name="comment_enabled">
+                                <option value="1" <?php echo $config['comment_enabled'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['comment_enabled'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="comment_moderation">评论审核</label>
+                            <select id="comment_moderation" name="comment_moderation">
+                                <option value="1" <?php echo $config['comment_moderation'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['comment_moderation'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="comment_max_length">评论最大长度</label>
+                            <input type="number" id="comment_max_length" name="comment_max_length" value="<?php echo $config['comment_max_length']; ?>" placeholder="请输入评论最大长度">
+                        </div>
+                        <div class="form-group">
+                            <label for="comment_min_length">评论最小长度</label>
+                            <input type="number" id="comment_min_length" name="comment_min_length" value="<?php echo $config['comment_min_length'] ?? '1'; ?>" placeholder="1" min="1" max="100">
+                            <span class="form-hint">评论内容最少字符数，默认1</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 反垃圾设置 -->
+                    <div class="form-section">
+                        <h4>反垃圾设置</h4>
+                        <div class="form-group">
+                            <label for="comment_rate_limit_enabled">评论频率限制</label>
+                            <select id="comment_rate_limit_enabled" name="comment_rate_limit_enabled">
+                                <option value="1" <?php echo ($config['comment_rate_limit_enabled'] ?? '1') == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo ($config['comment_rate_limit_enabled'] ?? '1') == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="comment_rate_limit_seconds">频率限制间隔（秒）</label>
+                            <input type="number" id="comment_rate_limit_seconds" name="comment_rate_limit_seconds" value="<?php echo $config['comment_rate_limit_seconds'] ?? '10'; ?>" placeholder="10" min="1" max="300">
+                        </div>
+                        <div class="form-group">
+                            <label for="comment_dedup_enabled">内容去重检测</label>
+                            <select id="comment_dedup_enabled" name="comment_dedup_enabled">
+                                <option value="1" <?php echo ($config['comment_dedup_enabled'] ?? '1') == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo ($config['comment_dedup_enabled'] ?? '1') == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="comment_keyword_filter_enabled">关键词过滤</label>
+                            <select id="comment_keyword_filter_enabled" name="comment_keyword_filter_enabled">
+                                <option value="1" <?php echo ($config['comment_keyword_filter_enabled'] ?? '1') == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo ($config['comment_keyword_filter_enabled'] ?? '1') == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="comment_blocked_keywords">屏蔽关键词（逗号分隔）</label>
+                            <input type="text" id="comment_blocked_keywords" name="comment_blocked_keywords" value="<?php echo $config['comment_blocked_keywords'] ?? ''; ?>" placeholder="例如：赌博,色情,广告">
+                        </div>
+                        <div class="form-group">
+                            <label for="comment_link_check_enabled">链接检测</label>
+                            <select id="comment_link_check_enabled" name="comment_link_check_enabled">
+                                <option value="1" <?php echo ($config['comment_link_check_enabled'] ?? '1') == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo ($config['comment_link_check_enabled'] ?? '1') == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="comment_link_action">包含链接处理方式</label>
+                            <select id="comment_link_action" name="comment_link_action">
+                                <option value="moderate" <?php echo ($config['comment_link_action'] ?? 'moderate') == 'moderate' ? 'selected' : ''; ?>>需审核</option>
+                                <option value="block" <?php echo ($config['comment_link_action'] ?? '') == 'block' ? 'selected' : ''; ?>>禁止提交</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="comment_ip_rate_limit_enabled">IP频率限制</label>
+                            <select id="comment_ip_rate_limit_enabled" name="comment_ip_rate_limit_enabled">
+                                <option value="0" <?php echo ($config['comment_ip_rate_limit_enabled'] ?? '0') == '0' ? 'selected' : ''; ?>>关闭</option>
+                                <option value="1" <?php echo ($config['comment_ip_rate_limit_enabled'] ?? '0') == '1' ? 'selected' : ''; ?>>开启</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="comment_ip_rate_limit_count">IP限制次数</label>
+                            <input type="number" id="comment_ip_rate_limit_count" name="comment_ip_rate_limit_count" value="<?php echo $config['comment_ip_rate_limit_count'] ?? '20'; ?>" placeholder="20" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="comment_ip_rate_limit_window">IP限制时间窗口（秒）</label>
+                            <input type="number" id="comment_ip_rate_limit_window" name="comment_ip_rate_limit_window" value="<?php echo $config['comment_ip_rate_limit_window'] ?? '3600'; ?>" placeholder="3600" min="60">
+                        </div>
+                    </div>
+                    
+                    <!-- 提交按钮 -->
+                    <div class="buttons">
+                        <button type="submit" class="btn btn-primary">保存设置</button>
+                    </div>
+                </form>
+            </div>

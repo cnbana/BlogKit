@@ -1,0 +1,54 @@
+<?php $currentAction = 'page'; $pageTitle = '添加页面'; include 'components/page_wrapper.html'; ?>
+    
+    <div class="form-container">
+        <form method="POST">
+            <div class="form-group">
+                <label for="title">页面标题</label>
+                <input type="text" id="title" name="title" value="<?php echo isset($_POST['title']) ? $_POST['title'] : ''; ?>" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="content">页面内容</label>
+                <textarea id="content" name="content"><?php echo isset($_POST['content']) ? $_POST['content'] : ''; ?></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="description">页面描述</label>
+                <textarea id="description" name="description" rows="3" placeholder="请输入页面描述"><?php echo isset($_POST['description']) ? $_POST['description'] : ''; ?></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="keywords">页面关键词</label>
+                <input type="text" id="keywords" name="keywords" value="<?php echo isset($_POST['keywords']) ? $_POST['keywords'] : ''; ?>" placeholder="请输入页面关键词，可用英文逗号、中文逗号或空格分隔">
+            </div>
+            
+            <div class="form-group">
+                <label for="slug">页面别名（URL友好的名称，可选）</label>
+                <input type="text" id="slug" name="slug" value="<?php echo isset($_POST['slug']) ? htmlspecialchars((string)$_POST['slug'], ENT_QUOTES, 'UTF-8') : ''; ?>" placeholder="不填则使用ID访问，如 about-us">
+                <small>提示：只能包含字母、数字、连字符和下划线，如"about-us"或"contact_us"。不填则使用页面ID访问。</small>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="radio" name="status" value="1" checked> 立即发布
+                </label>
+                <label style="margin-left: 20px;">
+                    <input type="radio" name="status" value="0"> 保存草稿
+                </label>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" name="is_menu" value="1" checked> 是否显示在页面菜单
+                </label>
+            </div>
+            
+            <div style="margin-top: 30px;">
+                <button type="submit" class="btn btn-primary">保存</button>
+                <a href="admin.php?action=page" class="btn btn-danger">取消</a>
+            </div>
+        </form>
+    </div>
+</main>
+
+<?php include 'components/footer_wrapper.html'; ?>

@@ -1,0 +1,137 @@
+<?php $currentAction = 'hook'; $pageTitle = '钩子执行日志'; include 'components/page_wrapper.html'; ?>
+    
+    <!-- 操作栏 -->
+    <div class="action-section">
+        <a href="admin.php?action=hook" class="btn btn-secondary">返回钩子列表</a>
+        <a href="admin.php?action=hook&sub=clear_logs" class="btn btn-danger" onclick="return confirm('确定要清除所有钩子日志吗？');">清除日志</a>
+        <a href="admin.php?action=hook&sub=export_logs" class="btn btn-primary">导出日志</a>
+    </div>
+    
+    <!-- 搜索和过滤 -->
+    <div style="background-color: #ffffff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-top: 20px;">
+        <form method="get" action="admin.php">
+            <input type="hidden" name="action" value="hook">
+            <input type="hidden" name="sub" value="logs">
+            <div class="row" style="display: flex; gap: 10px; align-items: center;">
+                <div style="flex: 1;">
+                    <input type="text" name="keyword" placeholder="搜索钩子名称或错误信息" class="form-control">
+                </div>
+                <div style="flex: 1;">
+                    <select name="status" class="form-control">
+                        <option value="">所有状态</option>
+                        <option value="success">成功</option>
+                        <option value="error">错误</option>
+                    </select>
+                </div>
+                <div style="flex: 1;">
+                    <input type="date" name="date" class="form-control">
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary">搜索</button>
+                    <button type="reset" class="btn btn-secondary">重置</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <!-- 日志统计 -->
+    <?php if (!empty($logs)): ?>
+    <div style="background-color: #ffffff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-top: 20px;">
+        <div style="display: flex; gap: 20px;">
+            <div style="flex: 1; text-align: center; padding: 10px; background-color: #f8f9fa; border-radius: 6px;">
+                <div style="font-size: 24px; font-weight: bold; color: #007bff;"><?php echo count($logs); ?></div>
+                <div style="color: #666;">总日志数</div>
+            </div>
+            <div style="flex: 1; text-align: center; padding: 10px; background-color: #f8f9fa; border-radius: 6px;">
+                <div style="font-size: 24px; font-weight: bold; color: #28a745;">
+                    <?php 
+                        $successCount = 0;
+                        foreach ($logs as $log) {
+                            if ($log['status'] == 'success') $successCount++;
+                        }
+                        echo $successCount;
+                    ?>
+                </div>
+                <div style="color: #666;">成功日志</div>
+            </div>
+            <div style="flex: 1; text-align: center; padding: 10px; background-color: #f8f9fa; border-radius: 6px;">
+                <div style="font-size: 24px; font-weight: bold; color: #dc3545;">
+                    <?php 
+                        $errorCount = 0;
+                        foreach ($logs as $log) {
+                            if ($log['status'] == 'error') $errorCount++;
+                        }
+                        echo $errorCount;
+                    ?>
+                </div>
+                <div style="color: #666;">错误日志</div>
+            </div>
+            <div style="flex: 1; text-align: center; padding: 10px; background-color: #f8f9fa; border-radius: 6px;">
+                <div style="font-size: 24px; font-weight: bold; color: #ffc107;">
+                    <?php 
+                        $totalTime = 0;
+                        foreach ($logs as $log) {
+                            $totalTime += $log['execution_time'];
+                        }
+                        echo round($totalTime / count($logs), 2);
+                    ?>ms
+                </div>
+                <div style="color: #666;">平均执行时间</div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+    
+    <!-- 日志列表 -->
+    <div class="hook-logs" style="margin-top: 20px;">
+        <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3>执行日志</h3>
+                <div>
+                    <span style="margin-right: 10px;">总计: <?php echo !empty($logs) ? count($logs) : 0; ?> 条日志</span>
+                </div>
+            </div>
+            <?php if (!empty($logs)): ?>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>时间</th>
+                                <th>钩子名称</th>
+                                <th>执行时间</th>
+                                <th>状态</th>
+                                <th>错误信息</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($logs as $log): ?>
+                                <tr>
+                                    <td><?php echo date('Y-m-d H:i:s', $log['time']); ?></td>
+                                    <td><?php echo $log['hook']; ?></td>
+                                    <td>
+                                        <span style="color: <?php echo $log['execution_time'] > 100 ? '#dc3545' : ($log['execution_time'] > 50 ? '#ffc107' : '#28a745'); ?>">
+                                            <?php echo $log['execution_time']; ?>ms
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge <?php echo $log['status'] == 'success' ? 'badge-success' : 'badge-danger'; ?>">
+                                            <?php echo $log['status'] == 'success' ? '成功' : '失败'; ?>
+                                        </span>
+                                    </td>
+                                    <td><?php echo !empty($log['error']) ? $log['error'] : '无'; ?></td>
+                                    <td>
+                                        <a href="admin.php?action=hook&sub=test&hook=<?php echo $log['hook']; ?>" class="btn btn-sm btn-success">重新测试</a>
+                                        <button class="btn btn-sm btn-info" onclick="showLogDetails('<?php echo htmlspecialchars(json_encode($log)); ?>')">查看详情</button>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php else: ?>
+                <p style="text-align: center; padding: 20px; color: #666;">暂无钩子执行日志</p>
+            <?php endif; ?>
+        </div>
+    </div>
+<?php include 'components/footer_wrapper.html'; ?>

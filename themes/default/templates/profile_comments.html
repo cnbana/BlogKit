@@ -1,0 +1,50 @@
+{assign var="page_title" value="我的评论"}
+{include file="header"}
+    
+    
+    <main class="main-content">
+        <div class="container">
+            <div class="profile-container">
+                {include file="common/profile_nav.html"}
+                
+                <div class="profile-content">
+                    
+                    <div class="profile-section">
+                        <h3 class="section-title">我的评论</h3>
+                        {if empty="comments"}
+                        <!-- 空状态提示 -->
+                        <div class="empty-state">
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="8" y1="12" x2="16" y2="12"></line>
+                            </svg>
+                            <p>暂无发表任何评论</p>
+                        </div>
+                        {else}
+                            <div class="comments-list">
+                                {loop name="comments"}
+                                <div class="comment-item">
+                                    <div class="comment-content">
+                                        {field name="content"}
+                                    </div>
+                                    <div class="comment-meta">
+                                        <a href="{field name="article_url"}" target="_blank">{field name="article_title"}</a>
+                                        <span class="comment-time">{field name="created_at" filter="relative1"}</span>
+                                        {if field="status" == 0}
+                                        <span class="pending-badge">待审核</span>
+                                        {/if}
+                                    </div>
+                                </div>
+                                {/loop}
+                            </div>
+                        {/if}
+                    </div>
+                    
+                    <!-- 分页导航 -->
+                    {include file="common/pagination.html"}
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    {include file="footer"}

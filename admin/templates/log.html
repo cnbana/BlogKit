@@ -1,0 +1,409 @@
+<?php $currentAction = 'log'; $pageTitle = '日志管理'; $pageCss = 'log.css'; include 'components/page_wrapper.html'; ?>
+
+    <div class="action-section" style="margin-bottom: 20px;">
+        <a href="admin.php?action=log&method=settings" class="btn btn-primary">日志设置</a>
+    </div>
+
+    <!-- 日志统计信息 -->
+    <div class="stats-container" style="margin-bottom: 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+        <div class="stat-card" style="background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h3 style="margin-top: 0; color: #333;">日志总数</h3>
+            <p style="font-size: 24px; font-weight: bold; color: #007bff;"><?php echo $stats['total']; ?></p>
+        </div>
+        <div class="stat-card" style="background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h3 style="margin-top: 0; color: #333;">最近错误</h3>
+            <p style="font-size: 24px; font-weight: bold; color: #dc3545;"><?php echo $stats['recent_errors']; ?></p>
+        </div>
+        <div class="stat-card" style="background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h3 style="margin-top: 0; color: #333;">分类数量</h3>
+            <p style="font-size: 24px; font-weight: bold; color: #28a745;"><?php echo count($categories); ?></p>
+        </div>
+    </div>
+
+    <!-- 日志过滤和搜索：统一为用户列表页同款筛选样式（卡片 + 一行式横向布局） -->
+    <div class="filter-section">
+        <form method="get" action="admin.php" class="filter-form">
+            <input type="hidden" name="action" value="log">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="category">分类</label>
+                    <select id="category" name="category" class="filter-select">
+                        <option value="">全部分类</option>
+                        <?php foreach ($categories as $key => $name): ?>
+                            <option value="<?php echo $key; ?>" <?php echo $filters['category'] == $key ? 'selected' : ''; ?>><?php echo $name; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="level">级别</label>
+                    <select id="level" name="level" class="filter-select">
+                        <option value="">全部级别</option>
+                        <?php foreach ($levels as $key => $name): ?>
+                            <option value="<?php echo $key; ?>" <?php echo $filters['level'] !== '' && $filters['level'] == $key ? 'selected' : ''; ?>><?php echo $name; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="start_date">开始日期</label>
+                    <input type="date" id="start_date" name="start_date" value="<?php echo $filters['start_date']; ?>" class="filter-input" style="flex: 0 1 150px;">
+                </div>
+                <div class="filter-group">
+                    <label for="end_date">结束日期</label>
+                    <input type="date" id="end_date" name="end_date" value="<?php echo $filters['end_date']; ?>" class="filter-input" style="flex: 0 1 150px;">
+                </div>
+                <div class="filter-group filter-group-wide">
+                    <label for="keyword">搜索</label>
+                    <input type="text" id="keyword" name="keyword" value="<?php echo $filters['keyword']; ?>" placeholder="请输入关键词" class="filter-input">
+                </div>
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary">搜索</button>
+                    <a href="admin.php?action=log" class="btn btn-secondary">重置</a>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <!-- 报告生成 -->
+    <div class="report-container" style="background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <h3 style="margin-top: 0; margin-bottom: 20px; color: #333;">生成报告</h3>
+        <form method="get" action="admin.php" class="no-loading">
+            <input type="hidden" name="action" value="log">
+            <input type="hidden" name="method" value="report">
+            <div class="form-row" style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 15px;">
+                <div class="form-group" style="flex: 1; min-width: 200px;">
+                    <label for="report_type" style="display: block; margin-bottom: 5px;">报告类型</label>
+                    <select id="report_type" name="report_type" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="summary">摘要报告</option>
+                        <option value="category">分类统计报告</option>
+                        <option value="level">级别分布报告</option>
+                        <option value="user">用户操作报告</option>
+                        <option value="error">错误分析报告</option>
+                        <option value="all">全部报告</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex: 1; min-width: 200px;">
+                    <label for="start_date" style="display: block; margin-bottom: 5px;">开始日期</label>
+                    <input type="date" id="start_date" name="start_date" value="<?php echo date('Y-m-d', strtotime('-7 days')); ?>" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                <div class="form-group" style="flex: 1; min-width: 200px;">
+                    <label for="end_date" style="display: block; margin-bottom: 5px;">结束日期</label>
+                    <input type="date" id="end_date" name="end_date" value="<?php echo date('Y-m-d'); ?>" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+            </div>
+            <div class="form-row" style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 15px;">
+                <div class="form-group" style="flex: 1; min-width: 200px;">
+                    <label for="format" style="display: block; margin-bottom: 5px;">导出格式</label>
+                    <select id="format" name="format" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="html">HTML (网页)</option>
+                        <option value="csv">CSV (表格)</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex: 1; min-width: 200px;">
+                    <label for="limit" style="display: block; margin-bottom: 5px;">日志数量限制</label>
+                    <input type="number" id="limit" name="limit" value="100" min="1" max="10000" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <small style="color: #666; font-size: 12px; display: block; margin-top: 5px;">默认100条，最大10000条</small>
+                </div>
+            </div>
+            <div class="form-row" style="display: flex; flex-wrap: wrap; gap: 15px;">
+                <div class="form-group" style="display: flex; align-items: flex-end;">
+                    <button type="submit" class="btn btn-primary" style="padding: 8px 20px; background-color: #007bff; color: #fff; border: none; border-radius: 4px; cursor: pointer;">生成报告</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- 日志列表 -->
+    <div class="log-container">
+        <div class="log-container-header">
+            <h3>日志列表</h3>
+            <div class="log-actions">
+                <button class="btn btn-secondary" onclick="confirmClean('expired')">清理过期日志</button>
+                <button class="btn btn-danger" onclick="confirmClean('all')">清理全部日志</button>
+            </div>
+        </div>
+        
+        <!-- 清理确认对话框 -->
+        <div id="cleanConfirmModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4>清理确认</h4>
+                    <span onclick="closeCleanConfirm()" class="modal-close">&times;</span>
+                </div>
+                <div id="cleanConfirmMessage" class="modal-body">
+                    <!-- 消息将通过JavaScript动态填充 -->
+                </div>
+                <div class="modal-footer">
+                    <button onclick="closeCleanConfirm()" class="btn btn-secondary">取消</button>
+                    <a id="cleanConfirmLink" href="" class="btn btn-primary">确认清理</a>
+                </div>
+            </div>
+        </div>
+        
+        <?php if (empty($logs)): ?>
+            <div class="empty-state">
+                <p>暂无日志记录</p>
+            </div>
+        <?php else: ?>
+            <div class="log-table">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>级别</th>
+                            <th>分类</th>
+                            <th>消息</th>
+                            <th>IP</th>
+                            <th>用户</th>
+                            <th>格式</th>
+                            <th class="text-center">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($logs as $log): ?>
+                            <tr>
+                                <td><?php echo date('Y-m-d H:i:s', $log['time']); ?></td>
+                                <td>
+                                    <span class="log-level log-level-<?php echo $log['level_name']; ?>">
+                                        <?php echo $log['level_name']; ?>
+                                    </span>
+                                </td>
+                                <td><?php echo $categories[$log['category']] ?? $log['category']; ?></td>
+                                <td><?php echo htmlspecialchars($log['message']); ?></td>
+                                <td><?php echo $log['ip']; ?></td>
+                                <td><?php echo $log['user_id'] > 0 ? $log['user_id'] : '系统'; ?></td>
+                                <td>
+                                    <span class="log-format">
+                                        <?php echo isset($log['format']) ? $log['format'] : 'text'; ?>
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <button class="btn btn-xs view-details" data-log='<?php echo htmlspecialchars(json_encode($log, JSON_UNESCAPED_UNICODE)); ?>'>
+                                        详情
+                                    </button>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- 分页条 -->
+            <?php 
+                // 引入公共分页组件
+                $action = 'log';
+                include ADMIN_PATH . '/templates/components/pagination.html';
+            ?> 
+        <?php endif; ?>
+    </div>
+</main>
+
+<!-- 日志详情模态框 -->
+<div class="modal fade" id="logDetailModal" tabindex="-1" role="dialog" aria-labelledby="logDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document" style="max-width: 800px;">
+        <div class="modal-content" style="border-radius: 8px;">
+            <div class="modal-header" style="padding: 15px; border-bottom: 1px solid #dee2e6; background-color: #f8f9fa; display: flex; justify-content: space-between; align-items: center;">
+                <h5 class="modal-title" id="logDetailModalLabel" style="margin: 0; color: #333;">日志详情</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #666; padding: 0; line-height: 1;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <div class="log-details" id="logDetailsContent">
+                    <!-- 日志详情将通过JavaScript动态填充 -->
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 15px; border-top: 1px solid #dee2e6; background-color: #f8f9fa;">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" style="padding: 8px 16px; background-color: #6c757d; color: #fff; border: none; border-radius: 4px; cursor: pointer;">
+                    关闭
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 模态框样式 -->
+    <!-- 页面专属样式已归拢至 assets/css 页面级文件（经 $pageCss 加载，2026-09 样式统一） -->
+
+
+<!-- 模态框JavaScript -->
+<script>
+    // 等待DOM加载完成
+    document.addEventListener('DOMContentLoaded', function() {
+        // 获取模态框元素
+        const modal = document.getElementById('logDetailModal');
+        const modalContent = document.getElementById('logDetailsContent');
+        
+        // 为所有详情按钮添加点击事件
+        const detailButtons = document.querySelectorAll('.view-details');
+        detailButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // 获取日志数据
+                const logData = JSON.parse(this.getAttribute('data-log'));
+                
+                // 填充详情内容
+                let detailsHTML = '';
+                
+                // 添加基本信息
+                detailsHTML += '<div class="log-detail-item">';
+                detailsHTML += '<span class="log-detail-label">时间：</span>';
+                detailsHTML += '<span class="log-detail-value">' + new Date(logData.time * 1000).toLocaleString('zh-CN') + '</span>';
+                detailsHTML += '</div>';
+                
+                detailsHTML += '<div class="log-detail-item">';
+                detailsHTML += '<span class="log-detail-label">级别：</span>';
+                detailsHTML += '<span class="log-detail-value">' + logData.level_name + '</span>';
+                detailsHTML += '</div>';
+                
+                detailsHTML += '<div class="log-detail-item">';
+                detailsHTML += '<span class="log-detail-label">分类：</span>';
+                detailsHTML += '<span class="log-detail-value">' + logData.category + '</span>';
+                detailsHTML += '</div>';
+                
+                detailsHTML += '<div class="log-detail-item">';
+                detailsHTML += '<span class="log-detail-label">消息：</span>';
+                detailsHTML += '<span class="log-detail-value">' + logData.message + '</span>';
+                detailsHTML += '</div>';
+                
+                detailsHTML += '<div class="log-detail-item">';
+                detailsHTML += '<span class="log-detail-label">IP：</span>';
+                detailsHTML += '<span class="log-detail-value">' + (logData.ip || '') + '</span>';
+                detailsHTML += '</div>';
+                
+                detailsHTML += '<div class="log-detail-item">';
+                detailsHTML += '<span class="log-detail-label">用户：</span>';
+                detailsHTML += '<span class="log-detail-value">' + (logData.user_id > 0 ? logData.user_id : '系统') + '</span>';
+                detailsHTML += '</div>';
+                
+                detailsHTML += '<div class="log-detail-item">';
+                detailsHTML += '<span class="log-detail-label">请求URI：</span>';
+                detailsHTML += '<span class="log-detail-value">' + (logData.request_uri || '') + '</span>';
+                detailsHTML += '</div>';
+                
+                detailsHTML += '<div class="log-detail-item">';
+                detailsHTML += '<span class="log-detail-label">用户代理：</span>';
+                detailsHTML += '<span class="log-detail-value">' + (logData.user_agent || '') + '</span>';
+                detailsHTML += '</div>';
+                
+                // 添加格式信息
+                detailsHTML += '<div class="log-detail-item">';
+                detailsHTML += '<span class="log-detail-label">格式：</span>';
+                detailsHTML += '<span class="log-detail-value">' + (logData.format || 'text') + '</span>';
+                detailsHTML += '</div>';
+                
+                // 添加上下文信息
+                if (logData.context && Object.keys(logData.context).length > 0) {
+                    detailsHTML += '<div class="log-detail-item">';
+                    detailsHTML += '<span class="log-detail-label">上下文：</span>';
+                    detailsHTML += '<div class="log-detail-context">';
+                    detailsHTML += JSON.stringify(logData.context, null, 2);
+                    detailsHTML += '</div>';
+                    detailsHTML += '</div>';
+                }
+                
+                // 显示详情
+                modalContent.innerHTML = detailsHTML;
+                
+                // 显示模态框
+                modal.style.display = 'block';
+            });
+        });
+        
+        // 为关闭按钮添加点击事件
+        const closeButtons = modal.querySelectorAll('[data-dismiss="modal"]');
+        closeButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                modal.style.display = 'none';
+            });
+        });
+        
+        // 点击模态框外部关闭
+        window.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    });
+    
+    // 清理确认函数
+    function confirmClean(type) {
+        const modal = document.getElementById('cleanConfirmModal');
+        const messageDiv = document.getElementById('cleanConfirmMessage');
+        const confirmLink = document.getElementById('cleanConfirmLink');
+        
+        if (type === 'expired') {
+            messageDiv.innerHTML = `
+                <p>您确定要清理过期日志吗？</p>
+                <div style="margin-top: 15px; padding: 15px; background-color: #f8f9fa; border-radius: 4px; font-size: 14px;">
+                    <h5 style="margin-top: 0; margin-bottom: 10px; color: #333;">注意事项：</h5>
+                    <ul style="margin: 0; padding-left: 20px;">
+                        <li>此操作将删除超过保留期限的日志</li>
+                        <li>默认保留期限为7天</li>
+                        <li>操作不可撤销，但不会影响近期的日志记录</li>
+                        <li>建议定期执行此操作以保持系统清洁</li>
+                    </ul>
+                </div>
+            `;
+            confirmLink.href = 'admin.php?action=log&method=clean';
+            // 恢复按钮状态
+            confirmLink.style.backgroundColor = '#007bff';
+            confirmLink.style.cursor = 'pointer';
+            confirmLink.style.pointerEvents = 'auto';
+            confirmLink.innerHTML = '确认清理';
+        } else if (type === 'all') {
+            messageDiv.innerHTML = `
+                <p>您确定要清理全部日志吗？</p>
+                <div style="margin-top: 15px; padding: 15px; background-color: #f8d7da; border-radius: 4px; font-size: 14px;">
+                    <h5 style="margin-top: 0; margin-bottom: 10px; color: #721c24;">警告：</h5>
+                    <ul style="margin: 0; padding-left: 20px;">
+                        <li>此操作将删除所有日志记录，无论是否过期</li>
+                        <li>操作不可撤销，所有日志数据将被永久删除</li>
+                        <li>删除后将无法查看任何历史日志</li>
+                        <li>请确保您真的需要删除所有日志记录</li>
+                    </ul>
+                </div>
+            `;
+            confirmLink.href = 'admin.php?action=log&method=cleanAll';
+            
+            // 设置倒计时状态
+            confirmLink.style.backgroundColor = '#6c757d';
+            confirmLink.style.cursor = 'not-allowed';
+            confirmLink.style.pointerEvents = 'none';
+            
+            // 开始倒计时
+            let countdown = 5;
+            confirmLink.innerHTML = `确认清理 (${countdown}s)`;
+            
+            const timer = setInterval(() => {
+                countdown--;
+                confirmLink.innerHTML = `确认清理 (${countdown}s)`;
+                
+                if (countdown <= 0) {
+                    clearInterval(timer);
+                    // 恢复按钮状态
+                    confirmLink.style.backgroundColor = '#007bff';
+                    confirmLink.style.cursor = 'pointer';
+                    confirmLink.style.pointerEvents = 'auto';
+                    confirmLink.innerHTML = '确认清理';
+                }
+            }, 1000);
+        }
+        
+        modal.style.display = 'block';
+    }
+    
+    // 关闭清理确认对话框
+    function closeCleanConfirm() {
+        const modal = document.getElementById('cleanConfirmModal');
+        modal.style.display = 'none';
+    }
+    
+    // 点击模态框外部关闭
+    window.addEventListener('click', function(event) {
+        const modal = document.getElementById('cleanConfirmModal');
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+</script>
+
+<?php include 'components/footer_wrapper.html'; ?>

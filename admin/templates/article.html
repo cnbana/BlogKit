@@ -1,0 +1,480 @@
+<?php $currentAction = 'article'; $pageTitle = '文章管理'; include 'components/page_wrapper.html'; ?>
+
+    <!-- 顶部工具栏：左侧主操作 + 右侧批量操作组（样式见 components.css .list-toolbar） -->
+    <div class="list-toolbar">
+        <a href="admin.php?action=article&sub=add" class="btn btn-primary">添加文章</a>
+        <a href="admin.php?action=article&method=recycle" class="btn btn-danger">回收站</a>
+
+        <!-- 批量操作 -->
+        <div class="batch-group">
+            <select id="batch_action">
+                <option value="">批量操作</option>
+                <option value="top-1">批量设置全局置顶</option>
+                <option value="top-2">批量设置首页置顶</option>
+                <option value="top-3">批量设置分类置顶</option>
+                <option value="top-0">批量取消置顶</option>
+                <option value="delete">批量删除</option>
+                <option value="status-1">批量发布</option>
+                <option value="status-0">批量设为草稿</option>
+                <option value="move">批量移动分类</option>
+                <option value="tags">批量修改标签</option>
+            </select>
+            <div id="move_category" style="display: none;">
+                <select id="target_category">
+                    <option value="">选择分类</option>
+                    <?php foreach ($categories as $category): ?>
+                        <option value="<?php echo $category['id']; ?>"><?php echo $category['name']; ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div id="batch_tags" style="display: none;">
+                <input type="text" id="batch_tags_input" class="batch-input" placeholder="输入标签，逗号分隔">
+                <select id="tag_mode">
+                    <option value="replace">替换</option>
+                    <option value="add">追加</option>
+                </select>
+            </div>
+            <button id="execute_batch" class="btn btn-default">执行</button>
+        </div>
+    </div>
+
+    <!-- 筛选功能 -->
+    <div class="filter-section">
+        <form method="get" action="admin.php" class="filter-form">
+            <input type="hidden" name="action" value="article">
+            <input type="hidden" name="sub" value="list">
+            
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="category_filter">分类</label>
+                    <select name="category" id="category_filter" class="filter-select">
+                        <option value="" <?php echo empty($_GET['category']) ? 'selected' : ''; ?>>全部</option>
+                        <?php foreach ($categories as $category): ?>
+                            <option value="<?php echo $category['id']; ?>" <?php echo isset($_GET['category']) && $_GET['category'] == $category['id'] ? 'selected' : ''; ?>>
+                                <?php echo $category['name']; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="status_filter">状态</label>
+                    <select name="status" id="status_filter" class="filter-select">
+                        <option value="" <?php echo (isset($_GET['status']) && $_GET['status'] == '') || !isset($_GET['status']) ? 'selected' : ''; ?>>全部</option>
+                        <option value="1" <?php echo isset($_GET['status']) && $_GET['status'] == 1 ? 'selected' : ''; ?>>已发布</option>
+                        <option value="0" <?php echo isset($_GET['status']) && $_GET['status'] == 0 ? 'selected' : ''; ?>>草稿</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="top_type_filter">置顶状态</label>
+                    <select name="top_type" id="top_type_filter" class="filter-select">
+                        <option value="" <?php echo (isset($_GET['top_type']) && $_GET['top_type'] == '') || !isset($_GET['top_type']) ? 'selected' : ''; ?>>全部</option>
+                        <option value="0" <?php echo isset($_GET['top_type']) && $_GET['top_type'] == 0 ? 'selected' : ''; ?>>正常</option>
+                        <option value="1" <?php echo isset($_GET['top_type']) && $_GET['top_type'] == 1 ? 'selected' : ''; ?>>全局置顶</option>
+                        <option value="2" <?php echo isset($_GET['top_type']) && $_GET['top_type'] == 2 ? 'selected' : ''; ?>>首页置顶</option>
+                        <option value="3" <?php echo isset($_GET['top_type']) && $_GET['top_type'] == 3 ? 'selected' : ''; ?>>分类置顶</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group filter-group-wide">
+                    <label for="search_filter">搜索</label>
+                    <input type="text" name="search" id="search_filter" class="filter-input" placeholder="标题或内容" value="<?php echo isset($_GET['search']) ? $_GET['search'] : ''; ?>">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="date_from">发布时间</label>
+                    <div class="date-range">
+                        <!-- 与用户列表页一致：使用浏览器原生日期控件（type="date"），不使用自定义年份选择器 -->
+                        <input type="date" name="date_from" id="date_from" class="date-picker-input" value="<?php echo isset($_GET['date_from']) ? htmlspecialchars($_GET['date_from']) : ''; ?>">
+                        <span class="date-separator">至</span>
+                        <input type="date" name="date_to" id="date_to" class="date-picker-input" value="<?php echo isset($_GET['date_to']) ? htmlspecialchars($_GET['date_to']) : ''; ?>">
+                    </div>
+                </div>
+                
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary" id="filter-btn">筛选</button>
+                    <button type="button" class="btn btn-default" id="reset-btn">重置</button>
+                </div>
+            </div>
+        </form>
+        
+        <script>
+            // 文章页面特定的JavaScript
+            document.addEventListener('DOMContentLoaded', function() {
+                // 说明：发布时间筛选已改用浏览器原生日期控件（type="date"），
+                // 不再初始化 BlogKitAdvanced.DatePicker 自定义年份选择器
+
+                // 获取筛选表单元素
+                const categoryFilter = document.getElementById('category_filter');
+                const statusFilter = document.getElementById('status_filter');
+                const topTypeFilter = document.getElementById('top_type_filter');
+                const searchFilter = document.getElementById('search_filter');
+                const filterBtn = document.getElementById('filter-btn');
+                const resetBtn = document.getElementById('reset-btn');
+                
+                // 重置按钮点击事件
+                if (resetBtn) {
+                    resetBtn.addEventListener('click', function() {
+                        // 跳转到指定URL重置筛选
+                        window.location.href = '/admin.php?action=article&sub=list';
+                    });
+                }
+                
+                // 表单提交时处理空参数
+                const form = document.querySelector('form');
+                const dateFromFilter = document.getElementById('date_from');
+                const dateToFilter = document.getElementById('date_to');
+                
+                if (form) {
+                    form.addEventListener('submit', function(e) {
+                        if (categoryFilter && categoryFilter.value === '') {
+                            categoryFilter.removeAttribute('name');
+                        }
+                        if (statusFilter && statusFilter.value === '') {
+                            statusFilter.removeAttribute('name');
+                        }
+                        if (topTypeFilter && topTypeFilter.value === '') {
+                            topTypeFilter.removeAttribute('name');
+                        }
+                        if (searchFilter && searchFilter.value.trim() === '') {
+                            searchFilter.removeAttribute('name');
+                        }
+                        if (dateFromFilter && dateFromFilter.value === '') {
+                            dateFromFilter.removeAttribute('name');
+                        }
+                        if (dateToFilter && dateToFilter.value === '') {
+                            dateToFilter.removeAttribute('name');
+                        }
+                    });
+                }
+                
+                // 全选/取消全选
+                const selectAll = document.getElementById('select_all');
+                if (selectAll) {
+                    selectAll.addEventListener('change', function() {
+                        var checkboxes = document.querySelectorAll('.article_checkbox');
+                        checkboxes.forEach(function(checkbox) {
+                            checkbox.checked = selectAll.checked;
+                            checkbox.closest('tr').classList.toggle('selected', selectAll.checked);
+                        });
+                    });
+                }
+                
+                // 单选时高亮行
+                document.querySelectorAll('.article_checkbox').forEach(function(cb) {
+                    cb.addEventListener('change', function(e) {
+                        e.target.closest('tr').classList.toggle('selected', e.target.checked);
+                    });
+                });
+                
+                // 批量操作
+                const executeBatch = document.getElementById('execute_batch');
+                const batchAction = document.getElementById('batch_action');
+                const moveCategory = document.getElementById('move_category');
+                const batchTagsDiv = document.getElementById('batch_tags');
+                
+                // 监听批量操作选择变化
+                    if (batchAction) {
+                    batchAction.addEventListener('change', function() {
+                        if (this.value === 'move') {
+                            moveCategory.style.display = 'inline-block';
+                            batchTagsDiv.style.display = 'none';
+                        } else if (this.value === 'tags') {
+                            moveCategory.style.display = 'none';
+                            batchTagsDiv.style.display = 'inline-block';
+                        } else {
+                            moveCategory.style.display = 'none';
+                            batchTagsDiv.style.display = 'none';
+                        }
+                    });
+                }
+                
+                // 批量操作执行
+                if (executeBatch) {
+                    executeBatch.addEventListener('click', function() {
+                        if (!batchAction) return;
+                        
+                        var action = batchAction.value;
+                        var checkboxes = document.querySelectorAll('.article_checkbox:checked');
+                        var ids = [];
+                        
+                        checkboxes.forEach(function(checkbox) {
+                            ids.push(checkbox.value);
+                        });
+                        
+                        if (!action || ids.length === 0) {
+                            showToast('请选择操作和文章', 'error');
+                            return;
+                        }
+                        
+                        // 批量置顶操作
+                        if (action.startsWith('top-')) {
+                            var topType = parseInt(action.split('-')[1]);
+                            
+                            // 创建表单并提交
+                            var form = document.createElement('form');
+                            form.method = 'POST';
+                            form.action = 'admin.php?action=article&method=batchTop';
+                            
+                            // 添加文章ID
+                            ids.forEach(function(id) {
+                                var input = document.createElement('input');
+                                input.type = 'hidden';
+                                input.name = 'ids[]';
+                                input.value = id;
+                                form.appendChild(input);
+                            });
+                            
+                            // 添加置顶类型
+                            var topTypeInput = document.createElement('input');
+                            topTypeInput.type = 'hidden';
+                            topTypeInput.name = 'top_type';
+                            topTypeInput.value = topType;
+                            form.appendChild(topTypeInput);
+                            
+                            // 添加CSRF令牌
+                            var tokenInput = document.createElement('input');
+                            tokenInput.type = 'hidden';
+                            tokenInput.name = 'csrf_token';
+                            tokenInput.value = '<?php echo $_SESSION['csrf_token']; ?>';
+                            form.appendChild(tokenInput);
+                            
+                            // 提交表单
+                            document.body.appendChild(form);
+                            form.submit();
+                        }
+                        // 批量删除操作
+                        else if (action === 'delete') {
+                            if (confirm('确定要删除选中的文章吗？')) {
+                                // 创建表单并提交
+                                var form = document.createElement('form');
+                                form.method = 'POST';
+                                form.action = 'admin.php?action=article&method=batchDelete';
+                                
+                                // 添加文章ID
+                                ids.forEach(function(id) {
+                                    var input = document.createElement('input');
+                                    input.type = 'hidden';
+                                    input.name = 'ids[]';
+                                    input.value = id;
+                                    form.appendChild(input);
+                                });
+                                
+                                // 添加CSRF令牌
+                                var tokenInput = document.createElement('input');
+                                tokenInput.type = 'hidden';
+                                tokenInput.name = 'csrf_token';
+                                tokenInput.value = '<?php echo $_SESSION['csrf_token']; ?>';
+                                form.appendChild(tokenInput);
+                                
+                                // 提交表单
+                                document.body.appendChild(form);
+                                form.submit();
+                            }
+                        }
+                        // 批量修改状态操作
+                        else if (action.startsWith('status-')) {
+                            var status = parseInt(action.split('-')[1]);
+                            
+                            // 创建表单并提交
+                            var form = document.createElement('form');
+                            form.method = 'POST';
+                            form.action = 'admin.php?action=article&method=batchStatus';
+                            
+                            // 添加文章ID
+                            ids.forEach(function(id) {
+                                var input = document.createElement('input');
+                                input.type = 'hidden';
+                                input.name = 'ids[]';
+                                input.value = id;
+                                form.appendChild(input);
+                            });
+                            
+                            // 添加状态值
+                            var statusInput = document.createElement('input');
+                            statusInput.type = 'hidden';
+                            statusInput.name = 'status';
+                            statusInput.value = status;
+                            form.appendChild(statusInput);
+                            
+                            // 添加CSRF令牌
+                            var tokenInput = document.createElement('input');
+                            tokenInput.type = 'hidden';
+                            tokenInput.name = 'csrf_token';
+                            tokenInput.value = '<?php echo $_SESSION['csrf_token']; ?>';
+                            form.appendChild(tokenInput);
+                            
+                            // 提交表单
+                            document.body.appendChild(form);
+                            form.submit();
+                        }
+                        // 批量移动分类操作
+                        else if (action === 'move') {
+                            var targetCategory = document.getElementById('target_category');
+                            var categoryId = targetCategory.value;
+                            
+                            if (!categoryId) {
+                                showToast('请选择目标分类', 'error');
+                                return;
+                            }
+                            
+                            // 创建表单并提交
+                            var form = document.createElement('form');
+                            form.method = 'POST';
+                            form.action = 'admin.php?action=article&method=batchMove';
+                            
+                            // 添加文章ID
+                            ids.forEach(function(id) {
+                                var input = document.createElement('input');
+                                input.type = 'hidden';
+                                input.name = 'ids[]';
+                                input.value = id;
+                                form.appendChild(input);
+                            });
+                            
+                            // 添加目标分类ID
+                            var categoryInput = document.createElement('input');
+                            categoryInput.type = 'hidden';
+                            categoryInput.name = 'category_id';
+                            categoryInput.value = categoryId;
+                            form.appendChild(categoryInput);
+                            
+                            // 添加CSRF令牌
+                            var tokenInput = document.createElement('input');
+                            tokenInput.type = 'hidden';
+                            tokenInput.name = 'csrf_token';
+                            tokenInput.value = '<?php echo $_SESSION['csrf_token']; ?>';
+                            form.appendChild(tokenInput);
+                            
+                            // 提交表单
+                            document.body.appendChild(form);
+                            form.submit();
+                        }
+                        // 批量修改标签操作
+                        else if (action === 'tags') {
+                            var tagsInput = document.getElementById('batch_tags_input');
+                            var tagMode = document.getElementById('tag_mode');
+                            var tags = tagsInput.value.trim();
+                            
+                            if (!tags) {
+                                showToast('请输入要设置的标签', 'error');
+                                return;
+                            }
+                            
+                            var form = document.createElement('form');
+                            form.method = 'POST';
+                            form.action = 'admin.php?action=article&method=batchTags';
+                            
+                            ids.forEach(function(id) {
+                                var input = document.createElement('input');
+                                input.type = 'hidden';
+                                input.name = 'ids[]';
+                                input.value = id;
+                                form.appendChild(input);
+                            });
+                            
+                            var tagsInputField = document.createElement('input');
+                            tagsInputField.type = 'hidden';
+                            tagsInputField.name = 'tags';
+                            tagsInputField.value = tags;
+                            form.appendChild(tagsInputField);
+                            
+                            var modeInput = document.createElement('input');
+                            modeInput.type = 'hidden';
+                            modeInput.name = 'tag_mode';
+                            modeInput.value = tagMode.value;
+                            form.appendChild(modeInput);
+                            
+                            var tokenInput = document.createElement('input');
+                            tokenInput.type = 'hidden';
+                            tokenInput.name = 'csrf_token';
+                            tokenInput.value = '<?php echo $_SESSION['csrf_token']; ?>';
+                            form.appendChild(tokenInput);
+                            
+                            document.body.appendChild(form);
+                            form.submit();
+                        }
+                    });
+                }
+            });
+        </script>
+    </div>
+    
+    <div class="table-container">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="select_all"></th>
+                    <?php
+                    // 引入公共排序链接组件（sortLink 函数定义）
+                    include ADMIN_PATH . '/templates/components/sort_link.html';
+                    ?>
+                    <th><?php echo sortLink('id', 'ID', $sort, $order); ?></th>
+                    <th>标题</th>
+                    <th>分类</th>
+                    <th>作者</th>
+                    <th>状态</th>
+                    <th>置顶状态</th>
+                    <th><?php echo sortLink('created_at', '发布时间', $sort, $order); ?></th>
+                    <th><?php echo sortLink('view_count', '阅读量', $sort, $order); ?></th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($articles as $article): ?>
+                <tr>
+                    <td><input type="checkbox" name="ids[]" value="<?php echo $article['id']; ?>" class="article_checkbox"></td>
+                    <td><?php echo $article['id']; ?></td>
+                    <td><?php echo $article['title']; ?></td>
+                    <td><?php echo $article['category_name']; ?></td>
+                    <td><?php echo $article['author']; ?></td>
+                    <td><?php echo $article['status'] == 1 ? '<span class="badge badge-success">已发布</span>' : '<span class="badge badge-warning">草稿</span>'; ?></td>
+                    <td>
+                        <?php if (isset($article['top_type']) && $article['top_type'] == 1): ?>
+                            <span class="badge badge-danger">全局置顶</span>
+                        <?php elseif (isset($article['top_type']) && $article['top_type'] == 2): ?>
+                            <span class="badge badge-warning">首页置顶</span>
+                        <?php elseif (isset($article['top_type']) && $article['top_type'] == 3): ?>
+                            <span class="badge badge-primary">分类置顶</span>
+                        <?php else: ?>
+                            <span class="badge badge-secondary">正常</span>
+                        <?php endif; ?>
+                    </td>
+                    <td><?php echo $article['created_at_formatted']; ?></td>
+                    <td><?php echo $article['view_count']; ?></td>
+                    <td>
+                        <a href="admin.php?action=article&sub=edit&id=<?php echo $article['id']; ?>" class="btn btn-primary">编辑</a>
+                        <a href="admin.php?action=article&sub=delete&id=<?php echo $article['id']; ?>" class="btn btn-danger" style="margin-left: 5px;" onclick="return confirm('确定要删除这篇文章吗？');">删除</a>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+
+        <!-- 分页导航：包裹在列表容器内，与表格一体（对齐用户列表页布局） -->
+        <?php
+            // 引入公共分页组件
+            $action = 'article';
+            $total = $total_articles;
+            $limit = $pageSize;
+            $filters = [];
+            if (isset($_GET['category']) && !empty($_GET['category'])) $filters['category'] = $_GET['category'];
+            if (isset($_GET['status']) && !empty($_GET['status'])) $filters['status'] = $_GET['status'];
+            if (isset($_GET['top_type']) && !empty($_GET['top_type'])) $filters['top_type'] = $_GET['top_type'];
+            if (isset($_GET['search']) && !empty($_GET['search'])) $filters['search'] = $_GET['search'];
+            if (isset($_GET['date_from']) && !empty($_GET['date_from'])) $filters['date_from'] = $_GET['date_from'];
+            if (isset($_GET['date_to']) && !empty($_GET['date_to'])) $filters['date_to'] = $_GET['date_to'];
+            // 排序参数并入分页链接，翻页时不丢失当前排序状态
+            if (!empty($sort)) { $filters['sort'] = $sort; $filters['order'] = $order; }
+            // 每页条数并入分页链接，翻页时不丢失
+            $filters['limit'] = $pageSize;
+            // 每页条数可选项（供分页组件渲染下拉框）
+            $pageSizes = $allowedPageSizes;
+            $filters['sub'] = 'list'; // 保持子操作
+            include ADMIN_PATH . '/templates/components/pagination.html';
+        ?>
+    </div>
+</main>
+
+<?php include 'components/footer_wrapper.html'; ?>

@@ -1,0 +1,242 @@
+<?php 
+                        // 配置变量
+                        $showBatch = true; // 所有页面都支持批量删除
+                        $batchAction = $sub === 'like' ? 'batchDeleteLike' : 'batchDeleteFavorite';
+                        $deleteMethod = $sub === 'like' ? 'deleteLike' : 'deleteFavorite';
+                    ?>
+<?php $currentAction = 'interaction'; $pageTitle = '互动管理'; include 'components/page_wrapper.html'; ?>
+
+    <!-- 子页面切换 -->
+    <div class="action-section" style="margin-bottom: 20px;">
+        <?php foreach ($subPages as $key => $label): ?>
+            <a href="admin.php?action=interaction&amp;sub=<?php echo $key; ?>"
+               class="btn <?php echo ($sub === $key) ? 'btn-primary' : 'btn-secondary'; ?>"
+               style="margin-right: 8px;">
+                <?php echo htmlspecialchars($label); ?>
+            </a>
+        <?php endforeach; ?>
+        <?php if ($showBatch): ?>
+            <button type="button" id="batch-delete-btn" class="btn btn-danger" style="margin-left: 10px;">批量删除</button>
+        <?php endif; ?>
+    </div>
+
+    <div class="interaction-content content-section">
+        <div class="card" style="background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <div class="card-header" style="padding: 16px 20px; border-bottom: 1px solid #eee;">
+                <h3 style="margin: 0;">
+                    <?php
+                        // 强制确保正确显示标题
+                        if ($sub === 'all') {
+                            echo '全部互动';
+                        } elseif ($sub === 'like') {
+                            echo '点赞管理';
+                        } elseif ($sub === 'favorite') {
+                            echo '收藏管理';
+                        } else {
+                            echo '全部互动';
+                        }
+                    ?>
+                    <small style="color: #666; font-weight: normal; margin-left: 8px;">共 <?php echo (int)$total; ?>条</small>
+                </h3>
+            </div>
+            <div class="card-body" style="padding: 20px;">
+                <?php if ($showBatch): ?>
+                    <form id="interaction-form" method="post" action="<?php echo $batchAction; ?>"></form>
+                <?php endif; ?>
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <?php if ($showBatch): ?>
+                                    <th style="width: 50px;">
+                                        <input type="checkbox" id="select-all" title="全选">
+                                    </th>
+                                <?php endif; ?>
+                                <th>ID</th>
+                                <?php 
+                                    // 100%强制判断是否是all，只有明确不是like或favorite才显示类型列
+                                    $isAll = true;
+                                    if (isset($sub) && ($sub === 'like' || $sub === 'favorite')) {
+                                        $isAll = false;
+                                    }
+                                    if ($isAll): 
+                                ?>
+                                    <th>类型</th>
+                                <?php endif; ?>
+                                <th>用户</th>
+                                <th>文章</th>
+                                <th>时间</th>
+                                <th style="width: 120px;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($data)): ?>
+                                <?php foreach ($data as $row): ?>
+                                    <tr>
+                                <?php if ($showBatch): ?>
+                                    <td>
+                                        <?php 
+                                            $showCheckbox = false;
+                                            if ($sub === 'like' || $sub === 'favorite') {
+                                                $showCheckbox = true;
+                                            } elseif (isset($row['type']) && ($row['type'] === 'like' || $row['type'] === 'favorite')) {
+                                                $showCheckbox = true;
+                                            }
+                                            if ($showCheckbox): 
+                                        ?>
+                                            <input type="checkbox" form="interaction-form" name="ids[]" value="<?php echo (int)$row['id']; ?>">
+                                        <?php endif; ?>
+                                    </td>
+                                <?php endif; ?>
+                                        <td>
+                                            <?php 
+                                                // 现在两个表都有ID了，直接显示
+                                                if (isset($row['id'])): 
+                                            ?>
+                                                <?php echo (int)$row['id']; ?>
+                                            <?php else: ?>
+                                                <span style="color:#999;">(无ID)</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <?php if ($isAll): ?>
+                                            <td>
+                                                <?php if (isset($row['type']) && $row['type'] === 'like'): ?>
+                                                    <span class="badge" style="background: #007AFF; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px;">点赞</span>
+                                                <?php elseif (isset($row['type']) && $row['type'] === 'favorite'): ?>
+                                                    <span class="badge" style="background: #FF9800; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px;">收藏</span>
+                                                <?php endif; ?>
+                                            </td>
+                                        <?php endif; ?>
+                                        <td>
+                                            <?php
+                                                $displayName = !empty($row['nickname'])
+                                                    ? $row['nickname']
+                                                    : ($row['username'] ?? '未知用户');
+                                                echo htmlspecialchars($displayName);
+                                                if (!empty($row['user_id'])) {
+                                                    echo ' <small style="color:#999;">(#' . (int)$row['user_id'] . ')</small>';
+                                                }
+                                            ?>
+                                        </td>
+                                        <td>
+                                            <?php if (!empty($row['title'])): ?>
+                                                <a href="/index.php/article/<?php echo (int)$row['article_id']; ?>" target="_blank" rel="noopener">
+                                                    <?php echo htmlspecialchars($row['title']); ?>
+                                                </a>
+                                            <?php else: ?>
+                                                <span style="color:#999;">文章已删除或不可用</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td><?php echo htmlspecialchars($row['created_at'] ?? ''); ?></td>
+                                        <td>
+                                            <?php if ($sub === 'all'): ?>
+                                                    <?php if (isset($row['type'])): ?>
+                                                        <?php if ($row['type'] === 'like'): ?>
+                                                            <form method="post"
+                                                                  action="admin.php?action=interaction&amp;method=deleteLike"
+                                                                  style="display:inline;"
+                                                                  onsubmit="return confirm('确定要删除这条点赞记录吗？');">
+                                                                <input type="hidden" name="id" value="<?php echo (int)$row['id']; ?>">
+                                                                <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                                                            </form>
+                                                        <?php elseif ($row['type'] === 'favorite'): ?>
+                                                            <form method="post"
+                                                                  action="admin.php?action=interaction&amp;method=deleteFavorite"
+                                                                  style="display:inline;"
+                                                                  onsubmit="return confirm('确定要删除这条收藏记录吗？');">
+                                                                <input type="hidden" name="id" value="<?php echo (int)$row['id']; ?>">
+                                                                <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                                                            </form>
+                                                        <?php endif; ?>
+                                                    <?php endif; ?>
+                                                <?php else: ?>
+                                                    <?php if ($sub === 'like'): ?>
+                                                        <form method="post"
+                                                              action="admin.php?action=interaction&amp;method=deleteLike"
+                                                              style="display:inline;"
+                                                              onsubmit="return confirm('确定要删除这条点赞记录吗？');">
+                                                            <input type="hidden" name="id" value="<?php echo (int)$row['id']; ?>">
+                                                            <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                                                        </form>
+                                                    <?php else: ?>
+                                                        <form method="post"
+                                                              action="admin.php?action=interaction&amp;method=deleteFavorite"
+                                                              style="display:inline;"
+                                                              onsubmit="return confirm('确定要删除这条收藏记录吗？');">
+                                                            <input type="hidden" name="id" value="<?php echo (int)$row['id']; ?>">
+                                                            <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                                                        </form>
+                                                    <?php endif; ?>
+                                                <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="<?php echo $sub === 'all' ? '6' : '6'; ?>" style="text-align: center; padding: 40px; color: #666;">
+                                        暂无<?php 
+                                            if ($sub === 'favorite') {
+                                                echo '收藏';
+                                            } elseif ($sub === 'like') {
+                                                echo '点赞';
+                                            } else {
+                                                echo '互动';
+                                            }
+                                        ?>记录
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+
+                <?php
+                    $action = 'interaction';
+                    $filters = ['sub' => $sub];
+                    $limit = $pageSize ?? 20;
+                    include ADMIN_PATH . '/templates/components/pagination.html';
+                ?>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function () {
+        var selectAll = document.getElementById('select-all');
+        var form = document.getElementById('interaction-form');
+        var batchBtn = document.getElementById('batch-delete-btn');
+
+        // 只在有相应元素的时候才启用功能
+        if (selectAll && form) {
+            selectAll.addEventListener('change', function () {
+                var boxes = document.querySelectorAll('input[name="ids[]"][form="interaction-form"]');
+                for (var i = 0; i < boxes.length; i++) {
+                    boxes[i].checked = selectAll.checked;
+                }
+            });
+        }
+
+        if (batchBtn && form) {
+            batchBtn.addEventListener('click', function () {
+                var checked = form.querySelectorAll('input[name="ids[]"]:checked');
+                if (checked.length === 0) {
+                    alert('请先选择要删除的记录');
+                    return;
+                }
+                
+                // 根据当前页面显示不同的提示
+                var sub = '<?php echo $sub; ?>';
+                var typeText = '记录';
+                if (sub === 'like') {
+                    typeText = '点赞记录';
+                } else if (sub === 'favorite') {
+                    typeText = '收藏记录';
+                }
+                
+                if (confirm('确定要批量删除选中的 ' + checked.length + ' 条' + typeText + '吗？')) {
+                    form.submit();
+                }
+            });
+        }
+    })();
+    </script>
+
+<?php include 'components/footer_wrapper.html'; ?>

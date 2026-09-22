@@ -1,0 +1,154 @@
+{assign var="page_title" value="我的点赞"}
+{include file="header"}
+    
+    <main class="main-content">
+        <div class="container">
+            <div class="profile-container">
+                {include file="common/profile_nav.html"}
+                
+                <div class="profile-content">
+                      
+                    <!-- 我的点赞区域 -->
+                    <div class="profile-section">
+                    <h3 class="section-title">我的点赞</h3>
+                    
+                    <!-- 筛选标签 -->
+                    <div class="like-filter-tabs">
+                        <a href="{url:profile}?m=likes&type=articles" {if equal="get.type" value="articles"}class="active"{else}{if empty="get.type"}class="active"{/if}{endif}>点赞的文章 ({like_count})</a>
+                        <a href="{url:profile}?m=likes&type=comments" {if equal="get.type" value="comments"}class="active"{endif}>点赞的评论/回复 ({comment_like_count})</a>
+                    </div>
+                    
+                    <style>
+                        .like-filter-tabs {
+                            margin-bottom: 20px;
+                            border-bottom: 1px solid var(--border-color, #eee);
+                        }
+
+                        .like-filter-tabs a {
+                            display: inline-block;
+                            padding: 10px 20px;
+                            color: var(--text-secondary, #555);
+                            text-decoration: none;
+                            font-weight: 500;
+                            border-bottom: 2px solid transparent;
+                            margin-right: 10px;
+                        }
+
+                        .like-filter-tabs a.active {
+                            color: var(--primary-color, #007AFF);
+                            border-bottom-color: var(--primary-color, #007AFF);
+                        }
+
+                        .comment-content {
+                            margin: 10px 0;
+                            padding: 10px;
+                            background-color: var(--background-white, #fff);
+                            border-radius: 5px;
+                            border-left: 3px solid var(--primary-color, #007AFF);
+                        }
+
+                        .empty-state {
+                            text-align: center;
+                            padding: 60px 20px;
+                            color: var(--text-muted, #999);
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                        }
+
+                        .empty-state svg {
+                            margin-bottom: 18px;
+                            opacity: .6;
+                        }
+
+                        .empty-state p {
+                            margin: 0;
+                            font-size: var(--font-size-base);      /* 16px（原15px，提至标准正文大小） */
+                        }
+                    </style>
+                    
+                    {if equal="get.type" value="articles"}
+                        {if empty="liked_articles"}
+                            <div class="empty-state">
+                                <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="8" y1="12" x2="16" y2="12"></line>
+                                </svg>
+                                <p>暂无点赞任何文章</p>
+                            </div>
+                        {else}
+                            <div class="articles-list">
+                                {loop name="liked_articles"}
+                                    <div class="article-item post">
+                                        <!-- 封面图显示 -->
+                                        {picture src="cover_image" alt="title" class="lazy-img" wrap_class="post-cover"}
+
+                                        <div class="post-content">
+                                            <h4 class="post-title">
+                                                <a href="{url:article:id}" target="_blank">{field name='title'}</a>
+                                            </h4>
+                                            <div class="post-excerpt">
+                                                {field name='description'}
+                                            </div>
+                                            <div class="post-footer">
+                                                <div class="post-meta">
+                                                    {if field="category_name"}
+                                                    <span class="post-category">分类：<a href="{url:category:category_id}">{field name='category_name'}</a></span>
+                                                    {/if}
+                                                    <span class="post-author">{field name="author"}</span>
+                                                    <span class="post-date">点赞时间：{field name="liked_at"}</span>
+                                                    <span class="post-date">发布时间：{field name="created_at"}</span>
+                                                    <span class="post-views">{field name="view_count" filter="cn_number"} 浏览</span>
+                                                    <span class="post-likes">{field name="like_count" filter="cn_number"} 点赞</span>
+                                                    <span class="post-comments">{field name="comment_count" filter="cn_number"} 评论</span>
+                                                </div>
+                                                <div class="post-tags-list">
+                                                {loop name=":tags"}
+                                                    <a href="{url:tag:id}" class="tag">{field name="name"}</a>
+                                                {/loop}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {/loop}
+                            </div>
+                        {/if}
+                    {else}
+                        {if empty="liked_comments"}
+                            <div class="empty-state">
+                                <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="8" y1="12" x2="16" y2="12"></line>
+                                </svg>
+                                <p>暂无点赞任何评论或回复</p>
+                            </div>
+                        {else}
+                            {loop name="liked_comments"}
+                                <div class="article-item post">
+                                    <div class="post-content">
+                                        <h4 class="post-title">
+                                            <a href="{url:article:article_id}">{field name='article_title'}</a>
+                                        </h4>
+                                        <div class="post-meta" style="margin-bottom: 10px;">
+                                            <span class="post-author">评论者：{field name='author'}</span>
+                                            <span class="post-date">评论时间：{field name='comment_created_at'}</span>
+                                            <span class="post-date">点赞时间：{field name='created_at'}</span>
+                                        </div>
+                                        <div class="comment-content">
+                                            {field name='content'}
+                                        </div>
+                                    </div>
+                                </div>
+                            {/loop}
+                        {/if}
+                    {/if}
+                </div>
+                
+                <!-- 分页导航 -->
+                    {include file="common/pagination.html"}
+                </div>
+            </div>
+        </div>
+    </main>
+    
+{include file="footer"}

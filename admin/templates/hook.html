@@ -1,0 +1,170 @@
+<?php $currentAction = 'hook'; $pageTitle = '钩子管理'; include 'components/page_wrapper.html'; ?>
+    
+    <!-- 操作栏 -->
+    <div class="action-section">
+        <a href="admin.php?action=hook&sub=logs" class="btn btn-info">查看钩子日志</a>
+        <a href="admin.php?action=hook&sub=batchTest" class="btn btn-primary">批量测试</a>
+    </div>
+    
+    <!-- 搜索和过滤 -->
+    <div style="background-color: #ffffff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-top: 20px;">
+        <form method="get" action="admin.php">
+            <input type="hidden" name="action" value="hook">
+            <div class="row" style="display: flex; gap: 10px; align-items: center;">
+                <div style="flex: 1;">
+                    <input type="text" name="keyword" placeholder="搜索钩子名称或描述" class="form-control">
+                </div>
+                <div style="flex: 1;">
+                    <select name="category" class="form-control">
+                        <option value="">所有分类</option>
+                        <option value="user">用户相关</option>
+                        <option value="article">文章相关</option>
+                        <option value="comment">评论相关</option>
+                        <option value="page">页面相关</option>
+                        <option value="category">分类相关</option>
+                        <option value="tag">标签相关</option>
+                        <option value="system">系统相关</option>
+                        <option value="file">文件相关</option>
+                        <option value="notification">通知相关</option>
+                        <option value="email">邮件相关</option>
+                        <option value="sms">短信相关</option>
+                        <option value="admin">管理后台相关</option>
+                        <option value="api">API相关</option>
+                        <option value="template">模板相关</option>
+                        <option value="database">数据库相关</option>
+                        <option value="security">安全相关</option>
+                        <option value="seo">SEO相关</option>
+                        <option value="theme">主题相关</option>
+                        <option value="plugin">插件相关</option>
+                        <option value="membership">会员相关</option>
+                        <option value="payment">支付相关</option>
+                        <option value="search">搜索相关</option>
+                        <option value="cache">缓存相关</option>
+                        <option value="performance">性能相关</option>
+                        <option value="language">多语言相关</option>
+                        <option value="social">社交相关</option>
+                        <option value="statistics">统计相关</option>
+                    </select>
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary">搜索</button>
+                    <button type="reset" class="btn btn-secondary">重置</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <!-- 钩子列表 -->
+    <div class="hook-list" style="margin-top: 20px;">
+        <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3>可用钩子</h3>
+                <div>
+                    <span style="margin-right: 10px;">总计: <?php echo count($hooks); ?> 个钩子</span>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>钩子名称</th>
+                            <th>钩子常量</th>
+                            <th>分类</th>
+                            <th>描述</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($hooks as $hook): ?>
+                            <tr>
+                                <td><?php echo $hook['value']; ?></td>
+                                <td><?php echo $hook['name']; ?></td>
+                                <td>
+                                    <?php
+                                        // 提取钩子分类
+                                        $category = 'other';
+                                        $hookValue = $hook['value'];
+                                        if (strpos($hookValue, 'user_') === 0) $category = 'user';
+                                        elseif (strpos($hookValue, 'article_') === 0) $category = 'article';
+                                        elseif (strpos($hookValue, 'comment_') === 0) $category = 'comment';
+                                        elseif (strpos($hookValue, 'page_') === 0) $category = 'page';
+                                        elseif (strpos($hookValue, 'category_') === 0) $category = 'category';
+                                        elseif (strpos($hookValue, 'tag_') === 0) $category = 'tag';
+                                        elseif (strpos($hookValue, 'system_') === 0) $category = 'system';
+                                        elseif (strpos($hookValue, 'file_') === 0) $category = 'file';
+                                        elseif (strpos($hookValue, 'notification_') === 0 || $hookValue === 'send_notification') $category = 'notification';
+                                        elseif (strpos($hookValue, 'email_') === 0) $category = 'email';
+                                        elseif (strpos($hookValue, 'sms_') === 0) $category = 'sms';
+                                        elseif (strpos($hookValue, 'admin_') === 0) $category = 'admin';
+                                        elseif (strpos($hookValue, 'api_') === 0) $category = 'api';
+                                        elseif (strpos($hookValue, 'template_') === 0) $category = 'template';
+                                        elseif (strpos($hookValue, 'database_') === 0) $category = 'database';
+                                        elseif (strpos($hookValue, 'security_') === 0) $category = 'security';
+                                        elseif (strpos($hookValue, 'seo_') === 0) $category = 'seo';
+                                        elseif (strpos($hookValue, 'theme_') === 0) $category = 'theme';
+                                        elseif (strpos($hookValue, 'plugin_') === 0) $category = 'plugin';
+                                        elseif (strpos($hookValue, 'membership_') === 0) $category = 'membership';
+                                        elseif (strpos($hookValue, 'payment_') === 0) $category = 'payment';
+                                        elseif (strpos($hookValue, 'search_') === 0) $category = 'search';
+                                        elseif (strpos($hookValue, 'cache_') === 0) $category = 'cache';
+                                        elseif (strpos($hookValue, 'performance_') === 0 || $hookValue === 'resource_load' || $hookValue === 'page_load_complete') $category = 'performance';
+                                        elseif (strpos($hookValue, 'language_') === 0 || strpos($hookValue, 'translation_') === 0) $category = 'language';
+                                        elseif (strpos($hookValue, 'social_') === 0) $category = 'social';
+                                        elseif (strpos($hookValue, 'statistics_') === 0) $category = 'statistics';
+                                        
+                                        echo '<span class="badge badge-secondary">' . $category . '</span>';
+                                    ?>
+                                </td>
+                                <td><?php echo $hook['description']; ?></td>
+                                <td>
+                                    <a href="admin.php?action=hook&sub=test&hook=<?php echo $hook['value']; ?>" class="btn btn-sm btn-success">测试</a>
+                                    <a href="admin.php?action=hook&sub=info&hook=<?php echo $hook['value']; ?>" class="btn btn-sm btn-info">详情</a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div style="margin-top: 30px; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <h3>已注册的钩子回调</h3>
+            <?php if (!empty($registeredHooks)): ?>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>钩子名称</th>
+                                <th>优先级</th>
+                                <th>回调数量</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($registeredHooks as $hookName => $priorities): ?>
+                                <tr>
+                                    <td><?php echo $hookName; ?></td>
+                                    <td>
+                                        <?php foreach ($priorities as $priority => $callbacks): ?>
+                                            <span class="badge badge-info" style="margin-right: 5px;"><?php echo $priority; ?></span>
+                                        <?php endforeach; ?>
+                                    </td>
+                                    <td>
+                                        <?php 
+                                            $totalCallbacks = 0;
+                                            foreach ($priorities as $callbacks) {
+                                                $totalCallbacks += count($callbacks);
+                                            }
+                                            echo $totalCallbacks;
+                                        ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php else: ?>
+                <p style="text-align: center; padding: 20px; color: #666;">暂无已注册的钩子回调</p>
+            <?php endif; ?>
+        </div>
+    </div>
+<?php include 'components/footer_wrapper.html'; ?>

@@ -1,0 +1,107 @@
+<?php $currentAction = 'permission'; $pageTitle = '权限管理'; include 'components/page_wrapper.html'; ?>
+    
+
+    
+    <div class="form-container">
+        <!-- 搜索和筛选 -->
+        <div class="filter-container" style="margin-bottom: 20px; padding: 20px; background-color: #f8f9fa; border-radius: 5px;">
+            <form method="get" action="admin.php?action=permission" class="filter-form">
+                <div class="filter-row">
+                    <div class="filter-item">
+                        <select name="type">
+                            <option value="">所有类型</option>
+                            <?php foreach ($permissionTypes as $key => $name): ?>
+                            <option value="<?php echo $key; ?>" <?php echo isset($type) && $type == $key ? 'selected' : ''; ?>>
+                                <?php echo $name; ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-item">
+                        <select name="status">
+                            <option value="">所有状态</option>
+                            <option value="1" <?php echo isset($status) && $status == 1 ? 'selected' : ''; ?>>启用</option>
+                            <option value="0" <?php echo isset($status) && $status == 0 ? 'selected' : ''; ?>>禁用</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-item">
+                        <button type="submit" class="btn btn-primary">筛选</button>
+                        <a href="admin.php?action=permission" class="btn btn-default">重置</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+        <!-- 操作按钮 -->
+        <div class="action-buttons" style="margin-bottom: 20px;">
+            <a href="admin.php?action=permission&sub=add" class="btn btn-success">添加权限</a>
+        </div>
+        
+        <!-- 权限树列表 -->
+        <div class="table-container">
+            <table class="data-table table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>权限名称</th>
+                        <th>权限编码</th>
+                        <th>权限类型</th>
+                        <th>路径</th>
+                        <th>图标</th>
+                        <th>排序</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php 
+                    // 递归函数，用于生成权限表格行
+                    function renderPermissionTableRows($permissions, $permissionTypes) {
+                        $html = '';
+                        
+                        foreach ($permissions as $permission) {
+                            $html .= '<tr>';
+                            $html .= '<td>' . $permission['id'] . '</td>';
+                            $html .= '<td>' . $permission['name'] . '</td>';
+                            $html .= '<td>' . $permission['code'] . '</td>';
+                            $html .= '<td>' . $permissionTypes[$permission['type']] . '</td>';
+                            $html .= '<td>' . $permission['path'] . '</td>';
+                            $html .= '<td>' . $permission['icon'] . '</td>';
+                            $html .= '<td>' . $permission['sort'] . '</td>';
+                            $html .= '<td><span class="status-badge ' . ($permission['status'] == 1 ? 'active' : 'inactive') . '">' . ($permission['status'] == 1 ? '启用' : '禁用') . '</span></td>';
+                            $html .= '<td class="action-buttons">';
+                            $html .= '<a href="admin.php?action=permission&sub=edit&id=' . $permission['id'] . '" class="btn btn-primary btn-sm">编辑</a>';
+                            $html .= '<a href="admin.php?action=permission&sub=toggleStatus&id=' . $permission['id'] . '&status=' . ($permission['status'] == 1 ? 0 : 1) . '" class="btn btn-' . ($permission['status'] == 1 ? 'warning' : 'success') . ' btn-sm">';
+                            $html .= $permission['status'] == 1 ? '禁用' : '启用';
+                            $html .= '</a>';
+                            $html .= '<a href="admin.php?action=permission&sub=delete&id=' . $permission['id'] . '" class="btn btn-danger btn-sm" onclick="return confirm(\'确定要删除这个权限吗？\');">删除</a>';
+                            $html .= '</td>';
+                            $html .= '</tr>';
+                            
+                            // 递归渲染子权限
+                            if (isset($permission['children']) && !empty($permission['children'])) {
+                                $html .= renderPermissionTableRows($permission['children'], $permissionTypes);
+                            }
+                        }
+                        
+                        return $html;
+                    }
+                    
+                    // 渲染权限表格行
+                    echo renderPermissionTableRows($permissionTree, $permissionTypes);
+                    
+                    if (empty($permissionTree)): 
+                    ?>
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 50px;">暂无权限数据</td>
+                    </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<?php include 'components/footer_wrapper.html'; ?>

@@ -1,0 +1,110 @@
+{assign var="page_title" value="我的粉丝"}
+{include file="header"}
+
+<main class="main-content">
+    <div class="container">
+        <div class="profile-container">
+                {include file="common/profile_nav.html"}
+                
+                <div class="profile-content">
+                    
+                    <!-- 我的粉丝列表 -->
+                    <div class="profile-section">
+                <h3 class="section-title">我的粉丝</h3>
+                
+                {if followers_list}
+                    <ul class="follow-list">
+                        {loop name="followers_list"}
+                            <li class="follow-item">
+                                <img src="{if field='avatar'}{field name='avatar'}{else}/themes/default/assets/images/avatar.png{endif}" alt="用户头像" class="follow-avatar">
+                                <div class="follow-info">
+                                    <div class="follow-name">
+                                        <a href="/index.php?c=Auth&m=user&id={field name='id'}">{field name='nickname'}</a>
+                                    </div>
+                                    <div class="follow-time">关注时间：{field name='follow_time_formatted'}</div>
+                                </div>
+                                <div class="follow-action">
+                                    <a href="javascript:void(0);" data-user-id="{field name='id'}" class="btn {if field='is_following'}btn-secondary{else}btn-primary{/if}">{if field='is_following'}取消关注{else}关注{/if}</a>
+                                </div>
+                            </li>
+                        {/loop}
+                    </ul>
+                    
+                    <!-- 分页导航 -->
+                        {include file="common/pagination.html"}
+                    {else}
+                        <div class="empty-state">
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="8" y1="12" x2="16" y2="12"></line>
+                            </svg>
+                            <p>暂无粉丝记录</p>
+                        </div>
+                    {/if}
+                    </div>
+                </div>
+            </div>
+    </div>
+</main>
+
+{include file="footer"}
+
+<script>
+// 关注/取消关注功能的 AJAX 处理
+document.addEventListener('DOMContentLoaded', function() {
+    // 获取所有关注操作按钮
+    const followButtons = document.querySelectorAll('.follow-action a.btn');
+    
+    followButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault(); // 阻止默认链接跳转
+            
+            // 从data属性获取用户ID
+            const userId = this.getAttribute('data-user-id');
+            const currentButton = this;
+            
+            if (!userId) {
+                console.error('无法获取用户ID');
+                alert('操作失败，请重试');
+                return;
+            }
+            
+            // 发送 AJAX 请求
+            fetch('/index.php?c=Auth&m=followAjax', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'id=' + userId
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('HTTP error! status: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // 更新按钮状态
+                    if (data.is_following) {
+                        currentButton.className = 'btn btn-secondary';
+                        currentButton.textContent = '取消关注';
+                    } else {
+                        currentButton.className = 'btn btn-primary';
+                        currentButton.textContent = '关注';
+                    }
+                    
+                    console.log(data.message);
+                } else {
+                    console.error('操作失败:', data.message);
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('请求失败:', error);
+                alert('操作失败，请重试');
+            });
+        });
+    });
+});
+</script>

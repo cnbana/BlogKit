@@ -1,0 +1,144 @@
+<?php $currentAction = 'market'; $pageTitle = '应用市场'; $pageCss = 'market.css'; include 'components/page_wrapper.html'; ?>
+
+<!-- ============ 应用市场（P3 在线安装 + 内嵌完整市场体验，方案 4.2 扩展） ============ -->
+<!-- 数据流：MarketController 服务端拉官网 /api/market/apps 全量（10 分钟缓存），
+     搜索/类型/分类筛选全部在主系统本地完成（与官网 /apps 同口径）；
+     安装走 do_install 一键管线（POST+CSRF）；详情走 op=detail 后台子页 -->
+
+<!-- 操作栏 -->
+<div class="action-section">
+    <a href="admin.php?action=market&op=settings" class="btn btn-info">市场设置</a>
+    <a href="<?php echo htmlspecialchars(Config::get('market_api_url', ''), ENT_QUOTES); ?>/apps" target="_blank" class="btn btn-default">访问官网应用市场</a>
+</div>
+
+<?php if (!empty($notice)): ?>
+<div style="background-color:#fcf8e3; border:1px solid #faebcc; padding:10px 15px; border-radius:4px; margin-top:15px;">
+    <?php echo htmlspecialchars($notice, ENT_QUOTES); ?>
+</div>
+<?php endif; ?>
+
+<!-- 主程序新版本提示（P1-9：官网 /api/latest-version 检测，结果缓存 10 分钟，静默降级不影响页面） -->
+<?php if (!empty($hasNewVersion)): ?>
+<div style="background-color:#d9edf7; border:1px solid #bce8f1; color:#31708f; padding:10px 15px; border-radius:4px; margin-top:15px;">
+    发现新版本 BlogKit <?php echo htmlspecialchars($latestVersion, ENT_QUOTES); ?>，
+    <!-- U1 在线升级：跳转系统升级页确认后一键升级（执行动作在升级页 POST+CSRF，此处为纯导航） -->
+    <a href="admin.php?action=update" style="font-weight:bold;">立即升级</a>
+    ｜ <a href="<?php echo htmlspecialchars(Config::get('market_api_url', ''), ENT_QUOTES); ?>/download" target="_blank">前往官网下载</a>
+</div>
+<?php endif; ?>
+
+<!-- 市场工具栏：搜索框（GET，保持当前 type/cat 状态）+ 类型 Tab -->
+<div style="background-color:#ffffff; padding:15px; border-radius:8px 8px 0 0; box-shadow:0 2px 4px rgba(0,0,0,0.05); margin-top:20px; border-bottom:1px solid #eee;">
+    <form method="get" action="admin.php" style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:12px;">
+        <!-- 隐藏域保持路由与当前筛选状态（类型/分类随 Tab/chips 链接切换，搜索时沿用） -->
+        <input type="hidden" name="action" value="market">
+        <input type="hidden" name="type" value="<?php echo htmlspecialchars($type, ENT_QUOTES); ?>">
+        <input type="hidden" name="cat" value="<?php echo htmlspecialchars($catId, ENT_QUOTES); ?>">
+        <input type="text" name="kw" value="<?php echo htmlspecialchars($kw, ENT_QUOTES); ?>"
+               placeholder="搜索应用名称 / 简介 / 作者"
+               style="width:280px; padding:6px 10px; border:1px solid #ddd; border-radius:4px;">
+        <button type="submit" class="btn btn-primary btn-sm">搜索</button>
+        <?php if ($kw !== ''): ?>
+        <a href="admin.php?action=market&type=<?php echo urlencode($type); ?>&cat=<?php echo urlencode($catId); ?>"
+           class="btn btn-default btn-sm">清除关键词</a>
+        <?php endif; ?>
+        <span style="color:#999; font-size:12px; margin-left:auto;">共 <?php echo (int)$counts['all']; ?> 个应用</span>
+    </form>
+
+    <!-- 类型 Tab：全部 / 主题 / 插件（与官网 /apps 同口径；count 从本地缓存聚合） -->
+    <div style="display:flex; gap:8px;">
+        <?php
+        // Tab 链接与高亮在控制器数据基础上拼装（当前 type 标量比较在 PHP 层完成）
+        $tabs = [
+            ['type' => '', 'label' => '全部', 'count' => $counts['all']],
+            ['type' => 'theme', 'label' => '主题', 'count' => $counts['theme']],
+            ['type' => 'plugin', 'label' => '插件', 'count' => $counts['plugin']],
+        ];
+        foreach ($tabs as $tab):
+            $tabUrl = 'admin.php?action=market&type=' . urlencode($tab['type']) . '&cat=' . urlencode($catId);
+            if ($kw !== '') {
+                $tabUrl .= '&kw=' . urlencode($kw);
+            }
+            $tabActive = ($type === $tab['type']) ? '1' : '0';
+            ?>
+        <a href="<?php echo $tabUrl; ?>" style="padding:5px 14px; border-radius:16px; text-decoration:none; font-size:13px;<?php
+            // 高亮态/常态内联样式（后台无依赖组件，沿用内联 style 风格）
+            echo $tabActive === '1' ? 'background:#337ab7; color:#fff;' : 'background:#f5f5f5; color:#555;';
+            ?>">
+            <?php echo $tab['label']; ?> <span style="opacity:.75;">(<?php echo (int)$tab['count']; ?>)</span>
+        </a>
+        <?php endforeach; ?>
+    </div>
+</div>
+
+<?php $hasCats = !empty($cats); if ($hasCats): ?>
+<!-- 分类 chips：基于当前类型子集聚合（distinct 分类名，含应用数） -->
+<div style="background-color:#ffffff; padding:8px 15px 12px; box-shadow:0 2px 4px rgba(0,0,0,0.05); display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
+    <span style="color:#999; font-size:12px;">分类：</span>
+    <a href="admin.php?action=market&type=<?php echo urlencode($type); ?>&kw=<?php echo urlencode($kw); ?>"
+       style="padding:3px 10px; border-radius:12px; text-decoration:none; font-size:12px;<?php
+        echo $catId === '' ? 'background:#337ab7; color:#fff;' : 'background:#f5f5f5; color:#555;'; ?>">
+        全部
+    </a>
+    <?php foreach ($cats as $c): ?>
+    <a href="admin.php?action=market&type=<?php echo urlencode($type); ?>&cat=<?php echo urlencode($c['name']); ?>&kw=<?php echo urlencode($kw); ?>"
+       style="padding:3px 10px; border-radius:12px; text-decoration:none; font-size:12px;<?php
+        echo $c['active'] !== '' ? 'background:#337ab7; color:#fff;' : 'background:#f5f5f5; color:#555;'; ?>">
+        <?php echo $c['name']; ?> <span style="opacity:.75;">(<?php echo (int)$c['count']; ?>)</span>
+    </a>
+    <?php endforeach; ?>
+</div>
+<?php endif; ?>
+
+<!-- 应用卡片网格 -->
+<div style="background-color:#f7f8fa; padding:15px; border-radius:0 0 8px 8px; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+    <?php if (empty($rows)): ?>
+    <!-- 空状态：文案由控制器按有无关键词分支拼好（$emptyDesc），模板不嵌套判断 -->
+    <div style="background:#fff; border-radius:8px; text-align:center; padding:50px 20px; color:#999;">
+        <p style="font-size:15px; margin-bottom:5px;">没有找到匹配的应用</p>
+        <p style="font-size:13px;"><?php echo $emptyDesc; ?></p>
+    </div>
+    <?php else: ?>
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:14px;">
+        <?php foreach ($rows as $row): ?>
+        <div class="mk-card" style="background:#fff; border-radius:8px; overflow:hidden; display:flex; flex-direction:column; transition:box-shadow .2s;">
+            <!-- 卡片图：主题封面 / 插件图标（控制器预拼官网前缀）；无图输出占位块 -->
+            <a href="<?php echo $row['detail_url']; ?>" title="查看详情" style="display:block; height:120px; overflow:hidden; background:#eef1f5;">
+                <?php echo $row['image_html']; ?>
+            </a>
+            <div style="padding:12px 14px; flex:1; display:flex; flex-direction:column;">
+                <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+                    <a href="<?php echo $row['detail_url']; ?>" style="font-size:15px; font-weight:bold; color:#333; text-decoration:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                        <?php echo $row['name']; ?>
+                    </a>
+                    <span style="flex-shrink:0; padding:1px 7px; border-radius:10px; font-size:11px; background:#eaf2fb; color:#337ab7;"><?php echo $row['type_label']; ?></span>
+                </div>
+                <p style="color:#888; font-size:12px; margin:0 0 6px; flex:1; min-height:34px;">
+                    <?php echo $row['description'] !== '' ? $row['description'] : '（暂无简介）'; ?>
+                </p>
+                <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:12px; color:#999; margin-bottom:8px;">
+                    <span><?php echo $row['author']; ?></span>
+                    <?php if ($row['category'] !== ''): ?>
+                    <span style="padding:0 6px; background:#f2f4f7; border-radius:3px;"><?php echo $row['category']; ?></span>
+                    <?php endif; ?>
+                    <span>v<?php echo $row['latest']; ?></span>
+                    <span style="margin-left:auto;"><?php echo (int)$row['installs']; ?> 次安装</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; border-top:1px solid #f0f0f0; padding-top:8px; min-height:32px;">
+                    <?php echo $row['status_html']; ?>
+                    <?php echo $row['install_btn']; ?>
+                    <a href="<?php echo $row['detail_url']; ?>" class="btn btn-default btn-sm" style="margin-left:auto;">详情</a>
+                </div>
+            </div>
+        </div>
+        <?php endforeach; ?>
+    </div>
+    <p style="color:#999; font-size:12px; margin-top:12px;">
+        「安装 / 更新」可在卡片或详情页直接完成；列表数据缓存 10 分钟，安装后自动刷新状态。
+    </p>
+    <?php endif; ?>
+</div>
+    <!-- 页面专属样式已归拢至 assets/css 页面级文件（经 $pageCss 加载，2026-09 样式统一） -->
+
+
+<?php include 'components/footer_wrapper.html'; ?>

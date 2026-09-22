@@ -1,0 +1,46 @@
+<?php $currentAction = 'page'; $pageTitle = '页面管理'; include 'components/page_wrapper.html'; ?>
+    
+    <div style="margin-bottom: 15px;">
+        <a href="admin.php?action=page&sub=add" class="btn btn-primary">添加页面</a>
+    </div>
+    
+    <div class="table-container">
+        <?php include ADMIN_PATH . '/templates/components/sort_link.html'; ?>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th><?php echo sortLink('id', 'ID', $sort, $order); ?></th>
+                    <th><?php echo sortLink('title', '标题', $sort, $order); ?></th>
+                    <th>别名</th>
+                    <th>状态</th>
+                    <th><?php echo sortLink('updated_at', '更新时间', $sort, $order); ?></th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($pages as $page): ?>
+                <tr>
+                    <td><?php echo $page['id']; ?></td>
+                    <td><?php echo $page['title']; ?></td>
+                    <td><?php echo $page['slug']; ?></td>
+                    <td><?php echo $page['status'] == 1 ? '<span style="color: green;">已发布</span>' : '<span style="color: orange;">草稿</span>'; ?></td>
+                    <td><?php echo $page['updated_at']; ?></td>
+                    <td>
+                        <a href="admin.php?action=page&sub=edit&id=<?php echo $page['id']; ?>" class="btn btn-primary">编辑</a>
+                        <a href="admin.php?action=page&sub=delete&id=<?php echo $page['id']; ?>" class="btn btn-danger" onclick="return confirm('确定要删除这个页面吗？');">删除</a>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        
+        <!-- 分页 -->
+        <?php if (isset($totalPages) && $totalPages > 1): ?>
+        <div class="pagination-container" style="margin-top: 20px;">
+            <?php include 'components/pagination.html'; ?>
+        </div>
+        <?php endif; ?>
+        </div>
+</main>
+
+<?php include 'components/footer_wrapper.html'; ?>

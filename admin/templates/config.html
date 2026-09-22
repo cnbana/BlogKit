@@ -1,0 +1,58 @@
+<?php
+// 设置页面标题
+$pageTitles = [
+    'basic' => '基本设置',
+    'feature' => '功能开关',
+    'user_settings' => '用户设置',
+    'register_settings' => '注册设置',
+    'login_settings' => '登录设置',
+    'comment_settings' => '评论设置',
+    'search' => '搜索设置',
+    'seo' => 'SEO设置',
+    'rewrite' => '伪静态设置',
+    'email' => '邮箱配置',
+    'security' => '安全设置',
+    'ip_whitelist' => 'IP白名单',
+    'captcha' => '验证码设置',
+    'cache' => '缓存设置',
+    'debug' => '调试设置',
+    'api' => 'API设置',
+    'migrate' => '数据迁移'
+];
+$pageTitle = isset($pageTitles[$sub]) ? $pageTitles[$sub] : '系统设置';
+
+// 使用全局页面包装器
+include 'components/page_wrapper.html';
+?>
+
+<?php
+// 配置页面子模板路由
+$templateMap = [
+    'basic'        => 'config/config_basic.html',
+    'email'        => 'config/config_email.html',
+    'user'         => 'config/config_user.html',
+    'comment'      => 'config/config_comment.html',
+    'search'       => 'config/config_search.html',
+    'register'     => 'config/config_register.html',
+    'captcha'      => 'config/config_captcha.html',
+    'cache'        => 'config/config_cache.html',
+    'security'     => 'config/config_security.html',
+    'login'        => 'config/config_login.html',
+    'feature'      => 'config/config_feature.html',
+    'rewrite'      => 'config/config_rewrite.html',
+    'seo'          => 'config/config_seo.html',
+    'api'          => 'config/config_api.html',
+    'ip_whitelist' => 'config/config_ip_whitelist.html',
+    'debug'        => 'config/config_debug.html',
+    'migrate'      => 'config/config_migrate.html',
+];
+
+// 根据当前设置子页加载对应模板，未匹配时回退到默认页
+if (isset($templateMap[$sub])) {
+    include __DIR__ . '/' . $templateMap[$sub];
+} else {
+    include __DIR__ . '/config/config_default.html';
+}
+?>
+
+<?php include 'components/footer_wrapper.html'; ?>

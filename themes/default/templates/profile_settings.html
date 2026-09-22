@@ -1,0 +1,403 @@
+{assign var="page_title" value="个人设置"}
+{include file="header"}
+    
+    
+    <main class="main-content">
+        <div class="container">
+            <div class="profile-container">
+                {include file="common/profile_nav.html"}
+                
+                <div class="profile-content">
+
+                    <div class="profile-section">
+                    <h3 class="section-title">个人设置</h3>
+                    
+                    {if isset="error"}
+                    <div class="error-message">
+                        {echo value="error"}
+                    </div>
+                    {endif}
+                    
+                    {if isset="success"}
+                    <div class="success-message">
+                        {echo value="success"}
+                    </div>
+                    {endif}
+                    
+                    <div class="profile-form">
+                        <form action="{url:profile}?m=settings" method="post">
+                            <input type="hidden" name="action" value="update_profile">
+
+                            <h4 style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color-light);">基本信息</h4>
+
+                            <div class="form-group">
+                                <label for="username">用户名</label>
+                                <input type="text" id="username" name="username" value="{user.username}" readonly class="form-disabled" title="用户名不可修改">
+                                <small>用户名不可修改</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="nickname">昵称</label>
+                                <div class="input-with-counter">
+                                    <input type="text" id="nickname" name="nickname" value="{if empty="user.nickname"}{else}{user.nickname}{/if}" placeholder="请输入 1-10 个字符">
+                                    <span class="input-counter" id="nickname-counter">0/10</span>
+                                </div>
+                                <small>昵称长度 1-10 个字符，必填（超过 10 个会被红色提示）</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="bio">个人简介</label>
+                                <div class="input-with-counter textarea-counter">
+                                    <textarea id="bio" name="bio" rows="4" placeholder="介绍一下自己，最多 200 个字符">{if empty="user.bio"}{else}{user.bio}{/if}</textarea>
+                                    <span class="input-counter" id="bio-counter">0/200</span>
+                                </div>
+                                <small>最多 200 个字符（超过 200 会被红色提示）</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="website">个人网站</label>
+                                <div class="input-with-counter">
+                                    <input type="url" id="website" name="website" value="{if empty="user.website"}{else}{user.website}{/if}" placeholder="https://example.com（必须以 http:// 或 https:// 开头）">
+                                    <span class="input-counter input-counter-center" id="website-counter"></span>
+                                </div>
+                                <small id="website-hint">留空则不修改；填写时必须包含完整的 http:// 或 https:// 协议头</small>
+                            </div>
+
+                            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color-light);">
+                                <h4 style="margin-bottom: 15px;">修改邮箱</h4>
+
+                                <div class="form-group">
+                                    <label for="current_email">当前邮箱</label>
+                                    <input type="email" id="current_email" value="{user.email}" readonly class="form-disabled">
+                                    <small>当前绑定的邮箱地址</small>
+                                </div>
+
+                                {if email_verification_sent}
+                                <div class="form-group">
+                                    <label for="verification_code">验证码</label>
+                                    <input type="text" id="verification_code" name="verification_code" placeholder="请输入6位验证码" maxlength="6">
+                                    <small>请输入发送到新邮箱的验证码，30分钟内有效</small>
+                                </div>
+                                <div class="form-group">
+                                    <button type="submit" name="action" value="verify_email" class="submit-btn">确认修改</button>
+                                </div>
+                                {else}
+                                <div class="form-group">
+                                    <label for="new_email">新邮箱</label>
+                                    <input type="email" id="new_email" name="email" placeholder="请输入新的邮箱地址" autocomplete="username">
+                                    <small id="email-error" class="form-error-text">请输入正确的邮箱格式</small>
+                                </div>
+                                <div class="form-group">
+                                    <button type="submit" name="action" value="send_email_verification" class="submit-btn" id="get-code-btn" disabled>获取验证码</button>
+                                    <small style="margin-left: 10px;">点击获取验证码后，系统将发送验证码到您的新邮箱</small>
+                                </div>
+                                {endif}
+                            </div>
+
+                            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color-light);">
+                                <h4 style="margin-bottom: 15px;">修改密码</h4>
+
+                                <div class="form-group">
+                                    <label for="old_password">当前密码</label>
+                                    <div class="input-with-toggle">
+                                        <input type="password" id="old_password" name="old_password" autocomplete="current-password">
+                                        <button type="button" class="toggle-visibility" data-target="old_password" aria-label="显示/隐藏密码">
+                                            <span class="icon-eye-closed" aria-hidden="true">👁</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="new_password">新密码</label>
+                                    <div class="input-with-toggle">
+                                        <input type="password" id="new_password" name="new_password" minlength="6" autocomplete="new-password">
+                                        <button type="button" class="toggle-visibility" data-target="new_password" aria-label="显示/隐藏密码">
+                                            <span class="icon-eye-closed" aria-hidden="true">👁</span>
+                                        </button>
+                                    </div>
+                                    <small>密码长度至少6位，留空则不修改密码</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="confirm_password">确认新密码</label>
+                                    <div class="input-with-toggle">
+                                        <input type="password" id="confirm_password" name="confirm_password" minlength="6" autocomplete="new-password">
+                                        <button type="button" class="toggle-visibility" data-target="confirm_password" aria-label="显示/隐藏密码">
+                                            <span class="icon-eye-closed" aria-hidden="true">👁</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group" style="margin-top: 20px;">
+                                <button type="submit" name="action" value="update_profile" class="submit-btn">保存设置</button>
+                            </div>
+                        </form>
+
+                        <!-- 注销账号 -->
+                        {plugin_hook name="profile_deletion_ui"}
+                    </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    {include file="footer"}
+    
+    <style>
+        /* 只读字段：灰色背景 + 禁止光标 */
+        .form-disabled {
+            background-color: var(--background-muted, #f5f5f5) !important;
+            color: var(--text-muted, #999) !important;
+            cursor: not-allowed;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            user-select: none;
+            opacity: .95;
+        }
+
+        /* 输入框 + 右下角计数容器 */
+        .input-with-counter {
+            position: relative;
+            display: flex;
+            align-items: stretch;
+        }
+
+        .input-with-counter input,
+        .input-with-counter textarea {
+            flex: 1;
+            padding-right: 70px;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        .input-counter {
+            position: absolute;
+            right: 12px;
+            bottom: 8px;
+            font-size: var(--font-size-xs);                 /* 12px */
+            color: var(--text-muted, #bbb);
+            pointer-events: none;
+            line-height: 1;
+        }
+
+        /* 居中版本 —— 用于需要垂直居中在输入框右侧的计数器 */
+        .input-counter.input-counter-center {
+            bottom: auto;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--error-color, #f44336);
+        }
+
+        .input-counter.over {
+            color: var(--error-color, #f44336);
+        }
+
+        /* 密码输入框 + 右侧睁眼/闭眼按钮 */
+        .input-with-toggle {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-with-toggle input {
+            flex: 1;
+            padding-right: 48px;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        .toggle-visibility {
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            padding: 6px 10px;
+            font-size: var(--font-size-base);                /* 16px */
+            line-height: 1;
+            cursor: pointer;
+            color: var(--text-muted, #888);
+            border-radius: 4px;
+            user-select: none;
+        }
+
+        .toggle-visibility:hover {
+            color: var(--primary-color, #007AFF);
+            background-color: rgba(0, 122, 255, 0.08);
+        }
+
+        .toggle-visibility:focus {
+            outline: 2px solid var(--primary-color, #007AFF);
+            outline-offset: 1px;
+        }
+
+        /* 超出字符数时输入框提示（>max 才显示红色） */
+        .form-group input.over,
+        .form-group textarea.over {
+            border-color: var(--error-color, #f44336);
+        }
+
+        /* 小错误文本（默认隐藏，JS 显示时显示红色） */
+        .form-error-text {
+            display: none;
+            color: var(--error-color, #f44336);
+        }
+    </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // ===== 输入框字符计数（昵称/简介）=====
+            function bindCounter(inputId, counterId, max) {
+                const input = document.getElementById(inputId);
+                const counter = document.getElementById(counterId);
+                if (!input || !counter) return;
+
+                function update() {
+                    const value = input.value || '';
+                    const len = value.length;
+                    // 仅当 len > max 时显示红色（等于 max 时是合法的 "恰好到达上限"）
+                    const over = len > max;
+                    counter.textContent = len + '/' + max;
+                    if (over) {
+                        counter.classList.add('over');
+                        input.classList.add('over');
+                    } else {
+                        counter.classList.remove('over');
+                        input.classList.remove('over');
+                    }
+                }
+
+                input.addEventListener('input', update);
+                input.addEventListener('change', update);
+                update(); // 初始状态
+            }
+
+            bindCounter('nickname', 'nickname-counter', 10);
+            bindCounter('bio', 'bio-counter', 200);
+
+            // ===== 个人网站实时校验（必须含 http:// 或 https://）=====
+            const websiteInput = document.getElementById('website');
+            const websiteHint = document.getElementById('website-hint');
+            if (websiteInput && websiteHint) {
+                function validateWebsite() {
+                    const value = (websiteInput.value || '').trim();
+                    if (value === '') {
+                        websiteHint.textContent = '留空则不修改；填写时必须包含完整的 http:// 或 https:// 协议头';
+                        websiteHint.style.color = '';
+                        websiteInput.classList.remove('over');
+                        return;
+                    }
+                    // 基本的 URL 校验：必须以 http:// 或 https:// 开头，且至少有域名
+                    const protocolOk = /^https?:\/\//i.test(value);
+                    let valid = false;
+                    if (protocolOk) {
+                        try {
+                            // 使用浏览器 URL API 做一次完整校验
+                            const u = new URL(value);
+                            valid = u.hostname && u.hostname.indexOf('.') !== -1;
+                        } catch (e) {
+                            valid = false;
+                        }
+                    }
+                    if (valid) {
+                        websiteHint.textContent = '网址格式正确';
+                        websiteHint.style.color = '#28a745';
+                        websiteInput.classList.remove('over');
+                    } else if (!protocolOk) {
+                        websiteHint.textContent = '必须以 http:// 或 https:// 开头';
+                        websiteHint.style.color = '#f44336';
+                        websiteInput.classList.add('over');
+                    } else {
+                        websiteHint.textContent = '网址格式不正确，请检查域名部分';
+                        websiteHint.style.color = '#f44336';
+                        websiteInput.classList.add('over');
+                    }
+                }
+
+                websiteInput.addEventListener('input', validateWebsite);
+                websiteInput.addEventListener('change', validateWebsite);
+                validateWebsite(); // 初始状态
+            }
+
+            // ===== 密码显示/隐藏切换 =====
+            const toggleIcons = {
+                closed: '👁',   // 默认闭眼（不显示明文）
+                open: '🙈'      // 睁眼（显示明文）
+            };
+            document.querySelectorAll('.toggle-visibility').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const targetId = btn.getAttribute('data-target');
+                    const target = document.getElementById(targetId);
+                    if (!target) return;
+
+                    const isHidden = target.type === 'password';
+                    target.type = isHidden ? 'text' : 'password';
+
+                    const span = btn.querySelector('span');
+                    if (span) {
+                        span.textContent = isHidden ? toggleIcons.open : toggleIcons.closed;
+                        span.setAttribute('aria-hidden', 'true');
+                    }
+                    btn.setAttribute('aria-label', isHidden ? '隐藏密码' : '显示密码');
+                    // 保持焦点在输入框，方便继续输入
+                    target.focus();
+                    // 将光标移至末尾
+                    if (typeof target.setSelectionRange === 'function') {
+                        const v = target.value.length;
+                        target.setSelectionRange(v, v);
+                    }
+                });
+            });
+
+            // ===== 邮箱格式验证（保留原逻辑）=====
+            const newEmailInput = document.getElementById('new_email');
+            const getCodeBtn = document.getElementById('get-code-btn');
+            const emailError = document.getElementById('email-error');
+
+            if (newEmailInput && getCodeBtn) {
+                function validateEmail(email) {
+                    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    return re.test(email);
+                }
+
+                function updateButtonState() {
+                    const email = newEmailInput.value.trim();
+                    const isValid = validateEmail(email);
+
+                    if (email === '') {
+                        getCodeBtn.disabled = true;
+                        emailError.style.display = 'none';
+                    } else if (!isValid) {
+                        getCodeBtn.disabled = true;
+                        emailError.style.display = 'block';
+                    } else {
+                        getCodeBtn.disabled = false;
+                        emailError.style.display = 'none';
+                    }
+                }
+
+                newEmailInput.addEventListener('input', updateButtonState);
+                updateButtonState();
+
+                const form = newEmailInput.closest('form');
+                if (form) {
+                    form.addEventListener('submit', function(e) {
+                        const email = newEmailInput.value.trim();
+                        const action = form.querySelector('button[type="submit"]:focus')?.name === 'action'
+                            ? form.querySelector('button[type="submit"]:focus').value
+                            : '';
+
+                        if (action === 'send_email_verification' && !validateEmail(email)) {
+                            e.preventDefault();
+                            emailError.style.display = 'block';
+                        }
+                    });
+                }
+            }
+        });
+
+        {plugin_hook name="profile_deletion_js"}
+    </script>

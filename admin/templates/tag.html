@@ -1,0 +1,36 @@
+<?php $currentAction = 'tag'; $pageTitle = '标签管理'; include 'components/page_wrapper.html'; ?>
+            
+            <div style="margin-bottom: 15px;">
+                <a href="admin.php?action=tag&sub=add" class="btn btn-primary">添加标签</a>
+            </div>
+            
+            <div class="table-container">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>标签名称</th>
+                            <th>文章数量</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($tags as $tag): ?>
+                        <tr>
+                            <td><?php echo $tag['id']; ?></td>
+                            <td><?php echo $tag['name']; ?></td>
+                            <td><?php echo $tag['article_count']; ?></td>
+                            <td><?php echo $tag['created_at']; ?></td>
+                            <td>
+                                <a href="admin.php?action=tag&sub=edit&id=<?php echo $tag['id']; ?>" class="btn btn-primary">编辑</a>
+                                <a href="admin.php?action=tag&sub=delete&id=<?php echo $tag['id']; ?>" class="btn btn-danger" onclick="return confirm('确定要删除这个标签吗？');">删除</a>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+
+<?php include 'components/footer_wrapper.html'; ?>

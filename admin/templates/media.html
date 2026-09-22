@@ -1,0 +1,386 @@
+<?php $currentAction = 'media'; $pageTitle = '媒体管理'; $pageCss = 'media.css'; include 'components/page_wrapper.html'; ?>
+    <!-- 页面专属样式已归拢至 assets/css 页面级文件（经 $pageCss 加载，2026-09 样式统一） -->
+
+    
+    <!-- 文件统计信息 -->
+    <div class="stats-section">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📁</div>
+                <div class="stat-info">
+                    <div class="stat-value"><?php echo $fileStats['total_files']; ?></div>
+                    <div class="stat-label">总文件数</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🖼️</div>
+                <div class="stat-info">
+                    <div class="stat-value"><?php echo $fileStats['type_counts']['image']; ?></div>
+                    <div class="stat-label">图片</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📄</div>
+                <div class="stat-info">
+                    <div class="stat-value"><?php echo $fileStats['type_counts']['document']; ?></div>
+                    <div class="stat-label">文档</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📦</div>
+                <div class="stat-info">
+                    <div class="stat-value"><?php echo $fileStats['type_counts']['archive']; ?></div>
+                    <div class="stat-label">压缩包</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📃</div>
+                <div class="stat-info">
+                    <div class="stat-value"><?php echo $fileStats['type_counts']['other']; ?></div>
+                    <div class="stat-label">其他</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">💾</div>
+                <div class="stat-info">
+                    <div class="stat-value"><?php echo $fileStats['total_size_formatted']; ?></div>
+                    <div class="stat-label">总存储空间</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 筛选和排序功能 -->
+    <div class="filter-section">
+        <form method="get" action="admin.php" class="filter-form">
+            <input type="hidden" name="action" value="media">
+
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="type_filter">类型</label>
+                    <select name="type" id="type_filter" class="filter-select">
+                        <option value="all" <?php echo (isset($type) && $type == 'all') ? 'selected' : ''; ?>>所有类型</option>
+                        <option value="image" <?php echo (isset($type) && $type == 'image') ? 'selected' : ''; ?>>图片</option>
+                        <option value="file" <?php echo (isset($type) && $type == 'file') ? 'selected' : ''; ?>>文件</option>
+                        <option value="avatar" <?php echo (isset($type) && $type == 'avatar') ? 'selected' : ''; ?>>头像</option>
+                        <option value="logo" <?php echo (isset($type) && $type == 'logo') ? 'selected' : ''; ?>>LOGO</option>
+                        <option value="cover" <?php echo (isset($type) && $type == 'cover') ? 'selected' : ''; ?>>封面</option>
+                        <option value="attachment" <?php echo (isset($type) && $type == 'attachment') ? 'selected' : ''; ?>>附件</option>
+                        <option value="article" <?php echo (isset($type) && $type == 'article') ? 'selected' : ''; ?>>文章图片</option>
+                    </select>
+                </div>
+
+                <!-- 月份筛选：选项由控制器根据文件修改时间动态生成（YYYY-MM，倒序） -->
+                <div class="filter-group">
+                    <label for="month_filter">月份</label>
+                    <select name="month" id="month_filter" class="filter-select">
+                        <option value="">全部月份</option>
+                        <?php foreach ((isset($availableMonths) ? $availableMonths : []) as $availableMonth): ?>
+                            <option value="<?php echo htmlspecialchars($availableMonth); ?>" <?php echo (isset($month) && $month === $availableMonth) ? 'selected' : ''; ?>><?php echo htmlspecialchars($availableMonth); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="sort_filter">排序</label>
+                    <select name="sort" id="sort_filter" class="filter-select">
+                        <option value="" <?php echo empty($sort) ? 'selected' : ''; ?>>默认</option>
+                        <option value="name_asc" <?php echo (isset($sort) && $sort == 'name_asc') ? 'selected' : ''; ?>>名称升序</option>
+                        <option value="name_desc" <?php echo (isset($sort) && $sort == 'name_desc') ? 'selected' : ''; ?>>名称降序</option>
+                        <option value="size_asc" <?php echo (isset($sort) && $sort == 'size_asc') ? 'selected' : ''; ?>>大小升序</option>
+                        <option value="size_desc" <?php echo (isset($sort) && $sort == 'size_desc') ? 'selected' : ''; ?>>大小降序</option>
+                        <option value="date_asc" <?php echo (isset($sort) && $sort == 'date_asc') ? 'selected' : ''; ?>>日期升序</option>
+                        <option value="date_desc" <?php echo (isset($sort) && $sort == 'date_desc') ? 'selected' : ''; ?>>日期降序</option>
+                        <option value="type_asc" <?php echo (isset($sort) && $sort == 'type_asc') ? 'selected' : ''; ?>>类型升序</option>
+                    </select>
+                </div>
+
+                <div class="filter-group filter-group-wide">
+                    <label for="search_filter">搜索</label>
+                    <input type="text" name="search" id="search_filter" class="filter-input" placeholder="文件名" value="<?php echo isset($search) ? $search : ''; ?>">
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary" id="filter-btn">筛选</button>
+                    <button type="button" class="btn btn-secondary" id="reset-btn">重置</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <!-- 批量操作：统一工具栏结构（样式见 components.css .list-toolbar） -->
+    <div class="list-toolbar">
+        <label style="display: flex; align-items: center; gap: 5px; margin: 0; cursor: pointer;">
+            <input type="checkbox" id="select_all" onchange="toggleSelectAll()"> 全选
+        </label>
+        <div class="batch-group">
+            <select id="batch_action">
+                <option value="">批量操作</option>
+                <option value="delete">批量删除</option>
+            </select>
+            <button id="execute_batch" class="btn btn-primary" onclick="executeBatchAction()">执行</button>
+        </div>
+    </div>
+    
+    <!-- 媒体文件网格 -->
+    <div class="media-grid">
+        <?php if (empty($mediaFiles)): ?>
+        <div class="col-12 text-center py-5">
+            <div class="text-muted" style="font-size: 48px; margin-bottom: 10px;">📁</div>
+            <p class="mt-2 text-muted">暂无媒体文件</p>
+        </div>
+        <?php else: ?>
+        <?php foreach ($mediaFiles as $file): ?>
+        <div class="media-item">
+            <div class="media-checkbox">
+                <input type="checkbox" class="file_checkbox" value="<?php echo $file['path']; ?>" data-url="<?php echo $file['url']; ?>">
+            </div>
+            <div class="media-preview">
+                <?php if ($file['type'] == 'image'): ?>
+                <img src="<?php echo $file['url']; ?>" alt="<?php echo $file['name']; ?>" onclick="previewFile('<?php echo $file['url']; ?>', '<?php echo $file['name']; ?>', '<?php echo $file['type']; ?>')">
+                <?php elseif ($file['type'] == 'document'): ?>
+                <div class="file-icon">
+                    📄
+                </div>
+                <?php elseif ($file['type'] == 'archive'): ?>
+                <div class="file-icon">
+                    📦
+                </div>
+                <?php else: ?>
+                <div class="file-icon">
+                    📃
+                </div>
+                <?php endif; ?>
+            </div>
+            <div class="media-info">
+                <h6 title="<?php echo $file['name']; ?>"><?php echo $file['name']; ?></h6>
+                <div class="media-meta">
+                    <span><?php echo $file['size_formatted']; ?></span>
+                    <span class="mx-2">•</span>
+                    <span><?php echo $file['modified_formatted']; ?></span>
+                </div>
+                <div class="media-actions">
+                    <button class="btn btn-sm btn-outline-info" onclick="previewFile('<?php echo $file['url']; ?>', '<?php echo $file['name']; ?>', '<?php echo $file['type']; ?>')" title="预览">
+                        预览
+                    </button>
+                    <button class="btn btn-sm btn-outline-warning" onclick="renameFile('<?php echo $file['path']; ?>', '<?php echo $file['name']; ?>')" title="重命名">
+                        重命名
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="fileDetails('<?php echo $file['path']; ?>', '<?php echo $file['name']; ?>', '<?php echo $file['size_formatted']; ?>', '<?php echo $file['type']; ?>', '<?php echo $file['modified_formatted']; ?>')" title="详情">
+                        详情
+                    </button>
+                    <form action="admin.php?action=media.delete" method="post" style="display: inline;">
+                        <input type="hidden" name="path" value="<?php echo $file['path']; ?>">
+                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('确定要删除这个文件吗？')" title="删除">
+                            删除
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
+
+    <!-- 分页导航：放在网格容器之后（media-grid 是 grid 布局，分页不能作为其子元素，
+         否则会变成网格单元被压缩错位；此处用 pagination-container 包裹保持与内容一体） -->
+    <div class="pagination-container" style="margin-top: 20px;">
+        <?php
+            // 引入公共分页组件
+            $action = 'media';
+            $total = $pagination['total_items'];
+            $limit = $perPage;
+            $filters = [];
+            if (isset($type) && $type != 'all') $filters['type'] = $type;
+            if (isset($search) && $search != '') $filters['search'] = $search;
+            // 每页条数并入分页链接，翻页时不丢失
+            $filters['limit'] = $perPage;
+            // 每页条数可选项（供分页组件渲染下拉框）
+            $pageSizes = $allowedPageSizes;
+            include ADMIN_PATH . '/templates/components/pagination.html';
+        ?>
+    </div>
+
+    <!-- 文件详情模态框 -->
+    <div id="file-details-modal" class="modal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">文件详情</h5>
+                    <button type="button" class="close" onclick="document.getElementById('file-details-modal').style.display = 'none';">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-bordered">
+                        <tr>
+                            <th>文件名</th>
+                            <td id="detail-name"></td>
+                        </tr>
+                        <tr>
+                            <th>文件大小</th>
+                            <td id="detail-size"></td>
+                        </tr>
+                        <tr>
+                            <th>文件类型</th>
+                            <td id="detail-type"></td>
+                        </tr>
+                        <tr>
+                            <th>修改时间</th>
+                            <td id="detail-modified"></td>
+                        </tr>
+                        <tr>
+                            <th>文件路径</th>
+                            <td id="detail-path" style="word-break: break-all;"></td>
+                        </tr>
+                        <tr>
+                            <th>访问链接</th>
+                            <td>
+                                <a id="detail-url" href="" target="_blank" style="word-break: break-all; color: #007bff; text-decoration: underline;">链接</a>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="document.getElementById('file-details-modal').style.display = 'none';">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 重命名模态框 -->
+    <div id="rename-modal" class="modal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">重命名文件</h5>
+                    <button type="button" class="close" onclick="document.getElementById('rename-modal').style.display = 'none';">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="rename-form" action="admin.php?action=media.rename" method="post">
+                        <input type="hidden" id="rename-path" name="path">
+                        <div class="form-group">
+                            <label for="new-name">新文件名</label>
+                            <input type="text" id="new-name" name="new_name" class="form-control" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('rename-modal').style.display = 'none';">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="document.getElementById('rename-form').submit();">确定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 分页已并入媒体网格容器（见上方），此处不再重复输出 -->
+
+    <script>
+        // 全选/取消全选
+        window.toggleSelectAll = function() {
+            var selectAllCheckbox = document.getElementById('select_all');
+            var checkboxes = document.querySelectorAll('.file_checkbox');
+            checkboxes.forEach(function(checkbox) {
+                checkbox.checked = selectAllCheckbox.checked;
+            });
+        };
+        
+        // 执行批量操作
+        window.executeBatchAction = function() {
+            var action = document.getElementById('batch_action').value;
+            if (!action) {
+                alert('请选择批量操作');
+                return;
+            }
+            
+            var checkedBoxes = document.querySelectorAll('.file_checkbox:checked');
+            if (checkedBoxes.length === 0) {
+                alert('请选择要操作的文件');
+                return;
+            }
+            
+            if (action === 'delete' && confirm('确定要删除选中的文件吗？')) {
+                var paths = [];
+                checkedBoxes.forEach(function(checkbox) {
+                    paths.push(checkbox.value);
+                });
+                
+                // 创建表单并提交
+                var form = document.createElement('form');
+                form.action = 'admin.php?action=media.batchDelete';
+                form.method = 'post';
+                
+                paths.forEach(function(path) {
+                    var input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'paths[]';
+                    input.value = path;
+                    form.appendChild(input);
+                });
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+        };
+        
+        // 预览文件
+        window.previewFile = function(url, name, type) {
+            if (type === 'image') {
+                window.open(url, '_blank');
+            } else {
+                alert('非图片文件无法预览');
+            }
+        };
+        
+        // 重命名文件
+        window.renameFile = function(path, name) {
+            document.getElementById('rename-path').value = path;
+            document.getElementById('new-name').value = name;
+            document.getElementById('rename-modal').classList.add('show');
+        };
+        
+        // 显示文件详情 - 从 checkbox 的 data-url 获取 url
+        window.fileDetails = function(path, name, size, type, modified) {
+            document.getElementById('detail-name').textContent = name;
+            document.getElementById('detail-size').textContent = size;
+            document.getElementById('detail-type').textContent = type;
+            document.getElementById('detail-modified').textContent = modified;
+            document.getElementById('detail-path').textContent = path;
+            
+            // 找到对应的 checkbox 来获取 url
+            var checkbox = document.querySelector('.file_checkbox[value="' + path + '"]');
+            var url = checkbox ? checkbox.getAttribute('data-url') : '';
+            document.getElementById('detail-url').href = url;
+            document.getElementById('detail-url').textContent = url;
+            
+            document.getElementById('file-details-modal').classList.add('show');
+        };
+        
+        // 媒体管理页面特定的JavaScript
+        document.addEventListener('DOMContentLoaded', function() {
+            // 重置按钮点击事件
+            const resetBtn = document.getElementById('reset-btn');
+            if (resetBtn) {
+                resetBtn.addEventListener('click', function() {
+                    // 跳转到指定URL重置筛选
+                    window.location.href = 'admin.php?action=media';
+                });
+            }
+            
+            // 关闭所有模态框
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('modal')) {
+                    e.target.classList.remove('show');
+                }
+            });
+            
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    document.querySelectorAll('.modal.show').forEach(function(modal) {
+                        modal.classList.remove('show');
+                    });
+                }
+            });
+        });
+    </script>
+</main>
+
+<?php include 'components/footer_wrapper.html'; ?>

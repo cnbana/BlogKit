@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>后台登录 - BlogKit</title>
+    <link rel="stylesheet" href="<?php echo ADMIN_ASSETS_URL; ?>/css/auth.css">
+</head>
+<body>
+    <div class="login-container">
+        <h1>后台登录</h1>
+        <?php if (!empty($error)): ?>
+            <div class="error"><?php echo $error; ?></div>
+        <?php endif; ?>
+        <form method="POST">
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" name="username" required autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" required autocomplete="current-password">
+            </div>
+            
+            <?php if ($captchaEnabled && $captchaAdminLoginEnabled): ?>
+            <!-- 验证码 -->
+            <div class="form-group">
+                <label for="captcha_code">验证码</label>
+                <div class="captcha-row">
+                    <div class="captcha-input-wrap">
+                        <input type="text" id="captcha_code" name="captcha_code" required class="captcha-input" placeholder="请输入验证码" autocomplete="off">
+                        <span id="captcha_status" class="captcha-status"></span>
+                    </div>
+                    <img id="captcha_image" src="admin.php?action=captcha&t=<?php echo time(); ?>" alt="验证码" class="captcha-img" title="点击刷新验证码">
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <!-- 记住我 -->
+            <div class="cookietime">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="remember" name="remember" value="1">
+                    <span>记住我（7天内自动登录）</span>
+                </label>
+            </div>
+
+            <button type="submit" class="btn">登录</button>
+        </form>
+        
+        <div class="form-footer">
+            <a href="admin.php?action=forgot-password">忘记密码？</a>
+        </div>
+        
+        <script nonce="<?php echo $_SESSION['csp_nonce']; ?>">
+            // 刷新验证码
+            function refreshCaptcha() {
+                const captchaImage = document.getElementById('captcha_image');
+                const captchaInput = document.getElementById('captcha_code');
+                const captchaStatus = document.getElementById('captcha_status');
+                if (captchaImage) {
+                    const timestamp = new Date().getTime();
+                    captchaImage.src = 'admin.php?action=captcha&t=' + timestamp;
+                }
+                if (captchaInput) {
+                    captchaInput.value = '';
+                    captchaInput.style.borderColor = '';
+                }
+                if (captchaStatus) {
+                    captchaStatus.innerHTML = '';
+                }
+            }
+            
+            // 显示状态图标
+            function showStatusIcon(type) {
+                const captchaInput = document.getElementById('captcha_code');
+                const captchaStatus = document.getElementById('captcha_status');
+                if (!captchaInput || !captchaStatus) return;
+                
+                captchaStatus.innerHTML = '';
+                captchaInput.style.borderColor = '';
+                captchaInput.classList.remove('captcha-input-success', 'captcha-input-error');
+                
+                if (type === 'success') {
+                    captchaStatus.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="10" fill="#28a745"/><path d="M8 12l3 3 5-5" stroke="#fff" stroke-width="2" fill="none"/></svg>';
+                    captchaInput.style.borderColor = '#28a745';
+                    captchaInput.classList.add('captcha-input-success');
+                } else if (type === 'error') {
+                    captchaStatus.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="10" fill="#dc3545"/><path d="M8 8l8 8M16 8l-8 8" stroke="#fff" stroke-width="2"/></svg>';
+                    captchaInput.style.borderColor = '#dc3545';
+                    captchaInput.classList.add('captcha-input-error');
+                }
+            }
+            
+            // 验证验证码
+            function verifyCaptcha(code) {
+                if (!code) {
+                    return;
+                }
+                
+                // 发送验证请求
+                fetch('admin.php?action=captcha&verify=1', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `code=${encodeURIComponent(code)}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showStatusIcon('success');
+                    } else {
+                        showStatusIcon('error');
+                        // 验证码错误时自动刷新（带延迟提示）
+                        setTimeout(() => {
+                            refreshCaptcha();
+                        }, 800);
+                    }
+                })
+                .catch(error => {
+                    console.error('验证码验证失败:', error);
+                });
+            }
+            
+            // 绑定事件（只在元素存在时）
+            const captchaImage = document.getElementById('captcha_image');
+            const captchaInput = document.getElementById('captcha_code');
+            
+            if (captchaImage) {
+                captchaImage.addEventListener('click', refreshCaptcha);
+            }
+            
+            // 实时验证事件
+            if (captchaInput) {
+                let debounceTimer;
+                captchaInput.addEventListener('input', (e) => {
+                    const code = e.target.value.trim();
+                    
+                    // 清除之前的定时器
+                    clearTimeout(debounceTimer);
+                    
+                    // 只有当输入长度大于等于4时才进行验证
+                    if (code.length >= 4) {
+                        // 添加防抖，避免频繁请求
+                        debounceTimer = setTimeout(() => {
+                            verifyCaptcha(code);
+                        }, 500);
+                    } else if (code.length === 0) {
+                        // 清空状态
+                        showStatusIcon('');
+                    }
+                });
+            }
+        </script>
+    </div>
+</body>
+</html>

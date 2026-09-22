@@ -1,0 +1,290 @@
+{assign var="page_title" value="注册"}
+{include file="header"}
+    
+    <!-- 引入验证码样式 -->
+    <link rel="stylesheet" href="{site.url}/themes/default/assets/css/captcha.css">
+    
+    <main class="main-content">
+        <div class="container">
+            <div class="register-container">
+                <h2>注册</h2>
+                
+                {if isset="error"}
+                <div class="error-message">
+                    {echo value="error"}
+                </div>
+                {endif}
+                
+                {if register_enabled}
+                <form action="{url:register}" method="post" class="register-form" id="register-form">
+                    <div class="form-group">
+                        <label for="username">用户名</label>
+                        <input type="text" id="username" name="username" required placeholder="支持汉字、字母、数字以及 _ - ." minlength="{echo value="reg_config.username_min_length"}" maxlength="{echo value="reg_config.username_max_length"}" autocomplete="username">
+                        <div class="validation-message" id="username-message">用户名应为 {echo value="reg_config.username_min_length"}-{echo value="reg_config.username_max_length"} 个字符，仅支持汉字、字母、数字以及 _ - .，不允许空格或其他字符{if reg_config.username_ban_pure_number}，不允许纯数字{endif}{if reg_config.username_ban_simple_string}，不允许连续/重复字符{endif}</div>
+                        <div class="validation-message" id="username-exists-message">用户名已存在</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">邮箱</label>
+                        <input type="email" id="email" name="email" required placeholder="请输入邮箱" autocomplete="email">
+                        <div class="validation-message" id="email-message">请输入有效的邮箱地址</div>
+                        <div class="validation-message" id="email-exists-message">邮箱已被注册</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">密码</label>
+                        <div class="password-container">
+                            <input type="password" id="password" name="password" required placeholder="请输入密码" minlength="{echo value="reg_config.password_min_length"}" autocomplete="new-password">
+                            <button type="button" class="toggle-password" onclick="togglePassword('password')">显示密码</button>
+                        </div>
+                        <div class="validation-message" id="password-message">
+                            密码长度不能少于{echo value="reg_config.password_min_length"}位
+                            {if reg_config.password_require_uppercase}，且必须包含大写字母{endif}
+                            {if reg_config.password_require_lowercase}，且必须包含小写字母{endif}
+                            {if reg_config.password_require_number}，且必须包含数字{endif}
+                            {if reg_config.password_require_special}，且必须包含特殊字符{endif}
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirm_password">确认密码</label>
+                        <div class="password-container">
+                            <input type="password" id="confirm_password" name="confirm_password" placeholder="请输入确认密码" required minlength="{echo value="reg_config.password_min_length"}" autocomplete="new-password">
+                            <button type="button" class="toggle-password" onclick="togglePassword('confirm_password')">显示密码</button>
+                        </div>
+                        <div class="validation-message" id="confirm_password-message">两次输入的密码不一致</div>
+                    </div>
+                    
+                    <!-- 验证码组件 -->
+                    {if captcha_enabled && captcha_register_enabled}
+                    <div class="form-group">
+                        <label>验证码</label>
+                        <div class="captcha-wrapper" data-captcha-width="{echo value="captcha_width"}" data-captcha-height="{echo value="captcha_height"}" data-captcha-font-size="{echo value="captcha_font_size"}"></div>
+                    </div>
+                    {endif}
+
+                    <!-- 蜜罐字段：对人类用户隐藏，机器人会自动填写 -->
+                    <div class="form-group honeypot-field" aria-hidden="true" style="position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden;">
+                        <label for="website">Website</label>
+                        <input type="text" id="website" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+                    </div>
+
+                    {if reg_config.privacy_policy_url || reg_config.terms_of_service_url}
+                    <div class="form-group terms-notice" style="font-size:12px;color:#666;margin:10px 0;line-height:1.6;">
+                        注册即表示您同意
+                        {if reg_config.terms_of_service_url}<a href="{echo value="reg_config.terms_of_service_url"}" target="_blank" rel="noopener">服务条款</a>{endif}
+                        {if reg_config.privacy_policy_url && reg_config.terms_of_service_url}和{endif}
+                        {if reg_config.privacy_policy_url}<a href="{echo value="reg_config.privacy_policy_url"}" target="_blank" rel="noopener">隐私政策</a>{endif}
+                    </div>
+                    {endif}
+
+                    <button type="submit" class="register-btn">注册</button>
+                </form>
+                
+                <div class="login-link">
+                    已有账号？<a href="{url:login}">立即登录</a>
+                </div>
+                {endif}
+            </div>
+        </div>
+    </main>
+    
+    <!-- 引入验证码脚本 -->
+    <script src="{site.url}/themes/default/assets/js/captcha.js"></script>
+    
+    <!-- 密码显示/隐藏脚本 -->
+    <script>
+        function togglePassword(inputId) {
+            const passwordInput = document.getElementById(inputId);
+            const toggleButton = passwordInput.nextElementSibling;
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleButton.textContent = '隐藏密码';
+            } else {
+                passwordInput.type = 'password';
+                toggleButton.textContent = '显示密码';
+            }
+        }
+    </script>
+    
+    <!-- 实时验证脚本（长度限制读取自 HTML 属性，与后台注册配置保持一致） -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const registerForm = document.getElementById('register-form');
+
+            // ====== 用户名验证 ======
+            const usernameInput = document.getElementById('username');
+            const usernameMessage = document.getElementById('username-message');
+            const usernameExistsMessage = document.getElementById('username-exists-message');
+            const usernameMin = parseInt(usernameInput.getAttribute('minlength'), 10) || 3;
+            const usernameMax = parseInt(usernameInput.getAttribute('maxlength'), 10) || 20;
+            let usernameTimeout = null;
+
+            usernameInput.addEventListener('input', function() {
+                const username = this.value.trim();
+                // 字符集快速校验：仅允许 汉字、英文字母、数字、_ - .
+                const validChars = /^[\u4e00-\u9fa5a-zA-Z0-9_\-.]+$/;
+                if (username.length > 0 && !validChars.test(username)) {
+                    this.classList.remove('valid');
+                    this.classList.add('invalid');
+                    usernameMessage.classList.add('show');
+                    usernameExistsMessage.classList.remove('show');
+                } else if (username.length < usernameMin || username.length > usernameMax) {
+                    this.classList.remove('valid');
+                    this.classList.add('invalid');
+                    usernameMessage.classList.add('show');
+                    usernameExistsMessage.classList.remove('show');
+                } else {
+                    this.classList.remove('invalid');
+                    usernameMessage.classList.remove('show');
+
+                    // 防抖处理，延迟检查用户名是否存在
+                    clearTimeout(usernameTimeout);
+                    usernameTimeout = setTimeout(function() { checkUsernameExists(username); }, 500);
+                }
+            });
+
+            function checkUsernameExists(username) {
+                fetch(`/index.php?c=auth&m=checkUsername&username=${encodeURIComponent(username)}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.banned) {
+                            // 用户名包含违禁词
+                            usernameInput.classList.remove('valid');
+                            usernameInput.classList.add('invalid');
+                            usernameExistsMessage.textContent = data.message;
+                            usernameExistsMessage.classList.add('show');
+                        } else if (data.exists) {
+                            // 用户名已存在
+                            usernameInput.classList.remove('valid');
+                            usernameInput.classList.add('invalid');
+                            usernameExistsMessage.textContent = '用户名已存在';
+                            usernameExistsMessage.classList.add('show');
+                        } else {
+                            // 用户名可用
+                            usernameInput.classList.remove('invalid');
+                            usernameInput.classList.add('valid');
+                            usernameExistsMessage.classList.remove('show');
+                        }
+                    })
+                    .catch(err => console.error('检查用户名失败:', err));
+            }
+
+            // ====== 邮箱验证 ======
+            const emailInput = document.getElementById('email');
+            const emailMessage = document.getElementById('email-message');
+            const emailExistsMessage = document.getElementById('email-exists-message');
+            let emailTimeout = null;
+
+            emailInput.addEventListener('input', function() {
+                const email = this.value.trim();
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    this.classList.remove('valid');
+                    this.classList.add('invalid');
+                    emailMessage.classList.add('show');
+                    emailExistsMessage.classList.remove('show');
+                } else {
+                    this.classList.remove('invalid');
+                    emailMessage.classList.remove('show');
+                    clearTimeout(emailTimeout);
+                    emailTimeout = setTimeout(function() { checkEmailExists(email); }, 500);
+                }
+            });
+
+            function checkEmailExists(email) {
+                fetch(`/index.php?c=auth&m=checkEmail&email=${encodeURIComponent(email)}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.exists) {
+                            emailInput.classList.remove('valid');
+                            emailInput.classList.add('invalid');
+                            emailExistsMessage.classList.add('show');
+                        } else {
+                            emailInput.classList.add('valid');
+                            emailExistsMessage.classList.remove('show');
+                        }
+                    })
+                    .catch(err => console.error('检查邮箱失败:', err));
+            }
+
+            // ====== 密码验证（长度读取自 HTML 属性，复杂规则由服务端最终校验） ======
+            const passwordInput = document.getElementById('password');
+            const passwordMessage = document.getElementById('password-message');
+            const passwordMin = parseInt(passwordInput.getAttribute('minlength'), 10) || 6;
+
+            passwordInput.addEventListener('input', function() {
+                const password = this.value;
+                if (password.length < passwordMin) {
+                    this.classList.remove('valid');
+                    this.classList.add('invalid');
+                    passwordMessage.classList.add('show');
+                } else {
+                    this.classList.remove('invalid');
+                    this.classList.add('valid');
+                    passwordMessage.classList.remove('show');
+                }
+                validateConfirmPassword();
+            });
+
+            // ====== 确认密码验证 ======
+            const confirmPasswordInput = document.getElementById('confirm_password');
+            const confirmPasswordMessage = document.getElementById('confirm_password-message');
+
+            confirmPasswordInput.addEventListener('input', validateConfirmPassword);
+
+            function validateConfirmPassword() {
+                const password = passwordInput.value;
+                const confirmPassword = confirmPasswordInput.value;
+                if (confirmPassword.length > 0 && confirmPassword !== password) {
+                    confirmPasswordInput.classList.remove('valid');
+                    confirmPasswordInput.classList.add('invalid');
+                    confirmPasswordMessage.classList.add('show');
+                } else {
+                    confirmPasswordInput.classList.remove('invalid');
+                    confirmPasswordInput.classList.add('valid');
+                    confirmPasswordMessage.classList.remove('show');
+                }
+            }
+
+            // ====== 表单提交前的最终验证 ======
+            registerForm.addEventListener('submit', function(e) {
+                let isValid = true;
+                const username = usernameInput.value.trim();
+                if (username.length < usernameMin || username.length > usernameMax) {
+                    usernameInput.classList.add('invalid');
+                    usernameMessage.classList.add('show');
+                    isValid = false;
+                }
+                if (usernameExistsMessage.classList.contains('show')) isValid = false;
+
+                const email = emailInput.value.trim();
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    emailInput.classList.add('invalid');
+                    emailMessage.classList.add('show');
+                    isValid = false;
+                }
+                if (emailExistsMessage.classList.contains('show')) isValid = false;
+
+                const password = passwordInput.value;
+                if (password.length < passwordMin) {
+                    passwordInput.classList.add('invalid');
+                    passwordMessage.classList.add('show');
+                    isValid = false;
+                }
+
+                const confirmPassword = confirmPasswordInput.value;
+                if (confirmPassword !== password) {
+                    confirmPasswordInput.classList.add('invalid');
+                    confirmPasswordMessage.classList.add('show');
+                    isValid = false;
+                }
+
+                if (!isValid) e.preventDefault();
+            });
+        });
+    </script>
+    
+    {include file="footer"}

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo isset($pageTitle) ? $pageTitle . ' - ' : ''; ?>BlogKit</title>
+    <!-- 公共CSS -->
+    <link rel="stylesheet" href="<?php echo ADMIN_ASSETS_URL; ?>/css/common.css">
+    <!-- 模块CSS -->
+    <link rel="stylesheet" href="<?php echo ADMIN_ASSETS_URL; ?>/css/forms.css">
+    <link rel="stylesheet" href="<?php echo ADMIN_ASSETS_URL; ?>/css/tables.css">
+    <!-- 侧边栏CSS -->
+    <link rel="stylesheet" href="<?php echo ADMIN_ASSETS_URL; ?>/css/sidebar.css">
+    <!-- 组件CSS -->
+    <link rel="stylesheet" href="<?php echo ADMIN_ASSETS_URL; ?>/css/components.css">
+    <!-- 页面特定CSS -->
+    <?php if (isset($pageCss)): ?>
+        <link rel="stylesheet" href="<?php echo ADMIN_ASSETS_URL; ?>/css/<?php echo $pageCss; ?>">
+    <?php endif; ?>
+    <!-- jQuery库 -->
+    <script src="<?php echo ADMIN_ASSETS_URL; ?>/js/jquery-4.0.0.min.js"></script>
+    <!-- 公共JavaScript -->
+    <script src="<?php echo ADMIN_ASSETS_URL; ?>/js/common.js"></script>
+    <!-- UI组件库 -->
+    <script src="<?php echo ADMIN_ASSETS_URL; ?>/js/ui-components.js"></script>
+    <!-- 高级组件库 -->
+    <script src="<?php echo ADMIN_ASSETS_URL; ?>/js/advanced-components.js"></script>
+    <!-- 侧边栏JavaScript -->
+    <script src="<?php echo ADMIN_ASSETS_URL; ?>/js/sidebar.js"></script>
+    <!-- Header JavaScript（命令面板、通知中心、用户菜单） -->
+    <script src="<?php echo ADMIN_ASSETS_URL; ?>/js/header.js"></script>
+    
+    <!-- 页面特定JavaScript -->
+    <?php if (isset($pageJs)): ?>
+        <script src="<?php echo ADMIN_ASSETS_URL; ?>/js/<?php echo $pageJs; ?>"></script>
+    <?php endif; ?>
+    
+    <!-- 插件头部钩子 -->
+    <?php echo Plugin::triggerHook('admin_header'); ?>
+</head>
+<body>
+    <script>
+    // 立即设置侧边栏状态，避免加载闪烁
+    (function() {
+        try {
+            const collapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            const theme = localStorage.getItem('sidebarTheme');
+            
+            // 立即应用折叠状态
+            if (collapsed) {
+                document.documentElement.classList.add('sidebar-collapsed-init');
+                document.body.classList.add('sidebar-collapsed-init');
+            }
+            
+            // 立即应用主题
+            if (theme === 'dark') {
+                document.documentElement.classList.add('theme-dark-init');
+                document.body.classList.add('theme-dark-init');
+            } else if (theme === 'light') {
+                document.documentElement.classList.add('theme-light-init');
+                document.body.classList.add('theme-light-init');
+            } else if (theme === 'auto' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('theme-dark-init');
+                document.body.classList.add('theme-dark-init');
+            }
+        } catch(e) {}
+    })();
+    </script>
+    <div class="container">

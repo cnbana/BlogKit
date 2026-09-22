@@ -1,0 +1,184 @@
+<?php $currentAction = 'hook'; $pageTitle = '开发者调试面板'; include 'components/page_wrapper.html'; ?>
+
+    <!-- 操作栏 -->
+    <div class="action-section">
+        <a href="admin.php?action=hook" class="btn btn-secondary">返回钩子列表</a>
+        <a href="admin.php?action=hook&sub=logs" class="btn btn-info">钩子日志</a>
+        <a href="admin.php?action=hook&sub=batchTest" class="btn btn-primary">批量测试</a>
+    </div>
+
+    <!-- 系统概览卡片 -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px;">
+        <div style="background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); text-align: center;">
+            <div style="font-size: 32px; font-weight: bold; color: #4caf50;"><?php echo $debugData['total_hooks'] ?? 0; ?></div>
+            <div style="color: #666; margin-top: 5px;">注册钩子总数</div>
+        </div>
+        <div style="background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); text-align: center;">
+            <div style="font-size: 32px; font-weight: bold; color: #2196f3;"><?php echo $debugData['active_plugins'] ?? 0; ?></div>
+            <div style="color: #666; margin-top: 5px;">已激活插件</div>
+        </div>
+        <div style="background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); text-align: center;">
+            <div style="font-size: 32px; font-weight: bold; color: #ff9800;"><?php echo $debugData['total_callbacks'] ?? 0; ?></div>
+            <div style="color: #666; margin-top: 5px;">钩子回调总数</div>
+        </div>
+        <div style="background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); text-align: center;">
+            <div style="font-size: 32px; font-weight: bold; color: #9c27b0;"><?php echo $debugData['system_version']; ?></div>
+            <div style="color: #666; margin-top: 5px;">BlogKit 版本</div>
+        </div>
+    </div>
+
+    <!-- 已激活插件列表 -->
+    <div style="background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-top: 20px;">
+        <h3 style="margin-top:0; border-bottom: 2px solid #4caf50; padding-bottom: 10px;">📦 已激活插件</h3>
+        <?php if (!empty($debugData['plugins'])): ?>
+            <table style="width:100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #f5f5f5;">
+                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">插件名称</th>
+                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Slug</th>
+                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">版本</th>
+                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">作者</th>
+                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">已注册钩子</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($debugData['plugins'] as $plugin): ?>
+                    <tr>
+                        <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                            <strong><?php echo htmlspecialchars($plugin['name']); ?></strong>
+                        </td>
+                        <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                            <code><?php echo htmlspecialchars($plugin['slug']); ?></code>
+                        </td>
+                        <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                            v<?php echo htmlspecialchars($plugin['version']); ?>
+                        </td>
+                        <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                            <?php echo htmlspecialchars($plugin['author']); ?>
+                        </td>
+                        <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                            <span style="background:#e3f2fd;color:#1565c0;padding:2px 8px;border-radius:10px;font-size:12px;">
+                                <?php echo $plugin['hook_count'] ?? 0; ?> 个
+                            </span>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php else: ?>
+            <p style="color: #999; text-align: center; padding: 30px;">暂无已激活的插件</p>
+        <?php endif; ?>
+    </div>
+
+    <!-- 钩子注册详情 -->
+    <div style="background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-top: 20px;">
+        <h3 style="margin-top:0; border-bottom: 2px solid #2196f3; padding-bottom: 10px;">🔗 钩子注册详情</h3>
+        <?php if (!empty($debugData['hooks_registry'])): ?>
+            <?php foreach ($debugData['hooks_registry'] as $hookName => $hookData): ?>
+            <div style="margin-bottom: 15px; border: 1px solid #e0e0e0; border-radius: 6px; overflow: hidden;">
+                <div style="background: #f5f5f5; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center;">
+                    <strong style="font-family: monospace; color: #333;"><?php echo htmlspecialchars($hookName); ?></strong>
+                    <div>
+                        <span style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:10px;font-size:12px;">
+                            <?php echo $hookData['callback_count'] ?? 0; ?> 回调
+                        </span>
+                        <span style="background:<?php echo ($hookData['has_trigger'] ?? false) ? '#fff3e0' : '#f5f5f5'; ?>;color:<?php echo ($hookData['has_trigger'] ?? false) ? '#e65100' : '#999'; ?>;padding:2px 8px;border-radius:10px;font-size:12px;margin-left:5px;">
+                            <?php echo ($hookData['has_trigger'] ?? false) ? '已触发' : '未触发'; ?>
+                        </span>
+                    </div>
+                </div>
+                <div style="padding: 10px 15px;">
+                    <?php if (!empty($hookData['callbacks'])): ?>
+                        <?php foreach ($hookData['callbacks'] as $cb): ?>
+                        <div style="padding: 5px 0; font-size: 13px; color: #666; border-bottom: 1px dashed #f0f0f0;">
+                            <span style="background:#f3e5f5;color:#7b1fa2;padding:1px 6px;border-radius:3px;font-size:11px;margin-right:8px;">
+                                P<?php echo $cb['priority'] ?? 10; ?>
+                            </span>
+                            插件: <strong><?php echo htmlspecialchars($cb['plugin'] ?? 'unknown'); ?></strong> 
+                            → <?php echo htmlspecialchars($cb['callback'] ?? ''); ?>
+                        </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <p style="color: #999; font-size: 13px; margin: 5px 0;">暂无注册回调（Hook 常量已定义但未被使用）</p>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <p style="color: #999; text-align: center; padding: 30px;">暂无钩子注册信息</p>
+        <?php endif; ?>
+    </div>
+
+    <!-- 系统环境信息 -->
+    <div style="background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-top: 20px;">
+        <h3 style="margin-top:0; border-bottom: 2px solid #9c27b0; padding-bottom: 10px;">⚙️ 系统环境</h3>
+        <table style="width:100%; border-collapse: collapse;">
+            <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; width:30%; color:#666;">PHP 版本</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;"><?php echo PHP_VERSION; ?></td>
+            </tr>
+            <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; color:#666;">BlogKit 版本</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;"><?php echo $debugData['system_version']; ?></td>
+            </tr>
+            <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; color:#666;">服务器软件</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;"><?php echo $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown'; ?></td>
+            </tr>
+            <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; color:#666;">PHP 内存限制</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;"><?php echo ini_get('memory_limit'); ?></td>
+            </tr>
+            <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; color:#666;">PHP 最大执行时间</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;"><?php echo ini_get('max_execution_time'); ?>s</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; color:#666;">上传文件最大大小</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;"><?php echo ini_get('upload_max_filesize'); ?></td>
+            </tr>
+            <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; color:#666;">POST 最大大小</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;"><?php echo ini_get('post_max_size'); ?></td>
+            </tr>
+            <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; color:#666;">已加载扩展</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; font-size: 12px;">
+                    <?php 
+                        $extensions = get_loaded_extensions();
+                        sort($extensions);
+                        echo implode(', ', array_slice($extensions, 0, 20));
+                        if (count($extensions) > 20) echo ' ... (+' . (count($extensions) - 20) . '更多)';
+                    ?>
+                </td>
+            </tr>
+            <tr>
+                <td style="padding: 8px; color:#666;">钩子日志文件</td>
+                <td style="padding: 8px;">
+                    <?php 
+                        $hookLog = LOG_PATH . '/hook.log';
+                        if (file_exists($hookLog)) {
+                            $size = filesize($hookLog);
+                            echo '<span style="color:#4caf50;">✓ 存在</span> (' . round($size / 1024, 2) . ' KB)';
+                        } else {
+                            echo '<span style="color:#999;">未创建（尚未有钩子被触发）</span>';
+                        }
+                    ?>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- 使用说明 -->
+    <div style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 15px 20px; border-radius: 4px; margin-top: 20px;">
+        <h4 style="margin-top:0; color: #1565c0;">💡 开发者提示</h4>
+        <ul style="margin:0; color: #555; line-height: 1.8;">
+            <li>此面板显示当前系统中所有已注册的钩子及其回调信息</li>
+            <li>"未触发" 表示该钩子有回调注册但尚未被任何代码触发执行</li>
+            <li>"已触发" 表示该钩子至少被触发过一次（基于钩子日志判断）</li>
+            <li>优先级（P值）越小越先执行，多个插件按优先级排序</li>
+            <li>查看详细执行日志请点击上方 "钩子日志" 按钮</li>
+        </ul>
+    </div>
+
+<?php include 'components/page_footer.html'; ?>

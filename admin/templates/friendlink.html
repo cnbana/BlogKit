@@ -1,0 +1,78 @@
+<?php $currentAction = 'friendlink'; $pageTitle = '友情链接管理'; include 'components/page_wrapper.html'; ?>
+    
+    <!-- 操作栏 -->
+    <div class="action-section">
+        <a href="admin.php?action=friendlink&sub=add" class="btn btn-primary">添加友情链接</a>
+        <button id="batch-delete-btn" class="btn btn-danger" style="margin-left: 10px;">批量删除</button>
+    </div>
+    
+    <!-- 友情链接列表 -->
+    <div class="content-section" style="margin-top: 20px;">
+        <div class="card">
+            <div class="card-header">
+                <h3>友情链接列表</h3>
+            </div>
+            <div class="card-body">
+                <form id="friendlink-form" method="post" action="admin.php?action=friendlink&sub=batch_delete">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">
+                                    <input type="checkbox" id="select-all">
+                                </th>
+                                <th>链接名称</th>
+                                <th>链接地址</th>
+                                <th>描述</th>
+                                <th>状态</th>
+                                <th>排序</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($friendlinks)): ?>
+                                <?php foreach ($friendlinks as $friendlink): ?>
+                                    <tr>
+                                        <td>
+                                            <input type="checkbox" name="ids[]" value="<?php echo $friendlink['id']; ?>">
+                                        </td>
+                                        <td><?php echo htmlspecialchars($friendlink['name']); ?></td>
+                                        <td>
+                                            <a href="<?php echo htmlspecialchars($friendlink['url']); ?>" target="_blank">
+                                                <?php echo htmlspecialchars($friendlink['url']); ?>
+                                            </a>
+                                        </td>
+                                        <td><?php echo htmlspecialchars($friendlink['description']); ?></td>
+                                        <td>
+                                            <?php if ($friendlink['status'] == 1): ?>
+                                                <span class="badge badge-success">启用</span>
+                                            <?php else: ?>
+                                                <span class="badge badge-danger">禁用</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td><?php echo $friendlink['sort']; ?></td>
+                                        <td>
+                                            <a href="admin.php?action=friendlink&sub=edit&id=<?php echo $friendlink['id']; ?>" class="btn btn-sm btn-primary">编辑</a>
+                                            <a href="admin.php?action=friendlink&sub=delete&id=<?php echo $friendlink['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('确定要删除这个友情链接吗？');">删除</a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="7" class="text-center">暂无友情链接</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </form>
+                
+                <!-- 分页 -->
+                <?php 
+                    // 引入公共分页组件
+                    $action = 'friendlink';
+                    $filters = []; // 友情链接管理暂时没有过滤参数
+                    include ADMIN_PATH . '/templates/components/pagination.html';
+                ?> 
+            </div>
+        </div>
+    </div>
+<?php include 'components/footer_wrapper.html'; ?>

@@ -1,0 +1,220 @@
+<?php $currentAction = 'comment'; $pageTitle = '评论管理'; $pageCss = 'comment.css'; include 'components/page_wrapper.html'; ?>
+    
+    <!-- 筛选功能 -->
+    <div class="filter-section">
+        <form method="get" action="admin.php">
+            <input type="hidden" name="action" value="comment">
+            
+            <div style="margin-right: 15px; display: inline-block;">
+                <label for="status_filter">状态：</label>
+                <select name="status" id="status_filter" style="padding: 5px; margin-right: 10px;">
+                    <option value="" <?php echo empty($_GET['status']) ? 'selected' : ''; ?>>全部</option>
+                    <option value="1" <?php echo isset($_GET['status']) && $_GET['status'] == 1 ? 'selected' : ''; ?>>已审核</option>
+                    <option value="0" <?php echo isset($_GET['status']) && $_GET['status'] == 0 ? 'selected' : ''; ?>>待审核</option>
+                </select>
+            </div>
+            
+            <div style="margin-right: 15px; display: inline-block;">
+                <label for="search_filter">搜索</label>
+                <input type="text" name="search" id="search_filter" placeholder="评论内容" value="<?php echo isset($_GET['search']) ? $_GET['search'] : ''; ?>" style="padding: 5px; margin-right: 10px;">
+            </div>
+            
+            <button type="submit" class="btn btn-primary" id="filter-btn" style="margin-right: 10px;">筛选</button>
+            <button type="button" class="btn btn-primary" id="reset-btn" style="margin-right: 10px;">重置</button>
+            <a href="admin.php?action=comment&sub=recycle" class="btn btn-warning">回收站</a>
+        </form>
+        
+        <script>
+            // 评论页面特定的JavaScript
+            // 获取筛选表单元素
+            const statusFilter = document.getElementById('status_filter');
+            const searchFilter = document.getElementById('search_filter');
+            const filterBtn = document.getElementById('filter-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            
+            // 重置按钮点击事件
+            resetBtn.addEventListener('click', function() {
+                // 跳转到指定URL重置筛选
+                window.location.href = '/admin.php?action=comment';
+            });
+            
+            // 表单提交时处理空参数
+            document.querySelector('form').addEventListener('submit', function(e) {
+                if (statusFilter.value === '') {
+                    statusFilter.removeAttribute('name');
+                }
+                if (searchFilter.value.trim() === '') {
+                    searchFilter.removeAttribute('name');
+                }
+            });
+            
+            // 操作按钮点击事件
+            document.addEventListener('click', function(e) {
+                const target = e.target;
+                const action = target.getAttribute('data-action');
+                const id = target.getAttribute('data-id');
+
+                if (action && id) {
+                    let message = '';
+                    let url = '';
+
+                    switch(action) {
+                        case 'approve':
+                            message = '确定要通过审核吗？';
+                            url = 'admin.php?action=comment&sub=toggleStatus&id=' + id + '&status=1';
+                            break;
+                        case 'reject':
+                            message = '确定要设为待审核吗？';
+                            url = 'admin.php?action=comment&sub=toggleStatus&id=' + id + '&status=0';
+                            break;
+                        case 'delete':
+                            message = '确定要删除这条评论吗？';
+                            url = 'admin.php?action=comment&sub=delete&id=' + id;
+                            break;
+                        case 'toggleTop':
+                            const isTop = target.getAttribute('data-is-top') === '1';
+                            message = isTop ? '确定要取消置顶吗？' : '确定要置顶吗？';
+                            url = 'admin.php?action=comment&sub=toggleTop&id=' + id;
+                            break;
+                        case 'edit':
+                            window.location.href = 'admin.php?action=comment&sub=edit&id=' + id;
+                            return;
+                    }
+
+                    if (message && url) {
+                        e.preventDefault();
+                        if (typeof BlogKitUI !== 'undefined' && BlogKitUI.Modal) {
+                            BlogKitUI.Modal.confirm(message).then(function(confirmed) {
+                                if (confirmed) {
+                                    window.location.href = url;
+                                }
+                            });
+                        } else {
+                            if (confirm(message)) {
+                                window.location.href = url;
+                            }
+                        }
+                    }
+                }
+            });
+        </script>
+    </div>
+    
+    <div class="table-container">
+        <table class="table table-striped">
+            <?php include ADMIN_PATH . '/templates/components/sort_link.html'; ?>
+            <thead>
+                <tr>
+                    <th style="width: 50px;"><?php echo sortLink('id', 'ID', $sort, $order); ?></th>
+                    <th style="width: 40px;">层级</th>
+                    <th>文章</th>
+                    <th>用户</th>
+                    <th>评论内容</th>
+                    <th style="width: 70px;">回复数</th>
+                    <th style="width: 70px;">状态</th>
+                    <th style="width: 150px;"><?php echo sortLink('created_at', '评论时间', $sort, $order); ?></th>
+                    <th style="width: 150px;">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($comments)): ?>
+                <tr>
+                    <td colspan="9" style="text-align: center; padding: 40px; color: #999;">
+                        <div style="font-size: 16px; margin-bottom: 10px;">暂无评论数据</div>
+                        <div style="font-size: 14px; color: #ccc;">当有用户提交评论时，将显示在这里</div>
+                    </td>
+                </tr>
+                <?php else: ?>
+                
+                <?php
+                /**
+                 * 递归显示嵌套评论
+                 * @param array $comments 评论列表
+                 * @param int $level 当前层级
+                 */
+                function displayNestedComments($comments, $level = 0) {
+                    foreach ($comments as $comment):
+                        // 计算缩进宽度
+                        $indentPx = $level * 30;
+                        // 层级样式
+                        $levelClass = $level == 0 ? 'level-root' : 'level-reply-' . min($level, 5);
+                        // 左边框颜色（不同层级不同颜色）
+                        $borderColors = ['#3498db', '#2ecc71', '#e74c3c', '#9b59b6', '#f39c12', '#1abc9c'];
+                        $borderColor = isset($borderColors[$level % count($borderColors)]) ? $borderColors[$level % count($borderColors)] : $borderColors[0];
+                ?>
+                <tr class="comment-row <?php echo $levelClass; ?>" data-level="<?php echo $level; ?>" data-parent="<?php echo $comment['parent_id']; ?>">
+                    <td><?php echo $comment['id']; ?></td>
+                    <td>
+                        <?php if ($level > 0): ?>
+                        <span class="level-badge" style="background-color: <?php echo $borderColor; ?>;"><?php echo $level; ?>楼</span>
+                        <?php else: ?>
+                        <span class="level-badge level-root-badge">主</span>
+                        <?php endif; ?>
+                    </td>
+                    <td><?php echo htmlspecialchars($comment['article_title']); ?></td>
+                    <td>
+                        <?php echo $comment['nickname'] ? htmlspecialchars($comment['nickname']) : htmlspecialchars($comment['username']); ?>
+                        <?php if ($level > 0 && !empty($comment['parent_username'])): ?>
+                        <span class="reply-to" style="color: #666;"> → 回复 <?php echo $comment['parent_nickname'] ? htmlspecialchars($comment['parent_nickname']) : htmlspecialchars($comment['parent_username']); ?></span>
+                        <?php endif; ?>
+                    </td>
+                    <td style="text-align: left; padding-left: <?php echo $indentPx + 10; ?>px; border-left: 3px solid <?php echo $borderColor; ?>;">
+                        <div class="comment-content<?php echo $level > 0 ? '-nested' : ''; ?>">
+                            <?php echo htmlspecialchars(mb_substr($comment['content'], 0, 50)) . (mb_strlen($comment['content']) > 50 ? '...' : ''); ?>
+                        </div>
+                    </td>
+                    <td>
+                        <?php 
+                        $replyCount = isset($comment['reply_count']) ? $comment['reply_count'] : 0;
+                        if ($replyCount > 0): ?>
+                        <span class="reply-count"><?php echo $replyCount; ?></span>
+                        <?php else: ?>
+                        <span style="color: #ccc;">-</span>
+                        <?php endif; ?>
+                    </td>
+                    <td><?php echo $comment['status'] == 1 ? '<span class="badge badge-success">已审核</span>' : '<span class="badge badge-warning">待审核</span>'; ?></td>
+                    <td><?php echo $comment['created_at']; ?></td>
+                    <td>
+                        <?php if ($comment['status'] == 0): ?>
+                        <button class="btn btn-success btn-sm" data-action="approve" data-id="<?php echo $comment['id']; ?>">通过</button>
+                        <?php else: ?>
+                        <button class="btn btn-warning btn-sm" data-action="reject" data-id="<?php echo $comment['id']; ?>">屏蔽</button>
+                        <?php endif; ?>
+                        <button class="btn btn-info btn-sm" data-action="toggleTop" data-id="<?php echo $comment['id']; ?>" data-is-top="<?php echo $comment['is_top']; ?>">
+                            <?php echo $comment['is_top'] == 1 ? '取消置顶' : '置顶'; ?>
+                        </button>
+                        <button class="btn btn-primary btn-sm" data-action="edit" data-id="<?php echo $comment['id']; ?>">编辑</button>
+                        <button class="btn btn-danger btn-sm" data-action="delete" data-id="<?php echo $comment['id']; ?>">删除</button>
+                    </td>
+                </tr>
+                <?php 
+                        // 递归显示子评论
+                        if (!empty($comment['replies'])) {
+                            displayNestedComments($comment['replies'], $level + 1);
+                        }
+                    endforeach;
+                }
+                
+                displayNestedComments($comments);
+                ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+
+        <?php if (!empty($comments)): ?>
+        <?php
+        // 引入公共分页组件
+        $action = 'comment';
+        $total = $totalCount;
+        $limit = Config::get('admin_pagination_count', 20);
+        $filters = [];
+        if (isset($_GET['status']) && !empty($_GET['status'])) $filters['status'] = $_GET['status'];
+        if (isset($_GET['article_id']) && !empty($_GET['article_id'])) $filters['article_id'] = $_GET['article_id'];
+        if (isset($_GET['search']) && !empty($_GET['search'])) $filters['search'] = $_GET['search'];
+        include ADMIN_PATH . '/templates/components/pagination.html';
+        ?>
+        <?php endif; ?>
+    </div>
+</main>
+
+<?php include 'components/footer_wrapper.html'; ?>

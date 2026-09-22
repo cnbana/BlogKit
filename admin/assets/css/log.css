@@ -1,0 +1,46 @@
+/* ========================================
+ * 日志管理页面样式 (log.css)
+ * 适用页面：log.html
+ * 由模板内嵌 <style> 归拢而来（2026-09 样式统一）
+ * 说明：模态框遮罩/结构已统一进 components.css（flex 居中版），
+ *       本文件仅保留日志详情字段样式与弹窗宽度覆盖
+ * ======================================== */
+
+/* 弹窗宽度覆盖：日志详情内容较宽，放宽到 800px */
+.modal-dialog {
+    max-width: 800px;
+}
+
+/* ===== 日志详情字段 ===== */
+.log-detail-item {
+    margin-bottom: 15px;
+}
+.log-detail-label {
+    font-weight: bold;
+    color: #333;
+    display: inline-block;
+    width: 120px;
+}
+.log-detail-value {
+    display: inline-block;
+    vertical-align: top;
+    word-break: break-all;
+}
+.log-detail-context {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    font-family: monospace;
+    white-space: pre-wrap;
+    font-size: 12px;
+}
+
+/* ===== 暗色主题适配 ===== */
+body.dark-theme .log-detail-label {
+    color: #e2e8f0;
+}
+body.dark-theme .log-detail-context {
+    background-color: #0f172a;
+    color: #cbd5e1;
+}

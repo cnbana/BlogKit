@@ -1,0 +1,59 @@
+<?php $currentAction = 'category'; $pageTitle = '添加分类'; include 'components/page_wrapper.html'; ?>
+            
+        <div class="form-container">
+            <form action="admin.php?action=category&sub=add" method="post">
+                <div class="form-group">
+                    <label for="name">分类名称</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="parent_id">父分类</label>
+                    <select id="parent_id" name="parent_id">
+                        <option value="0">顶级分类</option>
+                        <?php foreach ($categories as $category): ?>
+                            <option value="<?php echo $category['id']; ?>"><?php echo $category['name_with_prefix']; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="order_by">排序</label>
+                    <input type="number" id="order_by" name="order_by" value="0">
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">描述</label>
+                    <textarea id="description" name="description" rows="4"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="keywords">关键词</label>
+                    <input type="text" id="keywords" name="keywords" placeholder="请输入分类关键词，可用英文逗号、中文逗号或空格分隔">
+                </div>
+                
+                <div class="form-group">
+                    <label for="slug">别名</label>
+                    <input type="text" id="slug" name="slug" placeholder="请输入分类别名，用于URL访问">
+                </div>
+                
+                <div class="form-group">
+                    <label for="redirect_url">跳转链接</label>
+                    <input type="text" id="redirect_url" name="redirect_url" placeholder="填写后点击分类会跳转到该链接，支持站内站外链接">
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" name="is_menu" value="1" checked> 是否显示在分类菜单
+                    </label>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">添加分类</button>
+                    <a href="admin.php?action=category" class="btn btn-secondary">取消</a>
+                </div>
+            </form>
+        </div>
+    </main>
+
+<?php include 'components/footer_wrapper.html'; ?>

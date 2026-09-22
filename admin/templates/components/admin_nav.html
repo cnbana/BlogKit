@@ -1,0 +1,109 @@
+<?php
+/**
+ * 后台配置导航注册文件
+ * 
+ * 所有系统设置的子页面在此集中定义，驱动侧边栏中"系统设置"的三级菜单渲染。
+ * 
+ * 使用方式：
+ *   $configNav = require __DIR__ . '/admin_nav.html';
+ *   $groups = $configNav['groups'];  // 所有导航分组
+ * 
+ * 结构说明：
+ *   groups[group_key] = [
+ *       'title' => '分组显示名',
+ *       'icon'  => 'SVG图标key',
+ *       'sort'  => 排序值,
+ *       'danger' => true/false,        // 可选，标记为危险区域
+ *       'roles' => [1, 2, ...],        // 可选，限制角色ID可见
+ *       'items' => [
+ *           'sub_key' => [
+ *               'title' => '子项标题',
+ *               'icon'  => 'SVG图标key',
+ *               'sort'  => 排序值,
+ *               'danger' => true/false, // 可选，标记危险操作
+ *           ]
+ *       ]
+ *   ]
+ */
+
+return [
+    'groups' => [
+        'general' => [
+            'title' => '常规设置',
+            'icon'  => 'settings',
+            'sort'  => 1,
+            'items' => [
+                'basic'   => ['title' => '基本设置', 'icon' => 'home',    'sort' => 1],
+                'feature' => ['title' => '功能开关', 'icon' => 'toggle',  'sort' => 2],
+            ],
+        ],
+        'user' => [
+            'title' => '用户相关',
+            'icon'  => 'users',
+            'sort'  => 2,
+            'items' => [
+                'user'     => ['title' => '用户设置',   'icon' => 'user-plus', 'sort' => 1],
+                'register' => ['title' => '注册设置',   'icon' => 'user-plus', 'sort' => 2],
+                'login'    => ['title' => '登录设置',   'icon' => 'log-in',    'sort' => 3],
+                'captcha'  => ['title' => '验证码设置', 'icon' => 'shield',    'sort' => 4],
+            ],
+        ],
+        'content' => [
+            'title' => '内容管理',
+            'icon'  => 'file-text',
+            'sort'  => 3,
+            'items' => [
+                'article' => ['title' => '文章管理',  'icon' => 'file-text',      'sort' => 1],
+                'comment' => ['title' => '评论设置', 'icon' => 'message-square', 'sort' => 2],
+                'search'  => ['title' => '搜索设置', 'icon' => 'search',          'sort' => 3],
+            ],
+        ],
+        'seo' => [
+            'title' => 'SEO 优化',
+            'icon'  => 'search',
+            'sort'  => 4,
+            'items' => [
+                'seo'     => ['title' => 'SEO设置',    'icon' => 'trending-up', 'sort' => 1],
+                'rewrite' => ['title' => '伪静态设置', 'icon' => 'link',        'sort' => 2],
+            ],
+        ],
+        'service' => [
+            'title' => '外部服务',
+            'icon'  => 'server',
+            'sort'  => 5,
+            'items' => [
+                'email' => ['title' => '邮箱配置', 'icon' => 'mail', 'sort' => 1],
+                'api'   => ['title' => 'API设置',  'icon' => 'key',  'sort' => 2],
+            ],
+        ],
+        'security' => [
+            'title' => '安全防护',
+            'icon'  => 'shield',
+            'sort'  => 6,
+            'items' => [
+                'security'     => ['title' => '安全设置', 'icon' => 'lock', 'sort' => 1],
+                'ip_whitelist' => ['title' => 'IP白名单', 'icon' => 'list', 'sort' => 2],
+            ],
+        ],
+        'system' => [
+            'title' => '系统维护',
+            'icon'  => 'cpu',
+            'sort'  => 7,
+            'items' => [
+                'cache' => ['title' => '缓存设置', 'icon' => 'database', 'sort' => 1],
+                // 系统信息已精简合并到仪表盘，菜单项移除
+            ],
+        ],
+        'advanced' => [
+            'title'  => '高级选项',
+            'icon'   => 'alert-triangle',
+            'sort'   => 99,
+            'danger' => true,
+            'roles'  => [1],  // 仅角色ID=1（管理员）可见
+            'items'  => [
+                'debug'   => ['title' => '调试设置',   'icon' => 'bug',     'sort' => 1, 'danger' => true],
+                'migrate' => ['title' => '数据库迁移', 'icon' => 'refresh', 'sort' => 2, 'danger' => true],
+            ],
+        ],
+    ],
+];

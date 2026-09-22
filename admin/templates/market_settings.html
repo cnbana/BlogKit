@@ -1,0 +1,42 @@
+<?php $currentAction = 'market'; $pageTitle = '应用市场设置'; include 'components/page_wrapper.html'; ?>
+
+<!-- ============ 市场设置（P3 方案 4.1/4.2）：官网地址 + 站点密钥绑定 ============ -->
+<!-- 流程：官网「我的站点」生成 site_key → 本页粘贴保存 → 服务端调官网 /api/site/bind 绑定 -->
+
+<div style="background-color:#ffffff; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.05); margin-top:20px; max-width:640px;">
+
+    <!-- 绑定状态 -->
+    <div style="margin-bottom:15px;">
+        <span style="font-weight:bold;">绑定状态：</span>
+        <span class="label <?php echo strpos($bindStatus, '已绑定') === 0 ? 'label-success' : 'label-warning'; ?>">
+            <?php echo htmlspecialchars($bindStatus, ENT_QUOTES); ?>
+        </span>
+    </div>
+
+    <form method="post" action="admin.php?action=market&op=settings">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Security::generateCsrfToken(), ENT_QUOTES); ?>">
+
+        <div class="form-group" style="margin-bottom:15px;">
+            <label style="display:block; margin-bottom:5px; font-weight:bold;">官网地址</label>
+            <input type="text" name="market_api_url" class="form-control"
+                   value="<?php echo htmlspecialchars($apiUrl, ENT_QUOTES); ?>"
+                   placeholder="如 https://www.blogkit.cn">
+            <p style="color:#999; font-size:12px; margin-top:5px;">BlogKit 官网根地址，应用市场 API 与安装包下载均从此地址发起。</p>
+        </div>
+
+        <div class="form-group" style="margin-bottom:15px;">
+            <label style="display:block; margin-bottom:5px; font-weight:bold;">站点密钥（site_key）</label>
+            <input type="text" name="market_site_key" class="form-control"
+                   value="<?php echo htmlspecialchars($siteKey, ENT_QUOTES); ?>"
+                   placeholder="32 位字符，在官网「用户中心 → 我的站点」生成">
+            <p style="color:#999; font-size:12px; margin-top:5px;">
+                密钥只在官网生成时显示一次；换站/丢失请回官网「我的站点」重置后重新保存本页。保存后自动尝试绑定。
+            </p>
+        </div>
+
+        <button type="submit" class="btn btn-primary">保存并绑定</button>
+        <a href="admin.php?action=market" class="btn btn-default" style="margin-left:10px;">返回市场</a>
+    </form>
+</div>
+
+<?php include 'components/footer_wrapper.html'; ?>

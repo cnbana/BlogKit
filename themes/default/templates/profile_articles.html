@@ -1,0 +1,71 @@
+{assign var="page_title" value="我的文章"}
+{include file="header"}
+    
+    <main class="main-content">
+        <div class="container">
+            <div class="profile-container">
+                {include file="common/profile_nav.html"}
+                
+                <div class="profile-content">
+
+                    
+                    <!-- 我的文章区域 -->
+                    <div class="profile-section">
+                    <h3 class="section-title">我的文章</h3>
+                    {if empty="articles"}
+                        <!-- 空状态提示 -->
+                        <div class="empty-state">
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="8" y1="12" x2="16" y2="12"></line>
+                            </svg>
+                            <p>暂无发表任何文章</p>
+                        </div>
+                    {else}
+                        <div class="articles-list">
+                            {loop name="articles"}
+                            <div class="article-item post">
+                                <!-- 封面图显示：仅使用 cover_image 字段（不自动提取首图，站长需手动设置） -->
+                                {picture src="cover_image" alt="title" class="lazy-img" wrap_class="post-cover"}
+                                
+                                <div class="post-content">
+                                    <h4 class="post-title">
+                                        {top_badge}
+                                        <a href="{url:article:id}" target="_blank">{field name='title'}</a>
+                                    </h4>
+                                    <div class="post-excerpt">
+                                        {field name='description'}
+                                    </div>
+                                    <div class="post-footer">
+                                        <div class="post-meta">
+                                            <span class="post-category"><a href="{url:category:category_id}">{field name="category_name"}</a></span>
+                                            <span class="post-author"><a href="/index.php?c=Auth&m=user&id={field name='user_id'}">{field name="author"}</a></span>
+                                            <span class="post-date">{field name="created_at" filter="relative1"}</span>
+                                            <span class="post-views">{field name="view_count" filter="cn_number"} 浏览</span>
+                                            <span class="post-likes">{field name="like_count" filter="cn_number"} 点赞</span>
+                                            <span class="post-favorites">{field name="favorite_count" filter="cn_number"} 收藏</span>
+                                            {if config.comment_enabled}
+                                            <span class="post-comments"><a href="{url:article:id}#comments">{field name="comment_count" filter="cn_number"} 评论</a></span>
+                                            {endif}
+                                        </div>
+                                        <div class="post-tags-list">
+                                        {loop name=":tags"}
+                                            <a href="{url:tag:id}" class="tag">{field name="name"}</a>
+                                        {/loop}
+                                    </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {/loop}
+                        </div>
+                    {/if}
+                </div>
+                
+                <!-- 分页导航 -->
+                    {include file="common/pagination.html"}
+                </div>
+            </div>
+        </div>
+    </main>
+    
+{include file="footer"}

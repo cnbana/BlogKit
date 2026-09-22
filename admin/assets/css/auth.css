@@ -1,0 +1,219 @@
+/* ============================================================
+   BlogKit Admin - Auth CSS
+   认证页面统一样式：登录、忘记密码、重置密码
+   ============================================================ */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f5f5f5;
+}
+
+/* 统一认证容器（.login-container / .login-box / .reset-box 共用样式） */
+.login-container,
+.login-box,
+.reset-box {
+    max-width: 400px;
+    margin: 100px auto;
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.login-container h1,
+.login-box h1,
+.reset-box h1 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+/* 表单组 */
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: #666;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-size: 16px;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+/* 按钮 */
+.btn {
+    width: 100%;
+    padding: 10px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.btn:hover {
+    background-color: #0056b3;
+}
+
+/* 错误消息 */
+.error,
+.error-message {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 3px;
+}
+
+/* 成功消息 */
+.success-message {
+    background-color: #d4edda;
+    color: #155724;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 3px;
+}
+
+/* 信息消息 */
+.info-message {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 3px;
+}
+
+/* 返回链接 */
+.back-link {
+    text-align: center;
+    margin-top: 15px;
+}
+
+.back-link a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.back-link a:hover {
+    text-decoration: underline;
+}
+
+/* 验证码输入框（重置密码页） */
+.captcha-input {
+    width: 100%;
+    padding: 10px 40px 10px 10px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-size: 16px;
+    box-sizing: border-box;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.captcha-input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.captcha-input-success {
+    border-color: #28a745 !important;
+    box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.25) !important;
+}
+
+.captcha-input-error {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.25) !important;
+}
+
+/* ============================================================
+   验证码区域样式
+   ============================================================ */
+
+/* 验证码行容器 */
+.captcha-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* 验证码输入框容器 */
+.captcha-input-wrap {
+    position: relative;
+    flex: 1;
+}
+
+/* 验证码状态图标 */
+.captcha-status {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+}
+
+/* 验证码图片 */
+.captcha-img {
+    width: 120px;
+    height: 40px;
+    border: 1px solid #ddd;
+    cursor: pointer;
+}
+
+/* 验证码刷新按钮 */
+.captcha-refresh-btn {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    cursor: pointer;
+}
+
+/* 验证码行中的直接输入框（忘记密码页） */
+.captcha-row > input.captcha-input-flex {
+    flex: 1;
+}
+
+/* 验证码图片+按钮容器 */
+.captcha-img-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* 底部链接行 */
+.form-footer {
+    text-align: center;
+    margin-top: 15px;
+}
+
+.form-footer a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.form-footer a:hover {
+    text-decoration: underline;
+}

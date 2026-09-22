@@ -1,0 +1,48 @@
+<?php $currentAction = 'role'; $pageTitle = '添加角色'; include 'components/page_wrapper.html'; ?>
+    
+    <div class="form-container">
+        <form method="post" action="admin.php?action=role&sub=add">
+            <?php if (isset($error)): ?>
+            <div class="error-message" style="margin-bottom: 20px; padding: 15px; background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; border-radius: 5px;">
+                <?php echo $error; ?>
+            </div>
+            <?php endif; ?>
+            
+            <div class="form-group">
+                <label for="name">角色名称</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="description">角色描述</label>
+                <textarea id="description" name="description" rows="3"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="parent_id">父角色</label>
+                <select id="parent_id" name="parent_id">
+                    <option value="0">顶级角色</option>
+                    <?php foreach ($roles as $role): ?>
+                    <option value="<?php echo $role['id']; ?>"><?php echo $role['name']; ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <small>选择父角色后，将继承父角色的所有权限</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="status">状态</label>
+                <div class="checkbox-container">
+                    <input type="checkbox" id="status" name="status" checked>
+                    <label for="status">启用</label>
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">保存</button>
+                <a href="admin.php?action=role" class="btn btn-default">取消</a>
+            </div>
+        </form>
+    </div>
+</main>
+
+<?php include 'components/footer_wrapper.html'; ?>

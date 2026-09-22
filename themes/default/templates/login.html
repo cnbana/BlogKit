@@ -1,0 +1,98 @@
+{assign var="page_title" value="登录"}
+{include file="header"}
+    
+    <!-- 引入验证码样式 -->
+    <link rel="stylesheet" href="{site.url}/themes/default/assets/css/captcha.css">
+    
+    <main class="main-content">
+        <div class="container">
+            <div class="login-container">
+                <h2>登录</h2>
+                
+                {if isset="error"}
+                <div class="error-message">
+                    {echo value="error"}
+                </div>
+                {endif}
+                
+                {if isset="success"}
+                <div class="alert alert-success">
+                    {echo value="success"}
+                </div>
+                {endif}
+
+                {if login_disabled}
+                <div class="error-message">
+                    当前系统暂未开放任何登录方式，请联系管理员。
+                </div>
+                {endif}
+
+                <form action="{url:login}" method="post" class="login-form"{if login_disabled} onsubmit="return false;"{endif}>
+                    {if isset="redirect"}
+                    <input type="hidden" name="redirect" value="{echo value="redirect"}">
+                    {endif}
+                    <div class="form-group">
+                        <label for="username">{echo value="login_username_label"}</label>
+                        <input type="text" id="username" name="username" required placeholder="{echo value="login_username_placeholder"}" autocomplete="username"{if login_disabled} disabled{endif}>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">密码</label>
+                        <div class="password-container">
+                            <input type="password" id="password" name="password" required placeholder="请输入密码" autocomplete="current-password">
+                            <button type="button" class="toggle-password" onclick="togglePassword('password')">显示密码</button>
+                        </div>
+                    </div>
+
+                    <!-- 验证码组件 -->
+                    {if captcha_enabled && captcha_login_enabled}
+                    <div class="form-group">
+                        <label>验证码</label>
+                        <div class="captcha-wrapper" data-captcha-width="{echo value="captcha_width"}" data-captcha-height="{echo value="captcha_height"}" data-captcha-font-size="{echo value="captcha_font_size"}"></div>
+                    </div>
+                    {endif}
+
+                    <!-- 记住我 -->
+                    <div class="cookietime">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="remember" name="remember" value="1">
+                            <span>记住我（7天内自动登录）</span>
+                        </label>
+                    </div>
+
+                    <button type="submit" class="login-btn"{if login_disabled} disabled{endif}>登录</button>
+                </form>
+                
+                <div class="form-center">
+                    <a href="{url:forgot-password}">忘记密码？</a>
+                </div>
+                
+                {if user_registration}
+                <div class="register-link">
+                    还没有账号？<a href="{url:register}">立即注册</a>
+                </div>
+                {endif}
+            </div>
+        </div>
+    </main>
+    
+    <!-- 引入验证码脚本 -->
+    <script src="{site.url}/themes/default/assets/js/captcha.js"></script>
+    
+    <!-- 密码显示/隐藏脚本 -->
+    <script>
+        function togglePassword(inputId) {
+            const passwordInput = document.getElementById(inputId);
+            const toggleButton = passwordInput.nextElementSibling;
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleButton.textContent = '隐藏密码';
+            } else {
+                passwordInput.type = 'password';
+                toggleButton.textContent = '显示密码';
+            }
+        }
+    </script>
+    
+    {include file="footer"}

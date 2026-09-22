@@ -1,0 +1,99 @@
+<?php $currentAction = 'role'; $pageTitle = '角色管理'; include 'components/page_wrapper.html'; ?>
+    
+
+    
+    <div class="form-container">
+        <!-- 搜索和筛选：统一为用户列表页同款筛选样式（卡片 + 一行式横向布局） -->
+        <div class="filter-section">
+            <form method="get" action="admin.php?action=role" class="filter-form">
+                <div class="filter-row">
+                    <div class="filter-group filter-group-wide">
+                        <label for="role_search">搜索</label>
+                        <input type="text" id="role_search" name="search" class="filter-input" placeholder="角色名称或描述" value="<?php echo isset($search) ? $search : ''; ?>">
+                    </div>
+                    <div class="filter-group">
+                        <label for="role_status">状态</label>
+                        <select id="role_status" name="status" class="filter-select">
+                            <option value="">所有状态</option>
+                            <option value="1" <?php echo isset($status) && $status == 1 ? 'selected' : ''; ?>>启用</option>
+                            <option value="0" <?php echo isset($status) && $status == 0 ? 'selected' : ''; ?>>禁用</option>
+                        </select>
+                    </div>
+                    <div class="filter-actions">
+                        <button type="submit" class="btn btn-primary">搜索</button>
+                        <a href="admin.php?action=role" class="btn btn-default">重置</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+        <!-- 操作按钮 -->
+        <div class="action-buttons" style="margin-bottom: 20px;">
+            <a href="admin.php?action=role&sub=add" class="btn btn-success">添加角色</a>
+        </div>
+        
+        <!-- 角色列表 -->
+        <div class="table-container">
+            <table class="data-table table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>角色名称</th>
+                        <th>描述</th>
+                        <th>父角色</th>
+                        <th>状态</th>
+                        <th>创建时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (empty($roles)): ?>
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 50px;">暂无角色数据</td>
+                    </tr>
+                    <?php else: ?>
+                    <?php foreach ($roles as $role): ?>
+                    <tr>
+                        <td><?php echo $role['id']; ?></td>
+                        <td><?php echo $role['name']; ?></td>
+                        <td><?php echo $role['description']; ?></td>
+                        <td><?php echo $role['parent_name']; ?></td>
+                        <td>
+                            <span class="status-badge <?php echo $role['status'] == 1 ? 'active' : 'inactive'; ?>">
+                                <?php echo $role['status_name']; ?>
+                            </span>
+                        </td>
+                        <td><?php echo date('Y-m-d H:i:s', $role['created_at']); ?></td>
+                        <td class="action-buttons">
+                            <?php if (!in_array($role['id'], [1, 2, 3])): ?>
+                            <a href="admin.php?action=role&sub=permission&id=<?php echo $role['id']; ?>" class="btn btn-info btn-sm">权限分配</a>
+                            <?php endif; ?>
+                            <a href="admin.php?action=role&sub=edit&id=<?php echo $role['id']; ?>" class="btn btn-primary btn-sm">编辑</a>
+                            <?php if (!in_array($role['id'], [1, 2, 3])): ?>
+                            <a href="admin.php?action=role&sub=toggleStatus&id=<?php echo $role['id']; ?>&status=<?php echo $role['status'] == 1 ? 0 : 1; ?>" 
+                               class="btn btn-<?php echo $role['status'] == 1 ? 'warning' : 'success'; ?> btn-sm">
+                                <?php echo $role['status'] == 1 ? '禁用' : '启用'; ?>
+                            </a>
+                            <a href="admin.php?action=role&sub=delete&id=<?php echo $role['id']; ?>" 
+                               class="btn btn-danger btn-sm" onclick="return confirm('确定要删除这个角色吗？');">
+                                删除
+                            </a>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+
+        <!-- 分页：包裹在列表容器内，与表格一体（对齐用户列表页布局） -->
+        <?php if (isset($totalPages) && $totalPages > 1): ?>
+        <div class="pagination-container" style="margin-top: 20px;">
+            <?php include 'components/pagination.html'; ?>
+        </div>
+        <?php endif; ?>
+    </div>
+    </div>
+</main>
+
+<?php include 'components/footer_wrapper.html'; ?>

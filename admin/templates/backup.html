@@ -1,0 +1,159 @@
+<?php $currentAction = 'backup'; $pageTitle = '数据备份管理'; include 'components/page_wrapper.html'; ?>
+
+    <!-- 操作按钮 -->
+    <div style="margin-bottom: 15px; display: flex; flex-wrap: wrap; gap: 10px;">
+        <a href="admin.php?action=backup&sub=create&type=database" class="btn btn-primary" onclick="return confirm('确认创建数据库备份？')">备份数据库</a>
+        <a href="admin.php?action=backup&sub=create&type=files" class="btn btn-success" onclick="return confirm('确认创建文件备份？')">备份文件</a>
+        <a href="admin.php?action=backup&sub=create&type=full" class="btn btn-warning" onclick="return confirm('全量备份需要较长时间，确认继续？')">全量备份</a>
+    </div>
+
+    <!-- 提示消息 -->
+    <?php if (isset($_SESSION['backup_success'])): ?>
+    <div class="alert alert-success" style="margin-bottom: 20px; padding: 15px; background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; border-radius: 5px;">
+        <?php echo htmlspecialchars($_SESSION['backup_success']); ?>
+    </div>
+    <?php unset($_SESSION['backup_success']); endif; ?>
+
+    <?php if (isset($_SESSION['backup_error'])): ?>
+    <div class="alert alert-danger" style="margin-bottom: 20px; padding: 15px; background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; border-radius: 5px;">
+        <?php echo htmlspecialchars($_SESSION['backup_error']); ?>
+    </div>
+    <?php unset($_SESSION['backup_error']); endif; ?>
+
+    <!-- 统计概览 -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px;">
+        <div class="table-container" style="text-align: center; padding: 20px;">
+            <div style="font-size: 28px; font-weight: 700; color: #333;"><?php echo count($backups); ?></div>
+            <div style="font-size: 13px; color: #888; margin-top: 4px;">备份总数</div>
+        </div>
+        <div class="table-container" style="text-align: center; padding: 20px;">
+            <div style="font-size: 28px; font-weight: 700; color: #333;"><?php echo $diskInfo['backup_dir_size']; ?></div>
+            <div style="font-size: 13px; color: #888; margin-top: 4px;">备份目录大小</div>
+        </div>
+        <div class="table-container" style="text-align: center; padding: 20px;">
+            <div style="font-size: 28px; font-weight: 700; color: #333;"><?php echo $diskInfo['free']; ?></div>
+            <div style="font-size: 13px; color: #888; margin-top: 4px;">磁盘剩余空间</div>
+            <div style="height: 6px; background: #e9ecef; border-radius: 3px; overflow: hidden; margin-top: 8px;">
+                <div style="height: 100%; border-radius: 3px; width: <?php echo $diskInfo['used_percent']; ?>%; background: <?php echo $diskInfo['used_percent'] > 90 ? '#dc3545' : ($diskInfo['used_percent'] > 70 ? '#ffc107' : '#28a745'); ?>;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 备份列表 -->
+    <div class="table-container" style="margin-bottom: 20px; padding: 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #eee;">
+            <h3 style="margin: 0; font-size: 16px;">备份记录</h3>
+            <span style="font-size: 13px; color: #888;">保留最近 <?php echo (int)Config::get('backup_retain_count', 5); ?> 份</span>
+        </div>
+
+        <?php if (empty($backups)): ?>
+        <div style="text-align: center; padding: 60px 20px; color: #999;">
+            <div style="font-size: 48px; margin-bottom: 12px;">📭</div>
+            <p>暂无备份记录</p>
+            <p style="font-size:13px; color:#aaa;">点击上方按钮创建第一个备份</p>
+        </div>
+        <?php else: ?>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;" class="table table-striped">
+                <thead>
+                    <tr>
+                        <th style="padding: 12px 16px; text-align: left; border-bottom: 2px solid #eee; font-weight: 600; color: #555; background: #fafafa;">文件名</th>
+                        <th style="padding: 12px 16px; text-align: left; border-bottom: 2px solid #eee; font-weight: 600; color: #555; background: #fafafa;">类型</th>
+                        <th style="padding: 12px 16px; text-align: left; border-bottom: 2px solid #eee; font-weight: 600; color: #555; background: #fafafa;">大小</th>
+                        <th style="padding: 12px 16px; text-align: left; border-bottom: 2px solid #eee; font-weight: 600; color: #555; background: #fafafa;">备份时间</th>
+                        <th style="padding: 12px 16px; text-align: left; border-bottom: 2px solid #eee; font-weight: 600; color: #555; background: #fafafa;">校验</th>
+                        <th style="padding: 12px 16px; text-align: left; border-bottom: 2px solid #eee; font-weight: 600; color: #555; background: #fafafa;">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($backups as $b): ?>
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 12px 16px; font-family: monospace; font-size: 13px;"><?php echo htmlspecialchars($b['name']); ?></td>
+                        <td style="padding: 12px 16px;">
+                            <?php $badgeColor = $b['type'] === 'db' ? '#e3f2fd;color:#1565c0' : ($b['type'] === 'files' ? '#e8f5e9;color:#2e7d32' : '#f3e5f5;color:#7b1fa2'); ?>
+                            <span style="display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; background: <?php echo $badgeColor; ?>"><?php echo htmlspecialchars($b['type_label']); ?></span>
+                        </td>
+                        <td style="padding: 12px 16px;"><?php echo $b['size_human']; ?></td>
+                        <td style="padding: 12px 16px;"><?php echo $b['datetime']; ?></td>
+                        <td style="padding: 12px 16px;">
+                            <?php if (file_exists($this->backupDir . $b['name'] . '.md5')): ?>
+                            <span title="MD5 校验文件存在" style="color:#28a745;">✅</span>
+                            <?php else: ?>
+                            <span title="无校验文件" style="color:#dc3545;">⚠️</span>
+                            <?php endif; ?>
+                        </td>
+                        <td style="padding: 12px 16px;">
+                            <a href="admin.php?action=backup&sub=download&file=<?php echo urlencode($b['name']); ?>" class="btn btn-sm btn-primary">下载</a>
+                            <a href="admin.php?action=backup&sub=restore&file=<?php echo urlencode($b['name']); ?>" class="btn btn-sm btn-warning" onclick="return confirm('⚠️ 恢复备份将覆盖当前所有数据！\n\n确定要恢复 <?php echo htmlspecialchars($b['name']); ?> 吗？\n\n此操作不可撤销！')">恢复</a>
+                            <a href="admin.php?action=backup&sub=delete&file=<?php echo urlencode($b['name']); ?>" class="btn btn-sm btn-danger" onclick="return confirm('确定要删除此备份吗？')">删除</a>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        <?php endif; ?>
+    </div>
+
+    <!-- 备份设置 -->
+    <div class="table-container" style="padding: 0;">
+        <div style="padding: 15px 20px; border-bottom: 1px solid #eee;">
+            <h3 style="margin: 0; font-size: 16px;">备份设置</h3>
+        </div>
+        <div style="padding: 20px;">
+            <form method="POST" action="admin.php?action=backup&sub=saveSettings">
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="display: inline-block; width: 120px; font-weight: 500;">自动备份</label>
+                    <input type="checkbox" name="auto_backup" value="1" <?php echo $backupConfig['auto_backup'] ? 'checked' : ''; ?>>
+                    <span style="font-size:12px;color:#888;">通过 cron 定时任务自动备份</span>
+                </div>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="display: inline-block; width: 120px; font-weight: 500;">备份频率</label>
+                    <select name="frequency" style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px;">
+                        <option value="daily" <?php echo $backupConfig['frequency'] === 'daily' ? 'selected' : ''; ?>>每天</option>
+                        <option value="weekly" <?php echo $backupConfig['frequency'] === 'weekly' ? 'selected' : ''; ?>>每周</option>
+                        <option value="monthly" <?php echo $backupConfig['frequency'] === 'monthly' ? 'selected' : ''; ?>>每月</option>
+                    </select>
+                    <span style="font-size:12px;color:#888;">建议：每天凌晨自动备份</span>
+                </div>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="display: inline-block; width: 120px; font-weight: 500;">保留份数</label>
+                    <input type="number" name="retain_count" value="<?php echo $backupConfig['retain_count']; ?>" min="1" max="30" style="width: 80px; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px;">
+                    <span style="font-size:12px;color:#888;">超过自动删除最旧的备份</span>
+                </div>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="display: inline-block; width: 120px; font-weight: 500;">备份内容</label>
+                    <input type="checkbox" name="include_database" value="1" <?php echo $backupConfig['backup_database'] ? 'checked' : ''; ?>> 数据库
+                    &nbsp;&nbsp;
+                    <input type="checkbox" name="include_files" value="1" <?php echo $backupConfig['backup_files'] ? 'checked' : ''; ?>> 上传文件
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <button type="submit" class="btn btn-primary">保存设置</button>
+                </div>
+            </form>
+            <div style="padding: 15px; background: #fff3cd; border-radius: 5px; font-size: 13px; color: #856404;">
+                💡 <strong>自动备份配置提示：</strong><br>
+                设置完成后，请在服务器 crontab 中添加以下定时任务：
+                <pre style="margin: 8px 0 0; padding: 12px; background: #f5f5f5; border-radius: 4px; font-family: monospace; font-size: 13px; overflow-x: auto;"># 每天凌晨3点执行自动备份（CLI模式）
+0 3 * * * php <?php echo ROOT_PATH; ?>/cron/backup.php
+
+# 或通过 Web 访问（需要设置 cron_secret_key）
+# 0 3 * * * curl -s "http://yourdomain.com/cron/backup.php?key=YOUR_SECRET_KEY"</pre>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+// 自动隐藏提示消息
+setTimeout(function() {
+    var alerts = document.querySelectorAll('.alert');
+    alerts.forEach(function(alert) {
+        alert.style.transition = 'opacity 0.5s';
+        alert.style.opacity = '0';
+        setTimeout(function() { alert.remove(); }, 500);
+    });
+}, 5000);
+</script>
+
+<?php include 'components/footer_wrapper.html'; ?>

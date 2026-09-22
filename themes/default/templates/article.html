@@ -1,0 +1,210 @@
+{assign var="page_title" value="{field name='title'}"}
+{include file="header"}
+
+<!-- JSON-LD 结构化数据 -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": "首页", "item": "{site.url}/"},
+        {"@type": "ListItem", "position": 2, "name": "{field name='category_name'}", "item": "{site.url}{url:category:category_id}"},
+        {"@type": "ListItem", "position": 3, "name": "{field name='title'}"}
+      ]
+    },
+    {
+      "@type": "Article",
+      "headline": "{field name='title'}",
+      "author": {"@type": "Person", "name": "{field name='author'}"},
+      "datePublished": "{field name='created_at'}{if isset="article.updated_at" && article.updated_at},{field name='updated_at'}{/if}",
+      "dateModified": "{if isset="article.updated_at"}{field name='updated_at'}{else}{field name='created_at'}{/if}",
+      "description": "{if isset="article.summary"}{field name='summary'|truncate:200}{else}{field name='title'}{/if}",
+      "mainEntityOfPage": "{site.url}{url:article:id}",
+      "publisher": {
+        "@type": "Organization",
+        "name": "{site.name}",
+        "url": "{site.url}"
+      }
+    },
+    {
+      "@type": "WebSite",
+      "name": "{site.name}",
+      "url": "{site.url}{if config.icp_display && config.icp_number}{config.icp_number}{/if}",
+      "description": "{site.description}"
+    }
+  ]
+}
+</script>
+
+{if theme_show_breadcrumb}{breadcrumb}{/if}
+    <main>
+        <div class="container">
+            <div class="content-area">
+                
+                {if is_desktop}
+                {include file="common/article_vertical_actions.html"}
+                {/if}
+                
+                <div class="content">
+                    <article class="single-post" id="article-page" 
+                             data-article-id="{field name='id'}"
+                             data-current-user-id="{field name='current_user_id'}"
+                             data-article-author-id="{field name='article.user_id'}"
+                             data-site-url="{site.url}"
+                             data-captcha-enabled="{config.captcha_enabled}"
+                             data-captcha-comment-enabled="{config.captcha_comment_enabled}"
+                             data-captcha-width="{config.captcha_width}"
+                             data-captcha-height="{config.captcha_height}"
+                             data-captcha-font-size="{config.captcha_font_size}"
+                             data-comment-min-length="{config.comment_min_length}"
+                             data-comment-max-length="{config.comment_max_length}"
+                             data-comment-enabled="{config.comment_enabled}">
+                        
+                        <h1 class="post-title">
+                            {top_badge}
+                            {field name="title"}
+                        </h1>
+                        <div class="single-meta">
+                            <span class="post-category"><a href="{url:category:category_id}">{field name="category_name"}</a></span>
+                            <span class="post-date">发布于 {field name="created_at" filter="relative1"}</span>
+                            <span class="post-author"><a href="/index.php?c=Auth&m=user&id={field name='user_id'}">{field name="author"}</a></span>
+                            <span class="post-views">浏览量 {field name="views" filter="cn_number"}</span>
+                            <span class="post-likes">{field name="like_count" filter="cn_number"} 点赞</span>
+                            <span class="post-favorites">{field name="favorite_count" filter="cn_number"} 收藏</span>
+                            {if config.comment_enabled}
+                            <span class="post-comments"><a href="{url:article:id}#comments">{field name="comment_count" filter="cn_number"} 评论</a></span>
+                            {endif}
+                        </div>
+
+                        <div class="post-content">
+                            {content_process field="content"}
+                        </div>
+
+                        {if is_mobile}
+                        <div class="post-actions">
+                            {if config.like_enabled}
+                            <button class="action-btn article-like-btn {if field='is_liked'}liked{/if}" data-article-id="{field name='id'}">
+                                <svg width="22" height="22" viewBox="0 0 48 48" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M4.18898 22.1733C4.08737 21.0047 5.00852 20 6.18146 20H10C11.1046 20 12 20.8954 12 22V41C12 42.1046 11.1046 43 10 43H7.83363C6.79622 43 5.93102 42.2068 5.84115 41.1733L4.18898 22.1733Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M18 21.3745C18 20.5388 18.5194 19.7908 19.2753 19.4345C20.9238 18.6574 23.7329 17.0938 25 14.9805C26.6331 12.2569 26.9411 7.33595 26.9912 6.20878C26.9982 6.05099 26.9937 5.89301 27.0154 5.73656C27.2861 3.78446 31.0543 6.06492 32.5 8.47612C33.2846 9.78471 33.3852 11.504 33.3027 12.8463C33.2144 14.2825 32.7933 15.6699 32.3802 17.0483L31.5 19.9845H42.3569C43.6832 19.9845 44.6421 21.2518 44.2816 22.5281L38.9113 41.5436C38.668 42.4051 37.8818 43 36.9866 43H20C18.8954 43 18 42.1046 18 41V21.3745Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                <span class="action-badge">{field name='like_count' filter="cn_number"}</span>
+                            </button>
+                            {endif}
+                            {if config.favorite_enabled}
+                            <button class="action-btn favorite-btn {if field='is_favorite'}favorited{/if}" data-article-id="{field name='id'}">
+                                <svg width="22" height="22" viewBox="0 0 48 48" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M23.9986 5L17.8856 17.4776L4 19.4911L14.0589 29.3251L11.6544 43L23.9986 36.4192L36.3454 43L33.9586 29.3251L44 19.4911L30.1913 17.4776L23.9986 5Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                <span class="action-badge">{field name='favorite_count' filter="cn_number"}</span>
+                            </button>
+                            {endif}
+                            <button class="action-btn comment-btn" data-article-id="{field name='id'}">
+                                <svg width="22" height="22" viewBox="0 0 48 48" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M44.0001 24C44.0001 35.0457 35.0458 44 24.0001 44C18.0266 44 4.00006 44 4.00006 44C4.00006 44 4.00006 29.0722 4.00006 24C4.00006 12.9543 12.9544 4 24.0001 4C35.0458 4 44.0001 12.9543 44.0001 24Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M14 18L32 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M14 26H32" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M14 34H24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                <span class="action-badge">{field name='comment_count'}</span>
+                            </button>
+                            <button class="action-btn share-btn" data-article-id="{field name='id'}">
+                                <svg width="22" height="22" viewBox="0 0 48 48" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M26 4L44 22L26 39V28C12 28 6 43 6 43C6 26 11 15 26 15V4Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                        {/if}
+                        
+                        <div class="post-tags">
+                            <strong>标签</strong>
+                            {loop name="tags"}
+                                <a href="{url:tag:id}" class="tag">{field name="name"}</a>
+                            {/loop}
+                        </div>
+                        
+
+                        
+                        <!-- 代码高亮（按需加载 Prism.js） -->
+                        <link rel="stylesheet" href="{site.url}/themes/default/assets/css/prism.css">
+                        <script src="{site.url}/themes/default/assets/js/prism.js" defer></script>
+                        
+                        <!-- 引入验证码样式 -->
+                        <link rel="stylesheet" href="{site.url}/themes/default/assets/css/captcha.css">
+                        
+
+                        
+                        <!-- 引入验证码脚本 -->
+                        <script src="{site.url}/themes/default/assets/js/captcha.js"></script>
+                        <!-- 引入二维码生成库 -->
+                        <script src="{site.url}/themes/default/assets/js/qrcode.min.js"></script>
+                        <!-- 引入文章交互脚本 -->
+                        <script src="{site.url}/themes/default/assets/js/article.js"></script>
+                    </article>
+
+                        <!-- 文章导航 -->
+                        <div class="article-navigation">
+                            <div class="prev-article">
+                                {if isset="previous_article"}
+                                    <a href="{url:article:{previous_article.id}}" title="{field name="previous_article.title"}">
+                                        <i class="icon icon-prev"></i> 上一篇：{field name="previous_article.title"}
+                                    </a>
+                                {else}
+                                    <span class="no-article">没有上一篇</span>
+                                {/if}
+                            </div>
+                            <div class="next-article">
+                                {if isset="next_article"}
+                                    <a href="{url:article:{next_article.id}}" title="{field name="next_article.title"}">
+                                        下一篇：{field name="next_article.title"} <i class="icon icon-next"></i>
+                                    </a>
+                                {else}
+                                    <span class="no-article">没有下一篇</span>
+                                {/if}
+                            </div>
+                        </div>
+                        
+                        <!-- 相关文章 -->
+                        <div class="related-articles">
+                            <h3>相关文章</h3>
+                            {if empty="related_articles"}
+                                <p>暂无相关文章</p>
+                            {else}
+                                <ul class="related-articles-list">
+                                    {loop name="related_articles"}
+                                        <li class="related-article-item">
+                                            <a href="{url:article:id}">{field name="title"}</a>
+                                    <div class="post-footer">
+                                        <div class="post-meta">
+                                            <span class="post-category"><a href="{url:category:category_id}">{field name="category_name"}</a></span>
+                                            <span class="post-author"><a href="/index.php?c=Auth&m=user&id={field name='user_id'}">{field name="author"}</a></span>
+                                            <span class="post-date">{field name="created_at" filter="relative1"}</span>
+                                            <span class="post-views">{field name="view_count" filter="cn_number"} 浏览</span>
+                                            <span class="post-likes">{field name="like_count" filter="cn_number"} 点赞</span>
+                                            <span class="post-favorites">{field name="favorite_count" filter="cn_number"} 收藏</span>
+                                            {if config.comment_enabled}
+                                            <span class="post-comments"><a href="{url:article:id}#comments">{field name="comment_count" filter="cn_number"} 评论</a></span>
+                                            {endif}
+                                        </div>
+                                        <div class="post-tags-list">
+                                        {loop name=":tags"}
+                                            <a href="{url:tag:id}" class="tag">{field name="name"}</a>
+                                        {/loop}
+                                    </div>
+                                    </div>
+                                        </li>
+                                    {/loop}
+                                </ul>
+                            {/if}
+                        </div>
+
+                        <!-- 评论区域 -->
+                        {include file="common/article_comments.html"}
+                </div>
+                {include file="sidebar"}
+            </div>
+        </div>
+    </main>
+{include file="footer"}

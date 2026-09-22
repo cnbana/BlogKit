@@ -1,0 +1,86 @@
+<?php $currentAction = 'article'; $pageTitle = '文章回收站'; include 'components/page_wrapper.html'; ?>
+    <!-- 表格样式已提取至 tables.css -->
+            
+            <div style="margin-bottom: 15px;">
+                <a href="admin.php?action=article&sub=list" class="btn btn-primary">返回文章列表</a>
+            </div>
+            
+            <!-- 筛选功能 -->
+            <div style="margin-bottom: 15px; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">
+                <form method="get" action="admin.php">
+                    <input type="hidden" name="action" value="article">
+                    <input type="hidden" name="method" value="recycle">
+                    
+                    <div style="margin-right: 15px; display: inline-block;">
+                        <label for="category_filter">分类</label>
+                        <select name="category" id="category_filter" style="padding: 5px; margin-right: 10px;">
+                            <option value="" <?php echo empty($filters['category']) ? 'selected' : ''; ?>>全部</option>
+                            <?php foreach ($categories as $category): ?>
+                                <option value="<?php echo $category['id']; ?>" <?php echo isset($filters['category']) && $filters['category'] == $category['id'] ? 'selected' : ''; ?>>
+                                    <?php echo $category['name']; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-right: 15px; display: inline-block;">
+                        <label for="search_filter">搜索</label>
+                        <input type="text" name="search" id="search_filter" placeholder="标题或内容" value="<?php echo isset($filters['search']) ? $filters['search'] : ''; ?>" style="padding: 5px; margin-right: 10px;">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" style="margin-right: 10px;">筛选</button>
+                    <button type="button" class="btn btn-primary" onclick="window.location.href='admin.php?action=article&method=recycle'">重置</button>
+                </form>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>标题</th>
+                            <th>分类</th>
+                            <th>作者</th>
+                            <th>删除时间</th>
+                            <th>阅读量</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($articles)): ?>
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 20px;">回收站中没有文章</td>
+                        </tr>
+                        <?php else: ?>
+                        <?php foreach ($articles as $article): ?>
+                        <tr>
+                            <td><?php echo $article['id']; ?></td>
+                            <td><?php echo $article['title']; ?></td>
+                            <td><?php echo $article['category_name']; ?></td>
+                            <td><?php echo $article['author']; ?></td>
+                            <td><?php echo $article['deleted_at_formatted']; ?></td>
+                            <td><?php echo $article['view_count']; ?></td>
+                            <td>
+                                <a href="admin.php?action=article&method=restore&id=<?php echo $article['id']; ?>" class="btn btn-success" onclick="return confirm('确定要恢复这篇文章吗？');">恢复</a>
+                                <a href="admin.php?action=article&method=permanentlyDelete&id=<?php echo $article['id']; ?>" class="btn btn-danger" onclick="return confirm('确定要永久删除这篇文章吗？此操作不可恢复。');">永久删除</a>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- 分页导航 -->
+            <?php 
+                // 引入公共分页组件
+                $action = 'article';
+                $total = $total_articles;
+                $limit = $pageSize;
+                $filters = [];
+                if (isset($_GET['category']) && !empty($_GET['category'])) $filters['category'] = $_GET['category'];
+                if (isset($_GET['search']) && !empty($_GET['search'])) $filters['search'] = $_GET['search'];
+                $filters['method'] = 'recycle'; // 保持方法
+                include ADMIN_PATH . '/templates/components/pagination.html';
+            ?> 
+<?php include 'components/footer_wrapper.html'; ?>

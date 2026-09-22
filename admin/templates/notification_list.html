@@ -1,0 +1,281 @@
+<?php $currentAction = 'notification'; $pageTitle = '通知管理'; $pageCss = 'notification.css'; include 'components/page_wrapper.html'; ?>
+
+    <!-- 通知管理内容 -->
+    <div class="content-section">
+        <div class="section-header">
+            <h3>通知列表</h3>
+            <div class="btn-group">
+                <button type="button" class="btn btn-danger" onclick="batchDelete();" disabled id="batchDeleteBtn">
+                    <i class="fa fa-trash"></i> 批量删除
+                </button>
+                <a href="admin.php?action=notification&method=stats" class="btn btn-info">
+                    <i class="fa fa-bar-chart"></i> 通知统计
+                </a>
+                <a href="admin.php?action=notification&method=recycle" class="btn btn-warning">
+                    <i class="fa fa-recycle"></i> 回收站
+                </a>
+                <a href="admin.php?action=notification&method=send" class="btn btn-primary">
+                    <i class="fa fa-plus"></i> 发送系统通知
+                </a>
+            </div>
+        </div>
+        
+        <!-- 筛选功能 -->
+        <div class="filter-section" style="margin-bottom: 20px; padding: 15px; background: #f9f9f9; border-radius: 4px;">
+            <form method="GET" action="admin.php" class="form-inline">
+                <input type="hidden" name="action" value="notification">
+                
+                <div class="form-group" style="margin-right: 15px;">
+                    <label for="type" style="margin-right: 8px;">通知类型:</label>
+                    <select name="type" id="type" class="form-control">
+                        <option value="all" <?php echo (isset($type) && $type == 'all') || !isset($type) ? 'selected' : ''; ?>>全部</option>
+                        <option value="comments" <?php echo isset($type) && $type == 'comments' ? 'selected' : ''; ?>>评论</option>
+                        <option value="system" <?php echo isset($type) && $type == 'system' ? 'selected' : ''; ?>>系统通知</option>
+                        <option value="system_update" <?php echo isset($type) && $type == 'system_update' ? 'selected' : ''; ?>>系统更新</option>
+                        <option value="follows" <?php echo isset($type) && $type == 'follows' ? 'selected' : ''; ?>>关注</option>
+                        <option value="articles" <?php echo isset($type) && $type == 'articles' ? 'selected' : ''; ?>>文章</option>
+                        <option value="article_likes" <?php echo isset($type) && $type == 'article_likes' ? 'selected' : ''; ?>>文章点赞</option>
+                        <option value="comment_likes" <?php echo isset($type) && $type == 'comment_likes' ? 'selected' : ''; ?>>评论点赞</option>
+                        <option value="favorites" <?php echo isset($type) && $type == 'favorites' ? 'selected' : ''; ?>>收藏</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" style="margin-right: 15px;">
+                    <label for="status" style="margin-right: 8px;">状态:</label>
+                    <select name="status" id="status" class="form-control">
+                        <option value="all" <?php echo (isset($status) && $status == 'all') || !isset($status) ? 'selected' : ''; ?>>全部</option>
+                        <option value="unread" <?php echo isset($status) && $status == 'unread' ? 'selected' : ''; ?>>未读</option>
+                        <option value="read" <?php echo isset($status) && $status == 'read' ? 'selected' : ''; ?>>已读</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" style="margin-right: 15px;">
+                    <label for="search" style="margin-right: 8px;">搜索:</label>
+                    <input type="text" name="search" id="search" placeholder="搜索通知标题或内容..." value="<?php echo isset($search) ? $search : ''; ?>" class="form-control" style="width: 200px;">
+                    <button type="submit" class="btn btn-primary" style="margin-left: 5px;">搜索</button>
+                    <a href="admin.php?action=notification" class="btn btn-default">重置</a>
+                </div>
+            </form>
+        </div>
+        
+        <!-- 通知列表 -->
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered">
+                <thead>
+                    <tr>
+                        <th width="30px">
+                            <input type="checkbox" id="select-all" onchange="toggleSelectAll()">
+                        </th>
+                        <th>通知标题</th>
+                        <th>类型</th>
+                        <th>用户</th>
+                        <th>状态</th>
+                        <th>创建时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (isset($notifications) && !empty($notifications)): ?>
+                        <?php foreach ($notifications as $notification): ?>
+                        <tr>
+                            <td>
+                                <input type="checkbox" class="notificationCheckbox" name="notification_ids[]" value="<?php echo $notification['id']; ?>">
+                            </td>
+                            <td><?php echo htmlspecialchars($notification['title']); ?></td>
+                            <td>
+                                <span class="label label-info"><?php echo isset($notification['type_label']) ? $notification['type_label'] : $notification['type']; ?></span>
+                            </td>
+                            <td><?php echo isset($notification['username']) ? htmlspecialchars($notification['username']) : '未知用户'; ?></td>
+                            <td>
+                                <?php if ($notification['read'] == 0): ?>
+                                    <span class="label label-warning">未读</span>
+                                <?php else: ?>
+                                    <span class="label label-success">已读</span>
+                                <?php endif; ?>
+                            </td>
+                            <td><?php echo $notification['created_at_formatted']; ?></td>
+                            <td>
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-xs btn-info" onclick="viewNotification(<?php echo $notification['id']; ?>);">
+                                        <i class="fa fa-eye"></i> 查看
+                                    </button>
+                                    <button type="button" class="btn btn-xs btn-danger" onclick="deleteNotification(<?php echo $notification['id']; ?>);">
+                                        <i class="fa fa-trash"></i> 删除
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="7" class="text-center">暂无通知数据</td>
+                        </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- 分页 -->
+        <?php 
+            $action = 'notification';
+            $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+            $total = isset($totalNotifications) ? $totalNotifications : 0;
+            $limit = 20;
+            $totalPages = ceil($total / $limit);
+            $filters = [];
+            if (isset($type) && $type != 'all') $filters['type'] = $type;
+            if (isset($status) && $status != 'all') $filters['status'] = $status;
+            if (isset($search) && !empty($search)) $filters['search'] = $search;
+            include ADMIN_PATH . '/templates/components/pagination.html';
+        ?> 
+    </div>
+    <!-- 页面专属样式已归拢至 assets/css 页面级文件（经 $pageCss 加载，2026-09 样式统一） -->
+
+    
+    <!-- 查看通知详情弹窗 -->
+    <div id="notification-modal-overlay" onclick="closeNotificationModal()">
+        <div id="notification-modal-content" onclick="event.stopPropagation()">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #e9ecef; border-radius: 10px 10px 0 0;">
+                <h4 style="margin: 0; font-size: 18px; font-weight: 600; color: #212529;">通知详情</h4>
+                <button type="button" onclick="closeNotificationModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #6c757d;">&times;</button>
+            </div>
+            <div style="padding: 20px; max-height: 400px; overflow-y: auto;">
+                <div style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; color: #333; margin-bottom: 5px; display: block;">通知ID:</label>
+                    <p id="notification-detail-id" style="margin: 0; padding: 8px 0;"></p>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; color: #333; margin-bottom: 5px; display: block;">通知标题:</label>
+                    <p id="notification-detail-title" style="margin: 0; padding: 8px 0;"></p>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; color: #333; margin-bottom: 5px; display: block;">通知类型:</label>
+                    <p id="notification-detail-type" style="margin: 0; padding: 8px 0;"></p>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; color: #333; margin-bottom: 5px; display: block;">接收用户:</label>
+                    <p id="notification-detail-user" style="margin: 0; padding: 8px 0;"></p>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; color: #333; margin-bottom: 5px; display: block;">通知内容:</label>
+                    <div id="notification-detail-content" style="white-space: pre-wrap; max-height: 300px; overflow-y: auto; padding: 8px 0;"></div>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; color: #333; margin-bottom: 5px; display: block;">状态:</label>
+                    <p id="notification-detail-status" style="margin: 0; padding: 8px 0;"></p>
+                </div>
+                <div style="margin-bottom: 0;">
+                    <label style="font-weight: 600; color: #333; margin-bottom: 5px; display: block;">创建时间:</label>
+                    <p id="notification-detail-created" style="margin: 0; padding: 8px 0;"></p>
+                </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; padding: 15px 20px; border-top: 1px solid #e9ecef; border-radius: 0 0 10px 10px;">
+                <button type="button" class="btn btn-default" onclick="closeNotificationModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 全选/取消全选
+        function toggleSelectAll() {
+            var selectAllCheckbox = document.getElementById('select-all');
+            var checkboxes = document.querySelectorAll('.notificationCheckbox');
+            checkboxes.forEach(function(checkbox) {
+                checkbox.checked = selectAllCheckbox.checked;
+            });
+            toggleBatchDeleteButton();
+        }
+        
+        // 切换批量删除按钮状态
+        function toggleBatchDeleteButton() {
+            var checkboxes = document.querySelectorAll('.notificationCheckbox:checked');
+            var batchDeleteBtn = document.getElementById('batchDeleteBtn');
+            batchDeleteBtn.disabled = checkboxes.length === 0;
+        }
+        
+        // 绑定复选框事件
+        document.querySelectorAll('.notificationCheckbox').forEach(function(checkbox) {
+            checkbox.addEventListener('change', toggleBatchDeleteButton);
+        });
+        
+        // 查看通知详情
+        function viewNotification(id) {
+            $.get('admin.php?action=notification&method=getNotification&id=' + id, function(data) {
+                if (data.success && data.notification) {
+                    var notification = data.notification;
+                    document.getElementById('notification-detail-id').textContent = notification.id;
+                    document.getElementById('notification-detail-title').textContent = notification.title;
+                    document.getElementById('notification-detail-type').textContent = notification.type_label || notification.type;
+                    document.getElementById('notification-detail-user').textContent = notification.username || '未知用户';
+                    document.getElementById('notification-detail-content').innerHTML = notification.content;
+                    document.getElementById('notification-detail-status').textContent = notification.read == 0 ? '未读' : '已读';
+                    document.getElementById('notification-detail-created').textContent = notification.created_at_formatted;
+                    showNotificationModal();
+                } else {
+                    alert('获取通知详情失败: ' + (data.message || '未知错误'));
+                }
+            }, 'json').fail(function(xhr, status, error) {
+                alert('获取通知详情失败: ' + error);
+            });
+        }
+        
+        // 显示模态框
+        function showNotificationModal() {
+            var overlay = document.getElementById('notification-modal-overlay');
+            if (overlay) {
+                overlay.classList.add('show');
+            }
+            document.body.style.overflow = 'hidden';
+        }
+        
+        // 关闭模态框
+        function closeNotificationModal() {
+            var overlay = document.getElementById('notification-modal-overlay');
+            if (overlay) overlay.classList.remove('show');
+            document.body.style.overflow = 'auto';
+        }
+        
+        // ESC键关闭模态框
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                var overlay = document.getElementById('notification-modal-overlay');
+                if (overlay && overlay.classList.contains('show')) {
+                    closeNotificationModal();
+                }
+            }
+        });
+        
+        // 删除单个通知
+        function deleteNotification(id) {
+            showConfirmDialog('确定要将这条通知移到回收站吗？', { title: '删除通知' }).then(function(result) {
+                if (result) {
+                    window.location.href = 'admin.php?action=notification&method=delete&id=' + id;
+                }
+            });
+        }
+        
+        // 批量删除通知
+        function batchDelete() {
+            var checkboxes = document.querySelectorAll('.notificationCheckbox');
+            var selectedIds = [];
+            checkboxes.forEach(function(checkbox) {
+                if (checkbox.checked) {
+                    selectedIds.push(checkbox.value);
+                }
+            });
+            
+            if (selectedIds.length === 0) {
+                showAlertDialog('请先选择要删除的通知', '提示');
+                return;
+            }
+            
+            showConfirmDialog('确定要将选中的 ' + selectedIds.length + ' 条通知移到回收站吗？', { title: '批量删除' }).then(function(result) {
+                if (result) {
+                    window.location.href = 'admin.php?action=notification&method=batchDelete&ids=' + selectedIds.join(',');
+                }
+            });
+        }
+    </script>
+</main>
+
+<?php include 'components/footer_wrapper.html'; ?>

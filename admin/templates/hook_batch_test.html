@@ -1,0 +1,57 @@
+<?php $currentAction = 'hook'; $pageTitle = '批量测试钩子'; include 'components/page_wrapper.html'; ?>
+    
+    <!-- 操作栏 -->
+    <div class="action-section">
+        <a href="admin.php?action=hook" class="btn btn-secondary">返回钩子列表</a>
+    </div>
+    
+    <?php if (!isset($testResults)): ?>
+    <!-- 批量测试表单 -->
+    <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-top: 20px;">
+        <h3>选择要测试的钩子</h3>
+        <form method="post" action="admin.php?action=hook&sub=batchTest">
+            <div class="form-group">
+                <label>钩子列表</label>
+                <select multiple class="form-control" name="hooks[]" style="height: 400px;">
+                    <?php foreach ($hooks as $hook): ?>
+                    <option value="<?php echo $hook['value']; ?>"><?php echo $hook['value']; ?> - <?php echo $hook['description']; ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <small class="form-text text-muted">按住Ctrl键可多选</small>
+            </div>
+            <button type="submit" class="btn btn-primary">开始批量测试</button>
+        </form>
+    </div>
+    <?php else: ?>
+    <!-- 批量测试结果 -->
+    <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-top: 20px;">
+        <h3>批量测试结果</h3>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>钩子名称</th>
+                        <th>是否有注册回调</th>
+                        <th>执行时间</th>
+                        <th>测试结果</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($testResults as $result): ?>
+                    <tr>
+                        <td><?php echo $result['hook']; ?></td>
+                        <td><?php echo $result['has_callbacks'] ? '<span style="color: green;">是</span>' : '<span style="color: orange;">否</span>'; ?></td>
+                        <td><?php echo $result['execution_time']; ?> ms</td>
+                        <td><?php echo $result['message']; ?></td>
+                        <td>
+                            <a href="admin.php?action=hook&sub=test&hook=<?php echo $result['hook']; ?>" class="btn btn-sm btn-success">单独测试</a>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <?php endif; ?>
+<?php include 'components/footer_wrapper.html'; ?>

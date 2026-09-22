@@ -1,0 +1,20 @@
+{assign var="page_title" value="个人中心导航栏公共文件"}
+<div class="profile-nav-wrapper">
+    <div class="profile-nav">
+    <ul>
+        <li><a href="{url:profile}?m=info" {if equal="get.m" value="info"}class="active"{endif}>个人信息</a></li>
+        <li><a href="{url:profile}?m=comments" {if equal="get.m" value="comments"}class="active"{endif}>我的评论</a></li>
+        <li><a href="{url:profile}?m=articles" {if equal="get.m" value="articles"}class="active"{endif}>我的文章</a></li>
+        <li><a href="{url:profile}?m=following" {if equal="get.m" value="following"}class="active"{endif}>我的关注</a></li>
+        <li><a href="{url:profile}?m=followers" {if equal="get.m" value="followers"}class="active"{endif}>我的粉丝</a></li>
+        <li><a href="{url:profile}?m=favorites" {if equal="get.m" value="favorites"}class="active"{endif}>我的收藏</a></li>
+        <li><a href="{url:profile}?m=likes" {if equal="get.m" value="likes"}class="active"{endif}>我的点赞</a></li>
+        <li><a href="{url:profile}?m=notifications" {if equal="get.m" value="notifications"}class="active"{endif}>通知设置</a></li>
+        <li><a href="{url:profile}?m=security" {if equal="get.m" value="security"}class="active"{endif}>安全设置</a></li>
+        <li><a href="{url:profile}?m=privacy" {if equal="get.m" value="privacy"}class="active"{endif}>隐私设置</a></li>
+        <li><a href="{url:profile}?m=messages" {if equal="get.m" value="messages"}class="active"{endif}>消息中心 {if total_notifications}<span class="unread-count">{total_notifications}</span>{/if}</a></li>
+        <li><a href="{url:profile}?m=history" {if equal="get.m" value="history"}class="active"{endif}>阅读历史</a></li>
+        <li><a href="{url:profile}?m=settings" {if equal="get.m" value="settings"}class="active"{endif}>个人设置</a></li>
+    </ul>
+    </div>
+</div>

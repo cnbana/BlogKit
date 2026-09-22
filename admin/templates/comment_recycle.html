@@ -1,0 +1,115 @@
+<?php $currentAction = 'comment'; $pageTitle = '评论回收站'; include 'components/page_wrapper.html'; ?>
+    
+    <div style="margin-bottom: 15px;">
+        <a href="admin.php?action=comment" class="btn btn-primary">返回评论列表</a>
+    </div>
+    
+    <!-- 筛选功能 -->
+    <div class="filter-section">
+        <form method="get" action="admin.php">
+            <input type="hidden" name="action" value="comment">
+            <input type="hidden" name="sub" value="recycle">
+            
+            <div style="margin-right: 15px; display: inline-block;">
+                <label for="status_filter">状态：</label>
+                <select name="status" id="status_filter" style="padding: 5px; margin-right: 10px;">
+                    <option value="" <?php echo empty($_GET['status']) ? 'selected' : ''; ?>>全部</option>
+                    <option value="1" <?php echo isset($_GET['status']) && $_GET['status'] == 1 ? 'selected' : ''; ?>>已审核</option>
+                    <option value="0" <?php echo isset($_GET['status']) && $_GET['status'] == 0 ? 'selected' : ''; ?>>待审核</option>
+                </select>
+            </div>
+            
+            <div style="margin-right: 15px; display: inline-block;">
+                <label for="search_filter">搜索</label>
+                <input type="text" name="search" id="search_filter" placeholder="评论内容" value="<?php echo isset($_GET['search']) ? $_GET['search'] : ''; ?>" style="padding: 5px; margin-right: 10px;">
+            </div>
+            
+            <button type="submit" class="btn btn-primary" id="filter-btn" style="margin-right: 10px;">筛选</button>
+            <button type="button" class="btn btn-primary" id="reset-btn">重置</button>
+        </form>
+        
+        <script>
+            // 评论回收站页面特定的JavaScript
+            // 获取筛选表单元素
+            const statusFilter = document.getElementById('status_filter');
+            const searchFilter = document.getElementById('search_filter');
+            const filterBtn = document.getElementById('filter-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            
+            // 重置按钮点击事件
+            resetBtn.addEventListener('click', function() {
+                // 跳转到指定URL重置筛选
+                window.location.href = '/admin.php?action=comment&sub=recycle';
+            });
+            
+            // 表单提交时处理空参数
+            document.querySelector('form').addEventListener('submit', function(e) {
+                if (statusFilter.value === '') {
+                    statusFilter.removeAttribute('name');
+                }
+                if (searchFilter.value.trim() === '') {
+                    searchFilter.removeAttribute('name');
+                }
+            });
+        </script>
+    </div>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>文章</th>
+                    <th>用户</th>
+                    <th>评论内容</th>
+                    <th>状态</th>
+                    <th>评论时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($comments)): ?>
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 40px; color: #999;">
+                        <div style="font-size: 16px; margin-bottom: 10px;">回收站中暂无评论数据</div>
+                        <div style="font-size: 14px; color: #ccc;">当有评论被删除时，将显示在这里</div>
+                    </td>
+                </tr>
+                <?php else: ?>
+                <?php foreach ($comments as $comment): ?>
+                <tr>
+                    <td><?php echo $comment['id']; ?></td>
+                    <td><?php echo $comment['article_title']; ?></td>
+                    <td><?php echo $comment['nickname'] ? $comment['nickname'] : $comment['username']; ?></td>
+                    <td><?php echo mb_substr($comment['content'], 0, 50) . (mb_strlen($comment['content']) > 50 ? '...' : ''); ?></td>
+                    <td><?php echo $comment['status'] == 1 ? '<span style="color: green;">已审核</span>' : '<span style="color: orange;">待审核</span>'; ?></td>
+                    <td><?php echo $comment['created_at']; ?></td>
+                    <td>
+                        <a href="admin.php?action=comment&sub=restore&id=<?php echo $comment['id']; ?>" class="btn btn-success" onclick="return confirm('确定要恢复这条评论吗？');">恢复</a>
+                        <a href="admin.php?action=comment&sub=forceDelete&id=<?php echo $comment['id']; ?>" class="btn btn-danger" onclick="return confirm('确定要彻底删除这条评论吗？此操作不可恢复。');">彻底删除</a>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- 分页导航 -->
+    <?php if (!empty($comments)): ?>
+    <?php 
+        // 引入公共分页组件
+        $action = 'comment';
+        $total = $totalCount;
+        $limit = Config::get('admin_pagination_count', 20);
+        $filters = [];
+        if (isset($_GET['status']) && !empty($_GET['status'])) $filters['status'] = $_GET['status'];
+        if (isset($_GET['article_id']) && !empty($_GET['article_id'])) $filters['article_id'] = $_GET['article_id'];
+        if (isset($_GET['search']) && !empty($_GET['search'])) $filters['search'] = $_GET['search'];
+        $filters['sub'] = 'recycle'; // 保持子操作
+        include ADMIN_PATH . '/templates/components/pagination.html';
+    ?>
+    <?php endif; ?> 
+</main>
+
+<?php include 'components/footer_wrapper.html'; ?>

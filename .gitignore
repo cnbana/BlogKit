@@ -1,0 +1,17 @@
+# 安装程序生成的站点配置（含站点数据库账号密码），禁止提交仓库
+core/config/database.php
+
+# 分发包压缩文件与本地构建产物
+*.zip
+
+# 运行时数据目录：缓存/日志/上传文件不入库（.gitkeep 仅保证解压后目录存在）
+storage/*
+!storage/.gitkeep
+uploads/*
+!uploads/.gitkeep
+
+# 系统与编辑器杂物
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

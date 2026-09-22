@@ -1,0 +1,223 @@
+{assign var="page_title" value="消息中心"}
+{include file="header"}
+
+<main class="main-content">
+    <div class="container">
+        <div class="profile-container">
+                {include file="common/profile_nav.html"}
+                
+                <div class="profile-content">
+                    
+                    <div class="profile-section">
+                        <h3 class="section-title">消息中心</h3>
+
+        <!-- 消息类型导航 -->
+        <div class="messages-nav">
+            <ul>
+                <li><a href="{url:profile}?m=messages&type=all" {if equal="get.type" value="all"}class="active"{/if}>全部 {if total_notifications}<span class="unread-count">{total_notifications}</span>{/if}</a></li>
+                <li><a href="{url:profile}?m=messages&type=comments" {if equal="get.type" value="comments"}class="active"{/if}>评论 {if total_comments}<span class="unread-count">{total_comments}</span>{/if}</a></li>
+                <li><a href="{url:profile}?m=messages&type=system" {if equal="get.type" value="system"}class="active"{/if}>系统通知 {if total_system_notifications}<span class="unread-count">{total_system_notifications}</span>{/if}</a></li>
+                <li><a href="{url:profile}?m=messages&type=follows" {if equal="get.type" value="follows"}class="active"{/if}>关注通知 {if total_follow_notifications}<span class="unread-count">{total_follow_notifications}</span>{/if}</a></li>
+                <li><a href="{url:profile}?m=messages&type=articles" {if equal="get.type" value="articles"}class="active"{/if}>文章通知 {if total_article_notifications}<span class="unread-count">{total_article_notifications}</span>{/if}</a></li>
+                <li><a href="{url:profile}?m=messages&type=article_likes" {if equal="get.type" value="article_likes"}class="active"{/if}>文章点赞通知 {if total_article_like_notifications}<span class="unread-count">{total_article_like_notifications}</span>{/if}</a></li>
+                <li><a href="{url:profile}?m=messages&type=comment_likes" {if equal="get.type" value="comment_likes"}class="active"{/if}>评论点赞通知 {if total_comment_like_notifications}<span class="unread-count">{total_comment_like_notifications}</span>{/if}</a></li>
+                <li><a href="{url:profile}?m=messages&type=favorites" {if equal="get.type" value="favorites"}class="active"{/if}>收藏通知 {if total_favorite_notifications}<span class="unread-count">{total_favorite_notifications}</span>{/if}</a></li>
+            </ul>
+        </div>
+
+        <!-- 消息筛选器 -->
+        <div class="messages-filters">
+            <div class="filter-group">
+                <label for="sort-by">排序方式:</label>
+                <form method="GET" action="{url:profile}" id="sort-form">
+                    <input type="hidden" name="m" value="messages">
+                    <input type="hidden" name="type" value="{message_type}">
+                    <input type="hidden" name="search" value="{search}">
+                    <select id="sort-by" name="sort" onchange="document.getElementById('sort-form').submit()">
+                        <option value="recent" {sort_selected_recent}>最近优先</option>
+                        <option value="oldest" {sort_selected_oldest}>最早优先</option>
+                    </select>
+                </form>
+            </div>
+            <div class="filter-group">
+                <button id="mark-all-read" class="mark-all-read-btn">标记全部已读</button>
+                <button id="clear-all-messages" class="mark-all-read-btn btn-danger-solid">清空消息</button>
+            </div>
+            <div class="search-box">
+                <form method="GET" action="{url:profile}">
+                    <input type="hidden" name="m" value="messages">
+                    <input type="hidden" name="type" value="{message_type}">
+                    <input type="text" name="search" placeholder="搜索消息..." value="{search}" class="profile-search-input">
+                    <input type="submit" value="搜索" class="search-submit-btn">
+                </form>
+            </div>
+        </div>
+        
+        <!-- 标记全部已读 / 清空消息 / 删除单条通知脚本 -->
+        <script>
+            $(document).ready(function() {
+                // 更新导航栏通知角标（隐藏角标）
+                function hideNotificationBadges() {
+                    const badge = document.querySelector('.notification-badge');
+                    if (badge) badge.style.display = 'none';
+                    const dropdownCount = document.querySelector('.dropdown-notification-count');
+                    if (dropdownCount) dropdownCount.style.display = 'none';
+                    $('#unread-count').hide();
+                    $('a[href*="messages"] .unread-count').hide();
+                }
+
+                // 标记全部已读
+                $('#mark-all-read').click(function() {
+                    if (confirm('确定要标记所有通知为已读吗？')) {
+                        $.ajax({
+                            url: '{url:profile}?m=messages',
+                            type: 'POST',
+                            data: {
+                                action: 'mark_all_as_read'
+                            },
+                            dataType: 'json',
+                            success: function(response) {
+                                if (response.status === 'success') {
+                                    // 更新页面上的通知状态
+                                    $('.messages-list li').each(function() {
+                                        $(this).removeClass('unread').css('background-color', 'white');
+                                        $(this).find('.unread-count').hide();
+                                        $(this).find('.message-status').removeClass('unread').addClass('read').text('已读').css('color', '#007AFF');
+                                    });
+                                    
+                                    // 更新导航栏上的未读通知角标
+                                    hideNotificationBadges();
+                                }
+                            }
+                        });
+                    }
+                });
+
+                // 清空所有消息
+                $('#clear-all-messages').click(function() {
+                    if (confirm('确定要清空所有消息吗？消息将移至回收站，可在后台管理中恢复。')) {
+                        $.ajax({
+                            url: '{url:profile}?m=messages',
+                            type: 'POST',
+                            data: {
+                                action: 'clear_all_messages'
+                            },
+                            dataType: 'json',
+                            success: function(response) {
+                                if (response.status === 'success') {
+                                    // 清空列表并显示空状态
+                                    $('.messages-list').empty();
+                                    $('.pagination-wrapper').hide();
+                                    $('.empty-state').show();
+                                    
+                                    // 更新导航栏角标
+                                    hideNotificationBadges();
+                                }
+                            }
+                        });
+                    }
+                });
+
+                // 删除单条通知
+                $(document).on('click', '.delete-notification', function() {
+                    const btn = $(this);
+                    const notificationId = btn.data('notification-id');
+                    if (confirm('确定要删除这条消息吗？')) {
+                        $.ajax({
+                            url: '{url:profile}?m=messages',
+                            type: 'POST',
+                            data: {
+                                action: 'delete_notification',
+                                notification_id: notificationId
+                            },
+                            dataType: 'json',
+                            success: function(response) {
+                                if (response.status === 'success') {
+                                    // 移除该条通知
+                                    btn.closest('li.message-item').fadeOut(300, function() {
+                                        $(this).remove();
+                                        // 如果列表为空，显示空状态
+                                        if ($('.messages-list li').length === 0) {
+                                            $('.empty-state').show();
+                                            $('.pagination-wrapper').hide();
+                                        }
+                                    });
+                                    
+                                    // 重新获取未读数量并更新角标
+                                    fetch('{site.url}/api.php/v1/notifications/unread')
+                                        .then(r => r.json())
+                                        .then(data => {
+                                            if (data.code === 200 && data.data) {
+                                                const count = parseInt(data.data.unread_count) || 0;
+                                                const badge = document.querySelector('.notification-badge');
+                                                const dropdownCount = document.querySelector('.dropdown-notification-count');
+                                                if (count > 0) {
+                                                    if (badge) { badge.textContent = count > 99 ? '99+' : count; badge.style.display = 'flex'; }
+                                                    if (dropdownCount) { dropdownCount.textContent = count > 99 ? '99+' : count; dropdownCount.style.display = 'inline-block'; }
+                                                } else {
+                                                    if (badge) badge.style.display = 'none';
+                                                    if (dropdownCount) dropdownCount.style.display = 'none';
+                                                }
+                                            }
+                                        });
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+        </script>
+
+        <!-- 通知消息列表 -->
+        {if notifications}
+            <ul class="messages-list">
+                {loop name="notifications"}
+                <li class="message-item {field name="item_class"}">
+                    <div class="message-content">
+                        <div class="message-details">
+                            <div class="message-title">
+                                {field name="title"}
+                            </div>
+                            <div class="message-text">
+                                {field name="content" filter="markdown_parse" escape="false"}
+                            </div>
+                            <div class="message-meta">
+                                <span>{field name="created_at_formatted"}</span>
+                                <span class="message-status {field name="status_class"}">{field name="status_text"}</span>
+                                {field name="link_html" escape="false"}
+                                {if field="show_mark_read"}
+                                <form method="POST" action="{url:profile}?m=messages" class="inline-form">
+                                    <input type="hidden" name="action" value="mark_notification_read">
+                                    <input type="hidden" name="notification_id" value="{field name="id"}">
+                                    <button type="submit" class="message-action">标记已读</button>
+                                </form>
+                                {endif}
+                                <button type="button" class="message-action delete-notification message-action-danger" data-notification-id="{field name="id"}">删除</button>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+                {/loop}
+            </ul>
+            
+            <!-- 分页导航 -->
+            <div class="pagination-wrapper">
+                <div class="pagination-info">{pagination:info}</div>
+                <div class="pagination-links">{pagination}</div>
+            </div>
+        {else}
+            <div class="empty-state">
+                <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="60" cy="60" r="50" stroke="currentColor" stroke-width="2"/>
+                    <path d="M40 50 L50 60 L80 30" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <p>{if search}没有找到相关通知{else}暂无通知消息{/if}</p>
+            </div>
+        {/if}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+{include file="footer"}

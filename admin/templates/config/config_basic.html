@@ -1,0 +1,281 @@
+        <?php if ($sub == 'basic'): ?>
+            <!-- 基本设置内容 -->
+            <div class="form-container">
+                <form method="post" action="admin.php?action=<?php echo $currentAction; ?>&method=save" enctype="multipart/form-data">
+                    <input type="hidden" name="sub_page" value="<?php echo $sub; ?>">
+                    <!-- 站点基本信息 -->
+                    <div class="form-section">
+                        <h4>站点基本信息</h4>
+                        <div class="form-group">
+                            <label for="site_name">站点名称</label>
+                            <input type="text" id="site_name" name="site_name" value="<?php echo $config['site_name']; ?>" placeholder="请输入站点名称">
+                        </div>
+                        <div class="form-group">
+                            <label for="site_description">站点描述</label>
+                            <textarea id="site_description" name="site_description" rows="3" placeholder="请输入站点描述"><?php echo $config['site_description']; ?></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="site_keywords">站点关键词</label>
+                            <input type="text" id="site_keywords" name="site_keywords" value="<?php echo isset($config['site_keywords']) ? $config['site_keywords'] : ''; ?>" placeholder="请输入站点关键词，可用英文逗号、中文逗号或空格分隔">
+                        </div>
+                        <div class="form-group">
+                            <label for="site_url">站点URL</label>
+                            <input type="url" id="site_url" name="site_url" value="<?php echo $config['site_url']; ?>" placeholder="请输入站点URL">
+                        </div>
+                        <div class="form-group">
+                            <label for="site_logo">站点LOGO</label>
+                            <input type="file" id="site_logo" name="site_logo" accept="image/*">
+                            <?php if (isset($config['site_logo']) && !empty($config['site_logo'])): ?>
+                                <div style="margin-top: 10px;">
+                                    <img src="<?php echo $config['site_logo']; ?>" alt="当前LOGO" style="max-width: 200px; max-height: 100px;">
+                                    <p style="margin-top: 5px; font-size: 12px; color: #666;">当前LOGO: <?php echo basename($config['site_logo']); ?></p>
+                                    <button type="button" class="btn btn-danger" style="margin-top: 10px;" onclick="clearLogo()">清除LOGO</button>
+                                    <input type="hidden" id="clear_logo" name="clear_logo" value="0">
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                        <script>
+                            function clearLogo() {
+                                if (confirm('确定要清除当前LOGO吗？')) {
+                                    document.getElementById('clear_logo').value = '1';
+                                    document.getElementById('site_logo').value = '';
+                                    document.querySelector('form').submit();
+                                }
+                            }
+                        </script>
+                        <div class="form-group">
+                            <label for="logo_display_mode">LOGO显示方式</label>
+                            <select id="logo_display_mode" name="logo_display_mode">
+                                <option value="auto" <?php echo (isset($config['logo_display_mode']) && $config['logo_display_mode'] == 'auto') ? 'selected' : ''; ?>>自动（有图片显示图片，无图片显示文字）</option>
+                                <option value="image" <?php echo (isset($config['logo_display_mode']) && $config['logo_display_mode'] == 'image') ? 'selected' : ''; ?>>仅显示图片LOGO</option>
+                                <option value="text" <?php echo (isset($config['logo_display_mode']) && $config['logo_display_mode'] == 'text') ? 'selected' : ''; ?>>仅显示文字LOGO</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="pagination_count">全站默认分页数量</label>
+                            <input type="number" id="pagination_count" name="pagination_count" value="<?php echo $config['pagination_count']; ?>" placeholder="请输入每页显示数量">
+                        </div>
+                        <div class="form-group">
+                            <label for="pagination_article_comments_count">文章页面评论分页数量</label>
+                            <input type="number" id="pagination_article_comments_count" name="pagination_article_comments_count" value="<?php echo $config['pagination_article_comments_count']; ?>" placeholder="请输入文章页面评论每页显示数量">
+                        </div>
+                        <div class="form-group">
+                            <label for="pagination_search_count">搜索结果页面分页数量</label>
+                            <input type="number" id="pagination_search_count" name="pagination_search_count" value="<?php echo $config['pagination_search_count']; ?>" placeholder="请输入搜索结果页面每页显示数量">
+                        </div>
+                    </div>
+                    
+                    <!-- 时区与版权设置 -->
+                    <div class="form-section">
+                        <h4>时区与版权设置</h4>
+                        <div class="form-group">
+                            <label for="site_timezone">站点时区</label>
+                            <select id="site_timezone" name="site_timezone">
+                                <?php
+                                $timezones = DateTimeZone::listIdentifiers();
+                                foreach ($timezones as $tz) {
+                                    $selected = (isset($config['site_timezone']) && $config['site_timezone'] == $tz) ? 'selected' : '';
+                                    echo '<option value="' . $tz . '" ' . $selected . '>' . $tz . '</option>';
+                                }
+                                ?>
+                            </select>
+                            <p class="help-text">设置站点默认时区，影响时间显示和定时任务执行。</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="copyright_start_year">版权起始年份</label>
+                            <input type="text" id="copyright_start_year" name="copyright_start_year" value="<?php echo isset($config['copyright_start_year']) ? $config['copyright_start_year'] : ''; ?>" placeholder="如：2024">
+                            <p class="help-text">网站成立的年份，页脚将显示为"2024-2026"。留空则只显示当前年份。</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="copyright_owner">版权所有者</label>
+                            <input type="text" id="copyright_owner" name="copyright_owner" value="<?php echo isset($config['copyright_owner']) ? $config['copyright_owner'] : ''; ?>" placeholder="留空则使用站点名称">
+                            <p class="help-text">版权信息中显示的所有者名称，留空默认使用站点名称。</p>
+                        </div>
+                    </div>
+                    
+                    <!-- ICP备案设置 -->
+                    <div class="form-section">
+                        <h4>ICP备案设置</h4>
+                        <div class="form-group">
+                            <label for="icp_display">显示ICP备案号</label>
+                            <select id="icp_display" name="icp_display">
+                                <option value="1" <?php echo (isset($config['icp_display']) && $config['icp_display'] == '1') ? 'selected' : ''; ?>>显示</option>
+                                <option value="0" <?php echo (!isset($config['icp_display']) || $config['icp_display'] == '0') ? 'selected' : ''; ?>>隐藏</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="icp_number">ICP备案号</label>
+                            <input type="text" id="icp_number" name="icp_number" value="<?php echo isset($config['icp_number']) ? $config['icp_number'] : ''; ?>" placeholder="如：京ICP备XXXXXXXX号">
+                        </div>
+                        <div class="form-group">
+                            <label for="icp_link">ICP备案链接</label>
+                            <input type="text" id="icp_link" name="icp_link" value="<?php echo isset($config['icp_link']) ? $config['icp_link'] : ''; ?>" placeholder="留空默认链接到工信部">
+                            <p class="help-text">ICP备案号的跳转链接，留空默认使用 https://beian.miit.gov.cn/。</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 公安备案设置 -->
+                    <div class="form-section">
+                        <h4>公安备案设置</h4>
+                        <div class="form-group">
+                            <label for="gongan_display">显示公安备案号</label>
+                            <select id="gongan_display" name="gongan_display">
+                                <option value="1" <?php echo (isset($config['gongan_display']) && $config['gongan_display'] == '1') ? 'selected' : ''; ?>>显示</option>
+                                <option value="0" <?php echo (!isset($config['gongan_display']) || $config['gongan_display'] == '0') ? 'selected' : ''; ?>>隐藏</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="gongan_number">公安备案号</label>
+                            <input type="text" id="gongan_number" name="gongan_number" value="<?php echo isset($config['gongan_number']) ? $config['gongan_number'] : ''; ?>" placeholder="如：京公网安备 XXXXXXXXXXXX号">
+                        </div>
+                        <div class="form-group">
+                            <label for="gongan_link">公安备案链接</label>
+                            <input type="text" id="gongan_link" name="gongan_link" value="<?php echo isset($config['gongan_link']) ? $config['gongan_link'] : ''; ?>" placeholder="留空默认链接到公安部">
+                            <p class="help-text">公安备案号的跳转链接，留空默认使用 https://www.beian.gov.cn/。</p>
+                        </div>
+                    </div>
+
+                    <!-- 站点状态与维护模式设置 -->
+                    <div class="form-section">
+                        <h4>站点状态与维护模式</h4>
+                        <p class="help-text" style="margin-bottom:15px;">
+                            此区域控制站点对访客的可见性。修改后立即生效，管理员始终可以访问后台。
+                        </p>
+
+                        <div class="form-group">
+                            <label for="maintenance_mode">维护模式</label>
+                            <select id="maintenance_mode" name="maintenance_mode">
+                                <option value="0" <?php echo (isset($config['maintenance_mode']) && $config['maintenance_mode'] == '0') ? 'selected' : ''; ?>>关闭（正常访问）</option>
+                                <option value="1" <?php echo (isset($config['maintenance_mode']) && $config['maintenance_mode'] == '1') ? 'selected' : ''; ?>>开启（仅管理员可访问）</option>
+                            </select>
+                            <p class="help-text">开启后，普通访客将看到维护提示页面，常用于系统升级或数据迁移。</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="maintenance_message">维护模式提示语</label>
+                            <textarea id="maintenance_message" name="maintenance_message" rows="2" placeholder="请输入维护模式下对访客显示的提示信息"><?php echo isset($config['maintenance_message']) ? htmlspecialchars($config['maintenance_message']) : '网站正在维护中，请稍后再来。'; ?></textarea>
+                            <p class="help-text">维护模式开启时显示给访客的提示文字，最多500个字符。</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="site_status">站点运行状态</label>
+                            <select id="site_status" name="site_status">
+                                <option value="open" <?php echo (!isset($config['site_status']) || $config['site_status'] == 'open') ? 'selected' : ''; ?>>开放（所有人可访问）</option>
+                                <option value="closed" <?php echo (isset($config['site_status']) && $config['site_status'] == 'closed') ? 'selected' : ''; ?>>关闭站点（仅管理员可访问）</option>
+                                <option value="private" <?php echo (isset($config['site_status']) && $config['site_status'] == 'private') ? 'selected' : ''; ?>>私密（仅登录用户可访问）</option>
+                            </select>
+                            <p class="help-text">
+                                <strong>开放</strong>：所有人都可以正常访问站点。<br>
+                                <strong>关闭站点</strong>：非管理员将看到"站点暂停服务"的提示页面。<br>
+                                <strong>私密</strong>：未登录用户将被重定向至登录页。
+                            </p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="site_closed_message">站点关闭提示语</label>
+                            <textarea id="site_closed_message" name="site_closed_message" rows="2" placeholder="请输入站点关闭状态下对访客显示的提示信息"><?php echo isset($config['site_closed_message']) ? htmlspecialchars($config['site_closed_message']) : '网站暂时关闭，请稍后再来。'; ?></textarea>
+                            <p class="help-text">站点状态为"关闭"时显示给访客的提示文字，最多500个字符。</p>
+                        </div>
+                    </div>
+
+                    <!-- Favicon 设置 -->
+                    <div class="form-section">
+                        <h4>站点 Favicon</h4>
+                        <p class="help-text" style="margin-bottom:15px;">
+                            站点 Favicon 会显示在浏览器标签页、书签、移动端主屏。建议使用 32x32 或 64x64 像素的 PNG/ICO 图片。
+                        </p>
+
+                        <?php if (!empty($config['site_favicon'])): ?>
+                            <div class="form-group">
+                                <label>当前 Favicon 预览</label>
+                                <div style="padding:10px;background:#f5f5f5;display:inline-block;border-radius:4px;">
+                                    <img src="<?php echo htmlspecialchars($config['site_favicon']); ?>" alt="当前 Favicon" style="width:32px;height:32px;vertical-align:middle;">
+                                    <span style="margin-left:10px;color:#666;"><?php echo htmlspecialchars($config['site_favicon']); ?></span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" name="clear_favicon" value="1">
+                                    清除当前 Favicon（使用浏览器默认图标）
+                                </label>
+                            </div>
+                        <?php endif; ?>
+
+                        <div class="form-group">
+                            <label for="site_favicon">上传新 Favicon</label>
+                            <input type="file" id="site_favicon" name="site_favicon" accept="image/x-icon,image/png,image/jpeg,image/gif,image/svg+xml,image/webp">
+                            <p class="help-text">支持 ico/png/jpg/gif/svg/webp 格式，大小不超过 1MB。</p>
+                        </div>
+                    </div>
+
+                    <!-- RSS 订阅设置 -->
+                    <div class="form-section">
+                        <h4>RSS 订阅</h4>
+                        <p class="help-text" style="margin-bottom:15px;">
+                            RSS（Really Simple Syndication）让用户可以通过 RSS 阅读器订阅您的站点文章更新。
+                        </p>
+
+                        <div class="form-group">
+                            <label for="rss_enabled">启用 RSS 订阅</label>
+                            <select id="rss_enabled" name="rss_enabled">
+                                <option value="0" <?php echo (!isset($config['rss_enabled']) || $config['rss_enabled'] == '0') ? 'selected' : ''; ?>>关闭</option>
+                                <option value="1" <?php echo (isset($config['rss_enabled']) && $config['rss_enabled'] == '1') ? 'selected' : ''; ?>>开启</option>
+                            </select>
+                            <p class="help-text">开启后，访客可以通过站点 /rss 路径订阅您的文章更新。</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="rss_item_count">RSS 文章数量</label>
+                            <input type="number" id="rss_item_count" name="rss_item_count" value="<?php echo isset($config['rss_item_count']) ? (int)$config['rss_item_count'] : 20; ?>" min="1" max="200">
+                            <p class="help-text">每次 RSS 请求返回的最新文章数量，建议 10-50 篇。</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="rss_feed_type">文章展示方式</label>
+                            <select id="rss_feed_type" name="rss_feed_type">
+                                <option value="excerpt" <?php echo (!isset($config['rss_feed_type']) || $config['rss_feed_type'] == 'excerpt') ? 'selected' : ''; ?>>摘要（推荐）</option>
+                                <option value="full" <?php echo (isset($config['rss_feed_type']) && $config['rss_feed_type'] == 'full') ? 'selected' : ''; ?>>全文</option>
+                            </select>
+                            <p class="help-text">摘要模式只展示文章开头部分，可引导用户访问站点；全文模式将完整文章内容输出到 RSS 中。</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="rss_cache_duration">缓存时长（秒）</label>
+                            <input type="number" id="rss_cache_duration" name="rss_cache_duration" value="<?php echo isset($config['rss_cache_duration']) ? (int)$config['rss_cache_duration'] : 3600; ?>" min="0" max="86400">
+                            <p class="help-text">RSS 内容缓存时间，设为 0 表示不缓存，建议 3600（1 小时）。</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="rss_language">RSS 语言标识</label>
+                            <input type="text" id="rss_language" name="rss_language" value="<?php echo isset($config['rss_language']) ? htmlspecialchars($config['rss_language']) : 'zh-cn'; ?>" placeholder="zh-cn">
+                            <p class="help-text">RSS feed 的语言标识，例如 zh-cn、en-us。</p>
+                        </div>
+                    </div>
+
+                    <!-- 隐私政策与服务条款 -->
+                    <div class="form-section">
+                        <h4>隐私政策与服务条款</h4>
+                        <p class="help-text" style="margin-bottom:15px;">
+                            在注册页、页脚等位置展示的链接。如果您的站点有独立的页面，请填写对应的 URL。
+                        </p>
+
+                        <div class="form-group">
+                            <label for="privacy_policy_url">隐私政策链接</label>
+                            <input type="url" id="privacy_policy_url" name="privacy_policy_url" value="<?php echo isset($config['privacy_policy_url']) ? htmlspecialchars($config['privacy_policy_url']) : ''; ?>" placeholder="https://example.com/privacy">
+                            <p class="help-text">完整的隐私政策页面 URL。</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="terms_of_service_url">服务条款链接</label>
+                            <input type="url" id="terms_of_service_url" name="terms_of_service_url" value="<?php echo isset($config['terms_of_service_url']) ? htmlspecialchars($config['terms_of_service_url']) : ''; ?>" placeholder="https://example.com/terms">
+                            <p class="help-text">完整的服务条款页面 URL。</p>
+                        </div>
+                    </div>
+
+                    <!-- 提交按钮 -->
+                    <div class="buttons">
+                        <button type="submit" class="btn btn-primary">保存设置</button>
+                    </div>
+                </form>
+            </div>
+        <?php endif; ?>

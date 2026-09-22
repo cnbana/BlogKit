@@ -1,0 +1,241 @@
+<div id="debug-panel" style="position: fixed; bottom: 0; left: 0; right: 0; background-color: #2c3e50; color: #ecf0f1; font-family: 'Courier New', monospace; font-size: 12px; z-index: 9999; border-top: 2px solid #3498db; box-shadow: 0 -2px 10px rgba(0,0,0,0.3);">
+    <div class="debug-panel-header" style="padding: 5px 10px; background-color: #34495e; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-weight: bold; color: #3498db;">调试面板</span>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <span style="color: #e74c3c;">执行时间: <?php echo $executionTime; ?>ms</span>
+            <span style="color: #2ecc71;">内存使用: <?php echo $memoryUsage; ?>MB / <?php echo $peakMemoryUsage; ?>MB</span>
+            <span style="color: #f39c12;">SQL查询: <?php echo $totalQueries; ?> (<?php echo $totalQueryTime; ?>ms)</span>
+            <button id="debug-toggle" style="background-color: #3498db; color: white; border: none; padding: 3px 8px; border-radius: 3px; cursor: pointer; font-size: 11px;">收起</button>
+        </div>
+    </div>
+    
+    <div class="debug-panel-content" style="max-height: 300px; overflow-y: auto; display: block;">
+        <div class="debug-tabs" style="display: flex; background-color: #34495e; border-bottom: 1px solid #2c3e50;">
+            <button class="debug-tab active" data-tab="overview" style="background-color: transparent; color: #ecf0f1; border: none; padding: 5px 10px; cursor: pointer; font-size: 11px; border-right: 1px solid #2c3e50;">概览</button>
+            <button class="debug-tab" data-tab="queries" style="background-color: transparent; color: #ecf0f1; border: none; padding: 5px 10px; cursor: pointer; font-size: 11px; border-right: 1px solid #2c3e50;">SQL查询</button>
+            <button class="debug-tab" data-tab="request" style="background-color: transparent; color: #ecf0f1; border: none; padding: 5px 10px; cursor: pointer; font-size: 11px; border-right: 1px solid #2c3e50;">请求</button>
+            <button class="debug-tab" data-tab="server" style="background-color: transparent; color: #ecf0f1; border: none; padding: 5px 10px; cursor: pointer; font-size: 11px; border-right: 1px solid #2c3e50;">服务器</button>
+            <button class="debug-tab" data-tab="errors" style="background-color: transparent; color: #ecf0f1; border: none; padding: 5px 10px; cursor: pointer; font-size: 11px; border-right: 1px solid #2c3e50;">
+                错误
+                <?php if (count($this->data['errors']) > 0): ?>
+                    <span style="background-color: #e74c3c; color: white; padding: 1px 4px; border-radius: 10px; font-size: 9px;"><?php echo count($this->data['errors']); ?></span>
+                <?php endif; ?>
+            </button>
+            <button class="debug-tab" data-tab="exceptions" style="background-color: transparent; color: #ecf0f1; border: none; padding: 5px 10px; cursor: pointer; font-size: 11px; border-right: 1px solid #2c3e50;">
+                异常
+                <?php if (count($this->data['exceptions']) > 0): ?>
+                    <span style="background-color: #e74c3c; color: white; padding: 1px 4px; border-radius: 10px; font-size: 9px;"><?php echo count($this->data['exceptions']); ?></span>
+                <?php endif; ?>
+            </button>
+        </div>
+        
+        <div class="debug-tab-content" id="debug-tab-overview" style="padding: 10px; display: block;">
+            <h4 style="margin: 0 0 10px 0; color: #3498db; font-size: 13px;">系统概览</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                <div style="background-color: #34495e; padding: 5px; border-radius: 3px;">
+                    <strong style="color: #3498db;">PHP版本:</strong> <?php echo PHP_VERSION; ?>
+                </div>
+                <div style="background-color: #34495e; padding: 5px; border-radius: 3px;">
+                    <strong style="color: #3498db;">操作系统:</strong> <?php echo PHP_OS; ?>
+                </div>
+                <div style="background-color: #34495e; padding: 5px; border-radius: 3px;">
+                    <strong style="color: #3498db;">服务器软件:</strong> <?php echo $_SERVER['SERVER_SOFTWARE'] ?? '未知'; ?>
+                </div>
+                <div style="background-color: #34495e; padding: 5px; border-radius: 3px;">
+                    <strong style="color: #3498db;">请求方法:</strong> <?php echo $this->data['request']['method']; ?>
+                </div>
+                <div style="background-color: #34495e; padding: 5px; border-radius: 3px;">
+                    <strong style="color: #3498db;">请求URL:</strong> <?php echo $this->data['request']['url']; ?>
+                </div>
+                <div style="background-color: #34495e; padding: 5px; border-radius: 3px;">
+                    <strong style="color: #3498db;">客户端IP:</strong> <?php echo $this->data['request']['ip']; ?>
+                </div>
+            </div>
+        </div>
+        
+        <div class="debug-tab-content" id="debug-tab-queries" style="padding: 10px; display: none;">
+            <h4 style="margin: 0 0 10px 0; color: #3498db; font-size: 13px;">SQL查询日志</h4>
+            <div style="background-color: #1a1a1a; padding: 10px; border-radius: 3px; max-height: 250px; overflow-y: auto;">
+                <?php if (empty($queryLog)): ?>
+                    <p style="color: #95a5a6; text-align: center;">暂无SQL查询记录</p>
+                <?php else: ?>
+                    <?php $i = 1; foreach ($queryLog as $query): ?>
+                        <div style="margin-bottom: 10px; padding: 5px; border-left: 3px solid #3498db; background-color: #2c2c2c;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                <span style="font-weight: bold; color: #3498db;">查询 #<?php echo $i++; ?></span>
+                                <span style="color: #2ecc71;"><?php echo $query['execution_time']; ?>ms</span>
+                            </div>
+                            <div style="color: #ecf0f1; margin-bottom: 5px; word-break: break-all;">
+                                <?php echo htmlspecialchars($query['sql']); ?>
+                            </div>
+                            <?php if (!empty($query['params'])): ?>
+                                <div style="color: #f39c12; font-size: 11px;">
+                                    参数: <?php echo htmlspecialchars(json_encode($query['params'], JSON_UNESCAPED_UNICODE)); ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+        
+        <div class="debug-tab-content" id="debug-tab-request" style="padding: 10px; display: none;">
+            <h4 style="margin: 0 0 10px 0; color: #3498db; font-size: 13px;">请求信息</h4>
+            
+            <?php if (!empty($this->data['request']['get'])): ?>
+                <div style="margin-bottom: 10px;">
+                    <strong style="color: #3498db;">GET参数:</strong>
+                    <pre style="background-color: #34495e; padding: 5px; border-radius: 3px; margin: 5px 0; color: #ecf0f1; overflow-x: auto;"><?php echo htmlspecialchars(print_r($this->data['request']['get'], true)); ?></pre>
+                </div>
+            <?php endif; ?>
+            
+            <?php if (!empty($this->data['request']['post'])): ?>
+                <div style="margin-bottom: 10px;">
+                    <strong style="color: #3498db;">POST参数:</strong>
+                    <pre style="background-color: #34495e; padding: 5px; border-radius: 3px; margin: 5px 0; color: #ecf0f1; overflow-x: auto;"><?php echo htmlspecialchars(print_r($this->data['request']['post'], true)); ?></pre>
+                </div>
+            <?php endif; ?>
+            
+            <?php if (!empty($this->data['request']['cookies'])): ?>
+                <div style="margin-bottom: 10px;">
+                    <strong style="color: #3498db;">Cookies:</strong>
+                    <pre style="background-color: #34495e; padding: 5px; border-radius: 3px; margin: 5px 0; color: #ecf0f1; overflow-x: auto;"><?php echo htmlspecialchars(print_r($this->data['request']['cookies'], true)); ?></pre>
+                </div>
+            <?php endif; ?>
+        </div>
+        
+        <div class="debug-tab-content" id="debug-tab-server" style="padding: 10px; display: none;">
+            <h4 style="margin: 0 0 10px 0; color: #3498db; font-size: 13px;">服务器和会话信息</h4>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <strong style="color: #3498db;">服务器信息:</strong>
+                    <pre style="background-color: #34495e; padding: 5px; border-radius: 3px; margin: 5px 0; color: #ecf0f1; overflow-x: auto; max-height: 200px;"><?php echo htmlspecialchars(print_r(array_intersect_key($_SERVER, array_flip(['SERVER_NAME', 'SERVER_ADDR', 'SERVER_PORT', 'REMOTE_ADDR', 'REMOTE_PORT', 'HTTP_HOST', 'HTTP_USER_AGENT', 'HTTP_ACCEPT', 'HTTP_ACCEPT_ENCODING', 'HTTP_ACCEPT_LANGUAGE', 'REQUEST_URI', 'QUERY_STRING'])))); ?></pre>
+                </div>
+                
+                <div>
+                    <strong style="color: #3498db;">会话信息:</strong>
+                    <pre style="background-color: #34495e; padding: 5px; border-radius: 3px; margin: 5px 0; color: #ecf0f1; overflow-x: auto; max-height: 200px;"><?php echo htmlspecialchars(print_r($this->data['session'], true)); ?></pre>
+                </div>
+            </div>
+        </div>
+        
+        <div class="debug-tab-content" id="debug-tab-errors" style="padding: 10px; display: none;">
+            <h4 style="margin: 0 0 10px 0; color: #3498db; font-size: 13px;">错误信息</h4>
+            
+            <?php if (empty($this->data['errors'])): ?>
+                <p style="color: #95a5a6; text-align: center;">暂无错误记录</p>
+            <?php else: ?>
+                <div style="max-height: 250px; overflow-y: auto;">
+                    <?php foreach ($this->data['errors'] as $error): ?>
+                        <div style="margin-bottom: 10px; padding: 5px; border-left: 3px solid #e74c3c; background-color: #34495e;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                <span style="font-weight: bold; color: #e74c3c;"><?php echo $error['level']; ?></span>
+                                <span style="color: #95a5a6; font-size: 11px;"><?php echo date('H:i:s', $error['timestamp']); ?></span>
+                            </div>
+                            <div style="color: #ecf0f1; margin-bottom: 5px;">
+                                <?php echo htmlspecialchars($error['message']); ?>
+                            </div>
+                            <div style="color: #f39c12; font-size: 11px;">
+                                <?php echo isset($error['file']) ? str_replace(ROOT_PATH, '[ROOT]', $error['file']) : ''; ?>:<?php echo $error['line']; ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+        
+        <div class="debug-tab-content" id="debug-tab-exceptions" style="padding: 10px; display: none;">
+            <h4 style="margin: 0 0 10px 0; color: #3498db; font-size: 13px;">异常信息</h4>
+            
+            <?php if (empty($this->data['exceptions'])): ?>
+                <p style="color: #95a5a6; text-align: center;">暂无异常记录</p>
+            <?php else: ?>
+                <div style="max-height: 250px; overflow-y: auto;">
+                    <?php foreach ($this->data['exceptions'] as $exception): ?>
+                        <div style="margin-bottom: 10px; padding: 5px; border-left: 3px solid #e74c3c; background-color: #34495e;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                <span style="font-weight: bold; color: #e74c3c;"><?php echo $exception['type']; ?></span>
+                                <span style="color: #95a5a6; font-size: 11px;"><?php echo date('H:i:s', $exception['timestamp']); ?></span>
+                            </div>
+                            <div style="color: #ecf0f1; margin-bottom: 5px;">
+                                <?php echo htmlspecialchars($exception['message']); ?>
+                            </div>
+                            <div style="color: #f39c12; font-size: 11px; margin-bottom: 5px;">
+                                <?php echo isset($exception['file']) ? str_replace(ROOT_PATH, '[ROOT]', $exception['file']) : ''; ?>:<?php echo $exception['line']; ?>
+                            </div>
+                            <div style="color: #95a5a6; font-size: 11px;">
+                                <pre style="margin: 0; white-space: pre-wrap; word-wrap: break-word;"><?php echo htmlspecialchars(print_r($exception['trace'], true)); ?></pre>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 调试面板切换功能
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggleBtn = document.getElementById('debug-toggle');
+        const content = document.querySelector('.debug-panel-content');
+        const tabs = document.querySelectorAll('.debug-tab');
+        const tabContents = document.querySelectorAll('.debug-tab-content');
+        const storageKey = 'debug_panel_state';
+        
+        // 从LocalStorage中读取状态
+        function getPanelState() {
+            const state = localStorage.getItem(storageKey);
+            return state === null ? 'expanded' : state;
+        }
+        
+        // 保存状态到LocalStorage
+        function savePanelState(state) {
+            localStorage.setItem(storageKey, state);
+        }
+        
+        // 初始化面板状态
+        function initPanelState() {
+            const state = getPanelState();
+            if (state === 'collapsed') {
+                content.style.display = 'none';
+                toggleBtn.textContent = '展开';
+            } else {
+                content.style.display = 'block';
+                toggleBtn.textContent = '收起';
+            }
+        }
+        
+        // 切换面板显示/隐藏
+        toggleBtn.addEventListener('click', function() {
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                toggleBtn.textContent = '收起';
+                savePanelState('expanded');
+            } else {
+                content.style.display = 'none';
+                toggleBtn.textContent = '展开';
+                savePanelState('collapsed');
+            }
+        });
+        
+        // 切换标签页
+        tabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabId = this.getAttribute('data-tab');
+                
+                // 移除所有激活状态
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(c => c.style.display = 'none');
+                
+                // 添加当前激活状态
+                this.classList.add('active');
+                document.getElementById('debug-tab-' + tabId).style.display = 'block';
+            });
+        });
+        
+        // 初始化面板状态
+        initPanelState();
+    });
+</script>

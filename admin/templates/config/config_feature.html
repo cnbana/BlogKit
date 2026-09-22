@@ -1,0 +1,55 @@
+            <!-- 功能开关设置内容 -->
+            <div class="form-container">
+                <form method="post" action="admin.php?action=<?php echo $currentAction; ?>&method=save">
+                    <input type="hidden" name="sub_page" value="<?php echo $sub; ?>">
+                    <!-- 功能开关设置 -->
+                    <div class="form-section">
+                        <h4>功能开关设置</h4>
+                        <div class="form-group">
+                            <label for="like_enabled">点赞功能</label>
+                            <select id="like_enabled" name="like_enabled">
+                                <option value="1" <?php echo $config['like_enabled'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['like_enabled'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="favorite_enabled">收藏功能</label>
+                            <select id="favorite_enabled" name="favorite_enabled">
+                                <option value="1" <?php echo $config['favorite_enabled'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['favorite_enabled'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="follow_enabled">关注功能</label>
+                            <select id="follow_enabled" name="follow_enabled">
+                                <option value="1" <?php echo $config['follow_enabled'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['follow_enabled'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="read_history_enabled">阅读历史功能</label>
+                            <select id="read_history_enabled" name="read_history_enabled">
+                                <option value="1" <?php echo $config['read_history_enabled'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['read_history_enabled'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="message_enabled">消息功能</label>
+                            <select id="message_enabled" name="message_enabled">
+                                <option value="1" <?php echo $config['message_enabled'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['message_enabled'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="message_duration">消息保留时长</label>
+                            <input type="number" id="message_duration" name="message_duration" value="<?php echo $config['message_duration']; ?>" placeholder="请输入消息保留时长（天）">
+                        </div>
+                    </div>
+                    
+                    <!-- 提交按钮 -->
+                    <div class="buttons">
+                        <button type="submit" class="btn btn-primary">保存设置</button>
+                    </div>
+                </form>
+            </div>

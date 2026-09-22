@@ -1,0 +1,235 @@
+<?php
+/**
+ * 侧边栏业务逻辑
+ * 
+ * 从 sidebar.html 中提取的 PHP 逻辑，包括：
+ * - 模型加载（角色、权限、评论）
+ * - 菜单权限获取
+ * - 待审核评论计数
+ * - SVG 图标库
+ * - 菜单渲染函数
+ * 
+ * 输出变量：
+ * - $menuHtml : string  渲染完成的菜单 HTML
+ * - $sidebarCurrentAction : string 当前 action
+ */
+
+// 加载所需模型
+require_once APP_PATH . '/Models/RoleModel.php';
+require_once APP_PATH . '/Models/PermissionModel.php';
+require_once APP_PATH . '/Models/CommentModel.php';
+
+// 获取当前页面参数（支持 config 子页面高亮）
+$sidebarCurrentAction = $currentAction ?? '';
+$sidebarCurrentSub = $_GET['sub'] ?? '';
+
+// 获取待审核评论数量
+$commentModel = new CommentModel();
+$pendingCommentCount = $commentModel->getPendingCommentCount();
+
+// ========== 应用市场新版本红点（P1-9） ==========
+// 复用 MarketController::checkNewVersion()：内部走 bk_config 10 分钟缓存
+// （含官网不可达时的"空结果"缓存），仅缓存过期后的首个后台页面才真正
+// 请求官网一次，普通翻页零额外开销。检测异常时静默置 0，不影响侧边栏渲染。
+$marketHasNewVersion = 0;
+try {
+    require_once APP_PATH . '/Controllers/Admin/MarketController.php';
+    $marketVersionChecker = new MarketController();
+    list(, $marketHasNewVersion) = $marketVersionChecker->checkNewVersion();
+} catch (\Exception $e) {
+    $marketHasNewVersion = 0; // 版本检测失败不影响后台正常使用
+}
+
+// ========== 菜单缓存机制 ==========
+// 使用文件缓存减少数据库查询（5分钟过期）
+// 跟随系统"缓存设置"中的 cache_enabled 开关：关闭时跳过缓存直接查库
+// 注意：修改此文件后请递增 CACHE_VERSION 以使旧缓存失效
+const SIDEBAR_CACHE_VERSION = 7;
+$sidebarCacheEnabled = Config::get('cache_enabled', '1') == '1';
+$cacheKey = 'admin_menu_user_' . $_SESSION['admin']['id'] . '_v' . SIDEBAR_CACHE_VERSION;
+$cacheFile = STORAGE_PATH . '/cache/menu_' . md5($cacheKey) . '.php';
+$menuPermissions = null;
+
+if ($sidebarCacheEnabled && file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 300) {
+    $menuPermissions = include $cacheFile;
+}
+
+if ($menuPermissions === null) {
+    $currentUser = $_SESSION['admin'];
+    $menuPermissions = PermissionModel::getMenuPermissions($currentUser['role']);
+
+    // 写入文件缓存（仅在缓存开关开启时）
+    if ($sidebarCacheEnabled) {
+        if (!is_dir(dirname($cacheFile))) {
+            @mkdir(dirname($cacheFile), 0755, true);
+        }
+        @file_put_contents($cacheFile, '<?php return ' . var_export($menuPermissions, true) . ';');
+    }
+}
+
+// ========== 注意：系统设置的子菜单现在直接从数据库读取，不再从 admin_nav.html 注入 ==========
+// admin_nav.html 仍然用于系统设置页面内部的分组导航
+
+// ========== 注意：日志管理的子菜单现在直接从数据库读取，不再硬编码注入 ==========
+// 日志管理是系统维护分组下的子菜单
+
+// SVG 图标库（统一引用 svg_icons.php）
+require_once __DIR__ . '/svg_icons.php';
+$svgIcons = admin_svg_icons();
+
+// 图标名称映射
+$iconMap = [
+    'dashboard' => 'dashboard',
+    'users' => 'users',
+    'user' => 'users',
+    'file-text' => 'file-text',
+    'folder' => 'folder',
+    'tag' => 'tag',
+    'message-square' => 'message-square',
+    'fa-bell' => 'fa-bell',
+    'link' => 'link',
+    'settings' => 'settings',
+    'palette' => 'palette',
+    'extension' => 'extension',
+    'code' => 'code',
+    'heart' => 'heart',
+    'shield' => 'shield',
+    'key' => 'key',
+    'file-text-o' => 'file-text-o',
+];
+
+// 下拉箭头 SVG
+$chevronDown = '<svg class="svg-icon svg-icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+
+/**
+ * 从 path 中提取 action 参数
+ */
+function extractAction($path) {
+    if (empty($path)) return '';
+    if (strpos($path, 'action=') !== false) {
+        preg_match('/action=([^&]+)/', $path, $matches);
+        return isset($matches[1]) ? $matches[1] : '';
+    }
+    return '';
+}
+
+/**
+ * 检查子菜单中是否有匹配当前页面的项
+ * 用于父级菜单高亮与自动展开
+ */
+function hasActiveChild($children, $currentAction, $currentSub) {
+    foreach ($children as $child) {
+        $childAction = extractAction($child['path'] ?? '');
+        if ($currentAction == $childAction) return true;
+        // Config 子项精确匹配 sub 参数（用于分组自动展开）
+        if ($currentAction === 'config' && isset($child['_sub']) && $currentSub === $child['_sub']) {
+            return true;
+        }
+        if ($currentAction === 'config' && $childAction === 'config') return true;
+        if (isset($child['children']) && hasActiveChild($child['children'], $currentAction, $currentSub)) return true;
+    }
+    return false;
+}
+
+/**
+ * 递归渲染菜单 HTML（增强版）
+ * 支持：深层高亮（config&sub=xxx）、父级自动展开、拼音搜索标记
+ */
+function renderMenu($permissions, $currentAction, $currentSub, $iconMap, $svgIcons, $pendingCommentCount, $marketHasNewVersion, $chevronDown, $isSubmenu = false) {
+    $html = '';
+
+    foreach ($permissions as $permission) {
+        $pathAction = extractAction($permission['path'] ?? '');
+        $isActive = false;
+
+        // 精确匹配当前 action
+        if ($currentAction == $pathAction && $pathAction !== '') {
+            $isActive = true;
+        }
+
+        $hasChildren = isset($permission['children']) && !empty($permission['children']);
+
+        // Config 子页面：带有 _sub 标记的项精确匹配 sub 参数
+        $isConfigSubItem = isset($permission['_sub']);
+        if ($isConfigSubItem) {
+            $isActive = ($currentSub === $permission['_sub']);
+        }
+
+        // 日志管理子菜单：按 method 区分列表 / 设置
+        if (isset($permission['_logView'])) {
+            $logMethod = $_GET['method'] ?? '';
+            $settingsMethods = ['settings', 'saveSettings', 'resetSettings'];
+            if ($permission['_logView'] === 'settings') {
+                $isActive = in_array($logMethod, $settingsMethods, true);
+            } else {
+                $isActive = ($logMethod === '' || !in_array($logMethod, $settingsMethods, true));
+            }
+        }
+
+        // 如果子菜单中有匹配项，也标记父级为 active
+        if (!$isActive && $hasChildren) {
+            $isActive = hasActiveChild($permission['children'], $currentAction, $currentSub);
+        }
+
+        // config 子页面时，系统设置始终高亮
+        $isConfigRoot = ($permission['code'] === 'config');
+        if (!$isActive && $isConfigRoot && $currentAction === 'config') {
+            $isActive = true;
+        }
+
+        $activeClass = $isActive ? 'class="active"' : '';
+
+        $iconKey = isset($permission['icon']) ? $permission['icon'] : 'file-text';
+        $iconKey = isset($iconMap[$iconKey]) ? $iconMap[$iconKey] : $iconKey;
+        $iconSvg = isset($svgIcons[$iconKey]) ? $svgIcons[$iconKey] : $svgIcons['file-text'];
+
+        $badgeHtml = '';
+        if ($permission['code'] === 'comment' && $pendingCommentCount > 0) {
+            $badgeHtml = '<span class="menu-badge">' . $pendingCommentCount . '</span>';
+        } elseif ($permission['code'] === 'market' && $marketHasNewVersion > 0) {
+            // 应用市场有新版本（P1-9）：显示「新」字徽章提示
+            $badgeHtml = '<span class="menu-badge">新</span>';
+        }
+
+        $pinyinAttr = 'data-pinyin="' . htmlspecialchars($permission['name']) . '"';
+
+        if ($hasChildren) {
+            $html .= '<li class="menu-item has-children" data-menu-id="menu-' . $permission['id'] . '" ' . $pinyinAttr . '>';
+            $html .= '<a href="javascript:void(0);" class="menu-toggle" ' . $activeClass . '>';
+            if (!$isSubmenu) {
+                $html .= '<span class="menu-icon">' . $iconSvg . '</span>';
+            }
+            $html .= '<span class="menu-text">' . htmlspecialchars($permission['name']) . '</span>';
+            $html .= $badgeHtml;
+            $html .= '<span class="menu-arrow">' . $chevronDown . '</span>';
+            $html .= '</a>';
+
+            // 子菜单渲染：active 时自动展开，兼容 config 根节点和分组
+            $subMenuStyle = '';
+            $shouldExpand = $isActive && ($pathAction === 'config' || isset($permission['_isGroup']) || $isConfigRoot);
+            if ($shouldExpand) {
+                $subMenuStyle = ' class="show"';
+            }
+
+            $html .= '<ul class="sub-menu"' . $subMenuStyle . '>';
+            $html .= renderMenu($permission['children'], $currentAction, $currentSub, $iconMap, $svgIcons, $pendingCommentCount, $marketHasNewVersion, $chevronDown, true);
+            $html .= '</ul>';
+        } else {
+            $html .= '<li class="menu-item" data-menu-id="menu-' . $permission['id'] . '" ' . $pinyinAttr . '>';
+            $html .= '<a href="' . $permission['path'] . '" ' . $activeClass . '>';
+            if (!$isSubmenu) {
+                $html .= '<span class="menu-icon">' . $iconSvg . '</span>';
+            }
+            $html .= '<span class="menu-text">' . htmlspecialchars($permission['name']) . '</span>';
+            $html .= $badgeHtml;
+            $html .= '</a>';
+        }
+
+        $html .= '</li>';
+    }
+
+    return $html;
+}
+
+// 渲染菜单（传入 $sub 参数用于深层高亮）
+$menuHtml = renderMenu($menuPermissions, $sidebarCurrentAction, $sidebarCurrentSub, $iconMap, $svgIcons, $pendingCommentCount, $marketHasNewVersion, $chevronDown, false);

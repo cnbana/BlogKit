@@ -1,0 +1,240 @@
+            <!-- IP白名单设置内容 -->
+            <p style="font-size: 13px; color: #666; margin-top: 10px; margin-bottom: 20px; font-style: italic;">（启用IP白名单后，只有在白名单中的IP才能访问后台管理系统。如果白名单为空，系统将允许所有IP访问）</p>
+            
+            <div class="form-container">
+                <form method="post" action="admin.php?action=<?php echo $currentAction; ?>&method=save" id="ipWhitelistForm">
+                    <input type="hidden" name="sub_page" value="<?php echo $sub; ?>">
+                    <input type="hidden" id="admin_ip_whitelist" name="admin_ip_whitelist" value='<?php echo isset($config['admin_ip_whitelist']) ? $config['admin_ip_whitelist'] : '[]'; ?>'>
+                    <input type="hidden" id="admin_ip_trusted_proxies" name="admin_ip_trusted_proxies" value='<?php echo isset($config['admin_ip_trusted_proxies']) ? $config['admin_ip_trusted_proxies'] : '[]'; ?>'>
+                    
+                    <!-- 基本设置 -->
+                    <div class="form-section">
+                        <h4>基本设置</h4>
+                        <div class="form-group">
+                            <label for="admin_ip_whitelist_enabled">IP白名单功能</label>
+                            <select id="admin_ip_whitelist_enabled" name="admin_ip_whitelist_enabled">
+                                <option value="1" <?php echo isset($config['admin_ip_whitelist_enabled']) && $config['admin_ip_whitelist_enabled'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo !isset($config['admin_ip_whitelist_enabled']) || $config['admin_ip_whitelist_enabled'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- IP白名单管理 -->
+                    <div class="form-section">
+                        <h4>IP白名单</h4>
+                        <div class="form-row" style="margin-bottom: 15px;">
+                            <div class="form-col" style="flex: 1;">
+                                <input type="text" id="new_ip_rule" placeholder="请输入IP地址或IP段（如：192.168.1.1 或 192.168.1.0/24）">
+                            </div>
+                            <div class="form-col" style="width: auto;">
+                                <button type="button" class="btn btn-primary" onclick="addIpRule()">添加</button>
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table id="ipWhitelistTable">
+                                <thead>
+                                    <tr>
+                                        <th>IP地址/段</th>
+                                        <th>类型</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ipWhitelistBody">
+                                </tbody>
+                            </table>
+                            <div id="emptyWhitelist" style="text-align: center; padding: 20px; color: #6c757d;">
+                                白名单为空，系统将允许所有IP访问
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 可信代理设置 -->
+                    <div class="form-section">
+                        <h4>可信代理设置</h4>
+                        <p style="margin-bottom: 15px; color: #6c757d;">如果您的网站使用了CDN或反向代理，请在此配置可信代理IP，系统将从这些代理的HTTP头中获取真实客户端IP。</p>
+                        <div class="form-row" style="margin-bottom: 15px;">
+                            <div class="form-col" style="flex: 1;">
+                                <input type="text" id="new_proxy_ip" placeholder="请输入代理IP地址">
+                            </div>
+                            <div class="form-col" style="width: auto;">
+                                <button type="button" class="btn btn-primary" onclick="addProxyIp()">添加</button>
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table id="trustedProxiesTable">
+                                <thead>
+                                    <tr>
+                                        <th>代理IP</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="trustedProxiesBody">
+                                </tbody>
+                            </table>
+                            <div id="emptyProxies" style="text-align: center; padding: 20px; color: #6c757d;">
+                                暂无可信代理配置
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 提交按钮 -->
+                    <div class="buttons">
+                        <button type="submit" class="btn btn-primary">保存设置</button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- IP白名单JavaScript -->
+            <script>
+                let ipWhitelist = [];
+                let trustedProxies = [];
+                
+                document.addEventListener('DOMContentLoaded', function() {
+                    const whitelistInput = document.getElementById('admin_ip_whitelist');
+                    const proxiesInput = document.getElementById('admin_ip_trusted_proxies');
+                    
+                    try {
+                        ipWhitelist = JSON.parse(whitelistInput.value) || [];
+                    } catch (e) {
+                        ipWhitelist = [];
+                    }
+                    
+                    try {
+                        trustedProxies = JSON.parse(proxiesInput.value) || [];
+                    } catch (e) {
+                        trustedProxies = [];
+                    }
+                    
+                    renderIpWhitelist();
+                    renderTrustedProxies();
+                });
+                
+                function addIpRule() {
+                    const input = document.getElementById('new_ip_rule');
+                    const rule = input.value.trim();
+                    
+                    if (!rule) {
+                        showToast('请输入IP地址或IP段', 'error');
+                        return;
+                    }
+
+                    if (validateIpRule(rule)) {
+                        ipWhitelist.push(rule);
+                        input.value = '';
+                        renderIpWhitelist();
+                        updateHiddenInputs();
+                    } else {
+                        showToast('IP地址格式不正确，请输入有效的IPv4、IPv6地址或CIDR格式的IP段', 'warning');
+                    }
+                }
+                
+                function validateIpRule(rule) {
+                    const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:\/(?:[0-9]|[1-2][0-9]|3[0-2]))?$/;
+                    const ipv6Regex = /^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}(?:\/(?:[0-9]|[1-9][0-9]|1[01][0-9]|2[0-8]))?$|^::$|^::1$|^(?:[0-9a-fA-F]{1,4}:){1,7}:$|^(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}$|^(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}$|^(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}$|^(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}$|^(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}$|^[0-9a-fA-F]{1,4}:(?::[0-9a-fA-F]{1,4}){1,6}$|^:(?::[0-9a-fA-F]{1,4}){1,7}$/;
+                    
+                    return ipv4Regex.test(rule) || ipv6Regex.test(rule);
+                }
+                
+                function deleteIpRule(index) {
+                    if (confirm('确定要删除此IP规则吗？')) {
+                        ipWhitelist.splice(index, 1);
+                        renderIpWhitelist();
+                        updateHiddenInputs();
+                    }
+                }
+                
+                function renderIpWhitelist() {
+                    const tbody = document.getElementById('ipWhitelistBody');
+                    const emptyDiv = document.getElementById('emptyWhitelist');
+                    
+                    tbody.innerHTML = '';
+                    
+                    if (ipWhitelist.length === 0) {
+                        emptyDiv.style.display = 'block';
+                        return;
+                    }
+                    
+                    emptyDiv.style.display = 'none';
+                    
+                    ipWhitelist.forEach((rule, index) => {
+                        const tr = document.createElement('tr');
+                        const type = rule.includes('/') ? 'IP段' : (rule.includes(':') ? 'IPv6' : 'IPv4');
+                        
+                        tr.innerHTML = `
+                            <td>${rule}</td>
+                            <td>${type}</td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-danger" onclick="deleteIpRule(${index})">删除</button>
+                            </td>
+                        `;
+                        
+                        tbody.appendChild(tr);
+                    });
+                }
+                
+                function addProxyIp() {
+                    const input = document.getElementById('new_proxy_ip');
+                    const ip = input.value.trim();
+                    
+                    if (!ip) {
+                        showToast('请输入代理IP地址', 'error');
+                        return;
+                    }
+
+                    if (validateIpAddress(ip)) {
+                        trustedProxies.push(ip);
+                        input.value = '';
+                        renderTrustedProxies();
+                        updateHiddenInputs();
+                    } else {
+                        showToast('IP地址格式不正确，请输入有效的IPv4或IPv6地址', 'warning');
+                    }
+                }
+                
+                function validateIpAddress(ip) {
+                    const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+                    const ipv6Regex = /^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^::$|^::1$|^(?:[0-9a-fA-F]{1,4}:){1,7}:$|^(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}$|^(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}$|^(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}$|^(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}$|^(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}$|^[0-9a-fA-F]{1,4}:(?::[0-9a-fA-F]{1,4}){1,6}$|^:(?::[0-9a-fA-F]{1,4}){1,7}$/;
+                    
+                    return ipv4Regex.test(ip) || ipv6Regex.test(ip);
+                }
+                
+                function deleteProxyIp(index) {
+                    if (confirm('确定要删除此代理IP吗？')) {
+                        trustedProxies.splice(index, 1);
+                        renderTrustedProxies();
+                        updateHiddenInputs();
+                    }
+                }
+                
+                function renderTrustedProxies() {
+                    const tbody = document.getElementById('trustedProxiesBody');
+                    const emptyDiv = document.getElementById('emptyProxies');
+                    
+                    tbody.innerHTML = '';
+                    
+                    if (trustedProxies.length === 0) {
+                        emptyDiv.style.display = 'block';
+                        return;
+                    }
+                    
+                    emptyDiv.style.display = 'none';
+                    
+                    trustedProxies.forEach((ip, index) => {
+                        const tr = document.createElement('tr');
+                        
+                        tr.innerHTML = `
+                            <td>${ip}</td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-danger" onclick="deleteProxyIp(${index})">删除</button>
+                            </td>
+                        `;
+                        
+                        tbody.appendChild(tr);
+                    });
+                }
+                
+                function updateHiddenInputs() {
+                    document.getElementById('admin_ip_whitelist').value = JSON.stringify(ipWhitelist);
+                    document.getElementById('admin_ip_trusted_proxies').value = JSON.stringify(trustedProxies);
+                }
+            </script>

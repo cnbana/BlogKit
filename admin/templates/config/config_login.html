@@ -1,0 +1,49 @@
+            <!-- 登录设置内容 -->
+            <div class="form-container">
+                <form method="post" action="admin.php?action=<?php echo $currentAction; ?>&method=save">
+                    <input type="hidden" name="sub_page" value="<?php echo $sub; ?>">
+                    <!-- 登录基本设置 -->
+                    <div class="form-section">
+                        <h4>登录基本设置</h4>
+                        <div class="form-group">
+                            <label for="login_enabled">登录功能开关</label>
+                            <select id="login_enabled" name="login_enabled">
+                                <option value="1" <?php echo $config['login_enabled'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['login_enabled'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="login_attempt_limit">登录尝试次数限制</label>
+                            <input type="number" id="login_attempt_limit" name="login_attempt_limit" value="<?php echo $config['login_attempt_limit']; ?>" placeholder="请输入登录尝试次数限制">
+                        </div>
+                        <div class="form-group">
+                            <label for="login_lock_time">登录锁定时间</label>
+                            <input type="number" id="login_lock_time" name="login_lock_time" value="<?php echo $config['login_lock_time']; ?>" placeholder="请输入登录锁定时间（秒）">
+                        </div>
+                    </div>
+                    
+                    <!-- 登录方式设置 -->
+                    <div class="form-section">
+                        <h4>登录方式设置</h4>
+                        <div class="form-group">
+                            <label for="login_allow_email">允许使用邮箱登录</label>
+                            <select id="login_allow_email" name="login_allow_email">
+                                <option value="1" <?php echo $config['login_allow_email'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['login_allow_email'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="login_allow_username">允许使用用户名登录</label>
+                            <select id="login_allow_username" name="login_allow_username">
+                                <option value="1" <?php echo $config['login_allow_username'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['login_allow_username'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- 提交按钮 -->
+                    <div class="buttons">
+                        <button type="submit" class="btn btn-primary">保存设置</button>
+                    </div>
+                </form>
+            </div>

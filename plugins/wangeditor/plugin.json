@@ -1,0 +1,190 @@
+{
+  "name": "WangEditor",
+  "slug": "wangeditor",
+  "version": "5.1.23",
+  "description": "基于 wangEditor v5 的开源富文本编辑器插件，TypeScript 编写，本地资源加载，支持图片/视频上传、代码高亮等。官网：https://www.wangeditor.com",
+  "author": "BlogKit Team",
+  "author_url": "https://www.blogkit.cn",
+  "compatible_version": "^2.0.0",
+  "dependencies": {},
+  "icon": "icon.png",
+  "thumbnail": "thumbnail.png",
+  "default_settings": {
+    "keep_data_on_uninstall": {
+      "type": "boolean",
+      "label": "卸载时保留数据",
+      "value": true,
+      "help": "勾选后卸载插件时保留相关数据，否则将删除所有相关数据"
+    },
+    "height": {
+      "type": "number",
+      "label": "编辑器高度(像素)",
+      "value": 500,
+      "attributes": {
+        "min": 200,
+        "max": 1200,
+        "step": 50
+      },
+      "help": "设置编辑器编辑区域的高度"
+    },
+    "placeholder": {
+      "type": "text",
+      "label": "占位符文本",
+      "value": "开始写作...",
+      "help": "编辑器为空时显示的提示文本"
+    },
+    "readonly": {
+      "type": "boolean",
+      "label": "只读模式",
+      "value": false,
+      "help": "开启后编辑器内容只读，不可编辑"
+    },
+    "auto_focus": {
+      "type": "boolean",
+      "label": "自动获得焦点",
+      "value": true,
+      "help": "页面加载后编辑器自动获得输入焦点"
+    },
+    "z_index": {
+      "type": "number",
+      "label": "悬浮层级(z-index)",
+      "value": 10000,
+      "attributes": {
+        "min": 1,
+        "max": 99999
+      },
+      "help": "工具栏悬浮提示、下拉菜单等浮层的 z-index"
+    },
+    "toolbar_title": {
+      "type": "boolean",
+      "label": "标题（下拉选择 H1-H5）",
+      "value": true,
+      "help": "显示标题选择下拉框"
+    },
+    "toolbar_text_format": {
+      "type": "boolean",
+      "label": "文本格式",
+      "value": true,
+      "help": "显示粗体、斜体、下划线、删除线、上标、下标、代码按钮"
+    },
+    "toolbar_font": {
+      "type": "boolean",
+      "label": "字体字号",
+      "value": true,
+      "help": "显示字体选择和字号选择按钮"
+    },
+    "toolbar_color": {
+      "type": "boolean",
+      "label": "颜色背景",
+      "value": true,
+      "help": "显示文字颜色和背景颜色按钮"
+    },
+    "toolbar_align": {
+      "type": "boolean",
+      "label": "对齐方式",
+      "value": true,
+      "help": "显示左中右对齐和两端对齐按钮"
+    },
+    "toolbar_line_height": {
+      "type": "boolean",
+      "label": "行高",
+      "value": true,
+      "help": "显示行高设置按钮"
+    },
+    "toolbar_list": {
+      "type": "boolean",
+      "label": "列表缩进",
+      "value": true,
+      "help": "显示有序列表、无序列表、缩进按钮"
+    },
+    "toolbar_blockquote": {
+      "type": "boolean",
+      "label": "引用",
+      "value": true,
+      "help": "显示引用块按钮"
+    },
+    "toolbar_code_block": {
+      "type": "boolean",
+      "label": "代码块",
+      "value": true,
+      "help": "显示插入代码块按钮"
+    },
+    "toolbar_link": {
+      "type": "boolean",
+      "label": "链接",
+      "value": true,
+      "help": "显示插入/查看链接按钮"
+    },
+    "toolbar_image": {
+      "type": "boolean",
+      "label": "图片",
+      "value": true,
+      "help": "显示上传图片、网络图片、图片组按钮"
+    },
+    "toolbar_video": {
+      "type": "boolean",
+      "label": "视频",
+      "value": true,
+      "help": "显示上传视频、插入视频按钮"
+    },
+    "toolbar_table": {
+      "type": "boolean",
+      "label": "表格",
+      "value": true,
+      "help": "显示插入表格按钮"
+    },
+    "toolbar_emotion": {
+      "type": "boolean",
+      "label": "表情",
+      "value": true,
+      "help": "显示插入表情按钮"
+    },
+    "toolbar_divider": {
+      "type": "boolean",
+      "label": "分割线",
+      "value": true,
+      "help": "显示插入分割线按钮"
+    },
+    "toolbar_undo_redo": {
+      "type": "boolean",
+      "label": "撤销重做",
+      "value": true,
+      "help": "显示撤销和重做按钮"
+    },
+    "toolbar_fullscreen": {
+      "type": "boolean",
+      "label": "全屏",
+      "value": true,
+      "help": "显示全屏切换按钮"
+    },
+    "toolbar_clear_style": {
+      "type": "boolean",
+      "label": "清除格式",
+      "value": true,
+      "help": "显示清除所有格式按钮（v5 合法菜单键 clearStyle）"
+    },
+    "image_upload_url": {
+      "type": "text",
+      "label": "图片上传接口",
+      "value": "/admin.php?action=uploadimage",
+      "help": "设置图片上传的接口地址（返回 UEditor 格式 JSON：state=SUCCESS 时取 url 字段）"
+    },
+    "image_max_size": {
+      "type": "number",
+      "label": "图片最大大小(MB)",
+      "value": 5,
+      "attributes": {
+        "min": 1,
+        "max": 20,
+        "step": 1
+      },
+      "help": "设置图片上传的最大大小限制"
+    },
+    "video_upload_url": {
+      "type": "text",
+      "label": "视频上传接口",
+      "value": "/admin.php?action=uploadvideo",
+      "help": "设置视频上传的接口地址"
+    }
+  }
+}

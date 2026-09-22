@@ -1,0 +1,32 @@
+            <!-- 用户设置内容 -->
+            <div class="form-container">
+                <form method="post" action="admin.php?action=<?php echo $currentAction; ?>&method=save">
+                    <input type="hidden" name="sub_page" value="<?php echo $sub; ?>">
+                    <!-- 用户基本设置 -->
+                    <div class="form-section">
+                        <h4>用户基本设置</h4>
+                        <div class="form-group">
+                            <label for="user_registration">允许用户注册</label>
+                            <select id="user_registration" name="user_registration">
+                                <option value="1" <?php echo $config['user_registration'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['user_registration'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="profile_avatar_enabled">允许用户设置头像</label>
+                            <select id="profile_avatar_enabled" name="profile_avatar_enabled">
+                                <option value="1" <?php echo $config['profile_avatar_enabled'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['profile_avatar_enabled'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- 注销功能设置——已提取为插件，由 accountdeletion 插件通过钩子注入 -->
+                    <?php Hook::trigger('admin_config_deletion_section', ['config' => $config]); ?>
+                    
+                    <!-- 提交按钮 -->
+                    <div class="buttons">
+                        <button type="submit" class="btn btn-primary">保存设置</button>
+                    </div>
+                </form>
+            </div>

@@ -1,0 +1,138 @@
+<?php $currentAction = 'plugin'; $pageTitle = '插件管理'; $pageCss = 'plugin.css'; include 'components/page_wrapper.html'; ?>
+    
+    <!-- 操作栏（出于安全考虑，已移除上传插件功能入口，插件仅可通过 FTP 等方式部署到 plugins 目录） -->
+
+    <!-- 页面专属样式已归拢至 assets/css/plugin.css（经 $pageCss 加载，2026-09 样式统一；
+         原裸 table 全局选择器已限定到 .plugin-table-* 类，不再污染页面内其他表格） -->
+
+            <!-- 已安装并启用的插件区域 -->
+            <div class="section">
+                <h3>已安装并启用的插件</h3>
+                <?php if (count($enabled_plugins) > 0): ?>
+                    <div class="table-container">
+                        <table class="plugin-table-5cols table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>插件名称</th>
+                                    <th>作者</th>
+                                    <th>版本</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($enabled_plugins as $plugin): ?>
+                                <tr>
+                                    <td><?php echo $plugin['id']; ?></td>
+                                    <td><?php echo $plugin['name']; ?></td>
+                                    <td><?php echo $plugin['author'] ?? '未知'; ?></td>
+                                    <td><?php echo $plugin['version']; ?></td>
+                                    <td>
+                                        <?php if (isset($plugin['has_settings']) && $plugin['has_settings']): ?>
+                                        <a href="admin.php?action=plugin&sub=config&slug=<?php echo $plugin['slug']; ?>" class="btn btn-info">配置</a>
+                                        <?php endif; ?>
+                                        <a href="admin.php?action=plugin&sub=detail&slug=<?php echo $plugin['slug']; ?>" class="btn btn-primary">详情</a>
+                                        <a href="admin.php?action=plugin&sub=disable&slug=<?php echo $plugin['slug']; ?>" class="btn btn-danger">禁用</a>
+                                        <!-- 插件操作按钮钩子 -->
+                                        <?php echo Plugin::getInstance()->doHook('plugin_admin_actions', $plugin); ?>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php else: ?>
+                    <div class="empty-state">
+                        <p>暂无已安装并启用的插件</p>
+                    </div>
+                <?php endif; ?>
+            </div>
+            
+            <!-- 已安装但禁用的插件区域 -->
+            <div class="section">
+                <h3>已安装但禁用的插件</h3>
+                <?php if (count($disabled_plugins) > 0): ?>
+                    <div class="table-container">
+                        <table class="plugin-table-5cols table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>插件名称</th>
+                                    <th>作者</th>
+                                    <th>版本</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($disabled_plugins as $plugin): ?>
+                                <tr>
+                                    <td><?php echo $plugin['id']; ?></td>
+                                    <td><?php echo $plugin['name']; ?></td>
+                                    <td><?php echo $plugin['author'] ?? '未知'; ?></td>
+                                    <td><?php echo $plugin['version']; ?></td>
+                                    <td>
+                                        <a href="admin.php?action=plugin&sub=enable&slug=<?php echo $plugin['slug']; ?>" class="btn btn-primary">启用</a>
+                                        <a href="admin.php?action=plugin&sub=detail&slug=<?php echo $plugin['slug']; ?>" class="btn btn-primary">详情</a>
+                                        <a href="javascript:;" onclick="uninstallPlugin('<?php echo $plugin['slug']; ?>')" class="btn btn-danger">卸载</a>
+                                        <!-- 插件操作按钮钩子 -->
+                                        <?php echo Plugin::getInstance()->doHook('plugin_admin_actions', $plugin); ?>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php else: ?>
+                    <div class="empty-state">
+                        <p>暂无已安装但禁用的插件</p>
+                    </div>
+                <?php endif; ?>
+            </div>
+            
+            <!-- 服务器上未安装的插件区域 -->
+            <div class="section">
+                <h3>未安装的插件</h3>
+                <?php if (count($server_plugins) > 0): ?>
+                    <div class="table-container">
+                        <table class="plugin-table-5cols">
+                            <thead>
+                                <tr>
+                                    <th>标识</th>
+                                    <th>插件名称</th>
+                                    <th>作者</th>
+                                    <th>版本</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($server_plugins as $plugin): ?>
+                                <tr>
+                                    <td><?php echo $plugin['slug']; ?></td>
+                                    <td><?php echo $plugin['name']; ?></td>
+                                    <td><?php echo $plugin['author'] ?? '未知'; ?></td>
+                                    <td><?php echo $plugin['version']; ?></td>
+                                    <td>
+                                        <a href="admin.php?action=plugin&sub=install&slug=<?php echo $plugin['slug']; ?>", class="btn btn-primary">安装</a>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php else: ?>
+                    <div class="empty-state">
+                        <p>服务器上暂无未安装的插件</p>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </main>
+
+        <script>
+        function uninstallPlugin(slug) {
+            if (confirm('确定要卸载该插件吗？此操作不可撤销。')) {
+                window.location.href = 'admin.php?action=plugin&sub=uninstall&slug=' + encodeURIComponent(slug);
+            }
+        }
+        </script>
+
+<?php include 'components/footer_wrapper.html'; ?>

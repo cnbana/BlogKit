@@ -1,0 +1,576 @@
+<?php $currentAction = 'article'; $pageTitle = '添加文章'; include 'components/page_wrapper.html'; ?>
+
+    <div class="form-container">
+        <?php if (isset($error)): ?>
+            <div class="error-message"><?php echo $error; ?></div>
+        <?php endif; ?>
+
+        <form method="POST" enctype="multipart/form-data" id="article-form">
+
+            <!-- ==================== 顶部：文章标题区域 ==================== -->
+            <section id="section-title" class="article-section-title">
+                <div class="form-group">
+                    <label for="title">文章标题 <small style="color: #888; font-weight: normal;">(必填)</small></label>
+                    <div style="position: relative;">
+                        <input type="text" id="title" name="title" value="<?php echo isset($_POST['title']) ? $_POST['title'] : ''; ?>" placeholder="请输入标题（1 - 60字）" required style="width: 100%; padding-right: 80px; font-size: 20px; font-weight: 500; padding: 14px 80px 14px 16px;">
+                        <span id="title-counter" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 12px; color: #888;">0/60</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== 中间：文章内容区域 ==================== -->
+            <section id="section-content" class="article-section-content">
+                <div class="form-group">
+                    <label for="content">文章内容 <small style="color: #888; font-weight: normal;">(必填)</small></label>
+                    <textarea id="content" name="content" required><?php echo isset($_POST['content']) ? $_POST['content'] : ''; ?></textarea>
+                </div>
+            </section>
+
+            <!-- ==================== 底部：文章设置区域 ==================== -->
+            <section id="section-settings" class="article-section-settings">
+
+                <!-- 1. 分类 -->
+                <div class="form-group">
+                    <label for="category_id">分类 <small style="color: #888; font-weight: normal;">(必填)</small></label>
+                    <select id="category_id" name="category_id" required>
+                        <option value="">请选择分类</option>
+                        <?php foreach ($categories as $category): ?>
+                            <option value="<?php echo $category['id']; ?>"><?php echo $category['name']; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <!-- 2. 标签 -->
+                <div class="form-group">
+                    <label for="tags">标签</label>
+                    <input type="text" id="tags" name="tags" value="<?php echo isset($_POST['tags']) ? $_POST['tags'] : ''; ?>" placeholder="使用英文逗号、中文逗号或空格分隔多个标签都可以">
+                </div>
+
+                <!-- 3. 封面图 -->
+                <div class="form-group">
+                    <label>封面图</label>
+
+                    <!-- 当前封面图预览区 -->
+                    <?php $hasCover = false; // 新建文章时默认为空 ?>
+                    <div id="cover-preview-area" style="margin-bottom: 10px; display: none;">
+                        <div style="position: relative; display: inline-block;">
+                            <img id="current-cover-img" src="" width="200" alt="当前封面图">
+                            <button type="button" id="btn-remove-cover" class="btn btn-sm btn-danger" style="position: absolute; top: 5px; right: 5px;">移除封面图</button>
+                        </div>
+                        <p style="font-size: 12px; color: #666; margin-top: 5px;">当前封面图</p>
+                    </div>
+
+                    <!-- 未设置封面图提示 -->
+                    <div id="no-cover-hint" style="margin-bottom: 10px; padding: 10px; background: #f8f9fa; border: 1px dashed #ddd; color: #888;">
+                        未设置封面图
+                    </div>
+
+                    <!-- 设置方式按钮区 -->
+                    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 5px; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-secondary" id="btn-upload-cover">本地上传图片</button>
+                        <button type="button" class="btn btn-secondary" id="btn-pick-from-content">从正文中选择图片</button>
+                        <button type="button" class="btn btn-secondary" id="btn-pick-from-media">从媒体库选择</button>
+                    </div>
+
+                    <!-- 隐藏的文件上传 input（点击按钮时触发） -->
+                    <input type="file" id="cover_image" name="cover_image" accept="image/*" style="display: none;">
+
+                    <!-- 隐藏字段：从文章中选择的图片URL -->
+                    <input type="hidden" id="cover_image_url" name="cover_image_url" value="">
+
+                    <!-- 隐藏字段：标记是否移除封面图 -->
+                    <input type="hidden" id="remove_cover_image" name="remove_cover_image" value="0">
+
+                </div>
+
+                <!-- 4. 文章别名 -->
+                <div class="form-group">
+                    <label for="slug">文章别名</label>
+                    <input type="text" id="slug" name="slug" value="<?php echo isset($_POST['slug']) ? $_POST['slug'] : ''; ?>" placeholder="仅支持字母、数字、短横线和下划线，不能是纯数字">
+                </div>
+
+                <!-- 5. 文章描述 -->
+                <div class="form-group">
+                    <label for="description">文章描述</label>
+                    <div style="position: relative;">
+                        <div style="display: flex; gap: 10px; align-items: flex-start;">
+                            <textarea id="description" name="description" rows="3" value="" placeholder="可作为列表页摘要以及SEO描述" style="flex: 1; padding-bottom: 28px;"><?php echo isset($_POST['description']) ? $_POST['description'] : ''; ?></textarea>
+                            <button type="button" class="btn btn-secondary" onclick="autoGenerateDescription()" style="white-space: nowrap; height: 72px;">自动生成</button>
+                        </div>
+                        <span id="description-counter" style="position: absolute; right: 130px; bottom: 8px; font-size: 12px; color: #888;">0/200</span>
+                    </div>
+                </div>
+
+                <!-- 6. 置顶类型 -->
+                <div class="form-group">
+                    <label for="top_type">置顶类型</label>
+                    <select id="top_type" name="top_type" style="width: 100%; padding: 8px;">
+                        <option value="0" <?php echo isset($_POST['top_type']) && $_POST['top_type'] == 0 ? 'selected' : ''; ?>>正常（不置顶）</option>
+                        <option value="1" <?php echo isset($_POST['top_type']) && $_POST['top_type'] == 1 ? 'selected' : ''; ?>>全局置顶</option>
+                        <option value="2" <?php echo isset($_POST['top_type']) && $_POST['top_type'] == 2 ? 'selected' : ''; ?>>首页置顶</option>
+                        <option value="3" <?php echo isset($_POST['top_type']) && $_POST['top_type'] == 3 ? 'selected' : ''; ?>>分类置顶</option>
+                    </select>
+                </div>
+
+                <!-- 从正文中选择图片的弹窗 -->
+                <!-- 点击弹窗外部遮罩区域关闭弹窗（仅当点击目标是遮罩本身时才关闭，点击内部白色面板不触发） -->
+<div id="image-picker-modal" onclick="if (event.target === this) closeImagePicker();" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+                    <div style="background: #fff; padding: 20px; border-radius: 8px; max-width: 80%; max-height: 80vh; overflow: auto; position: relative;">
+                        <button type="button" onclick="closeImagePicker()" style="position: absolute; top: 10px; right: 15px; font-size: 24px; background: none; border: none; cursor: pointer; color: #666;">&times;</button>
+                        <h3 style="margin-top: 0; margin-bottom: 15px;">从正文中选择图片作为封面图</h3>
+                        <div id="image-picker-grid" style="display: none; grid-template-columns: repeat(4, 1fr); gap: 10px;"></div>
+                        <div id="image-picker-empty" style="text-align: center; color: #888; padding: 40px; display: none;">文章内容中没有找到图片</div>
+                        <div id="image-picker-pagination" style="display: none;"></div>
+                    </div>
+                </div>
+
+                <!-- 从媒体库选择图片的弹窗 -->
+                <!-- 图片列表不再由服务端渲染，而是在每次打开弹窗时通过 AJAX 请求
+                     admin.php?action=article&sub=mediaList 实时加载（能看到编辑器刚上传的图片），
+                     并由前端 JS 分页展示，避免图片过多时只能一直下滑 -->
+                <div id="media-picker-modal" onclick="if (event.target === this) closeMediaPicker();" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+                    <div style="background: #fff; padding: 20px; border-radius: 8px; max-width: 80%; max-height: 80vh; overflow: auto; position: relative;">
+                        <button type="button" onclick="closeMediaPicker()" style="position: absolute; top: 10px; right: 15px; font-size: 24px; background: none; border: none; cursor: pointer; color: #666;">&times;</button>
+                        <h3 style="margin-top: 0; margin-bottom: 15px;">从媒体库选择图片作为封面图</h3>
+                        <div id="media-picker-loading" style="text-align: center; color: #888; padding: 40px; display: none;">正在加载图片...</div>
+                        <div id="media-picker-grid" style="display: none; grid-template-columns: repeat(4, 1fr); gap: 10px;"></div>
+                        <div id="media-picker-empty" style="text-align: center; color: #888; padding: 40px; display: none;">媒体库中暂无图片，请先上传图片</div>
+                        <div id="media-picker-pagination" style="display: none;"></div>
+                    </div>
+                </div>
+            </section>
+
+        </form>
+
+        <!-- ==================== 底部固定工具栏 ==================== -->
+        <div class="sticky-toolbar" id="stickyToolbar">
+            <div class="sticky-toolbar-content">
+                <!-- 左侧：导航切换按钮 -->
+                <div class="sticky-toolbar-left">
+                    <button type="button" class="toolbar-nav-btn" id="btn-nav-toggle">文章设置</button>
+                </div>
+
+                <!-- 中间：发布/草稿按钮 -->
+                <div class="sticky-toolbar-center">
+                    <button type="button" class="btn btn-success btn-lg" onclick="publishArticle()">发布文章</button>
+                    <button type="button" class="btn btn-secondary" onclick="saveDraft()">存为草稿</button>
+                </div>
+
+                <!-- 右侧占位（保持中间按钮居中对称） -->
+                <div class="sticky-toolbar-left" style="visibility: hidden;">
+                    <span class="word-counter">占位</span>
+                    <button type="button" class="toolbar-nav-btn">占位</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="/admin/assets/js/article-description-helper.js"></script>
+<script>
+// ==================== 标题字符统计 ====================
+function updateTitleCounter() {
+    var titleInput = document.getElementById('title');
+    var counter = document.getElementById('title-counter');
+    if (!titleInput || !counter) return;
+
+    var len = titleInput.value.length;
+    counter.textContent = len + '/60';
+
+    // 超过限制时显示红色，否则灰色
+    if (len > 60) {
+        counter.style.color = '#e74c3c';
+    } else {
+        counter.style.color = '#888';
+    }
+}
+
+// ==================== 描述字符统计 ====================
+// 说明：updateDescriptionCounter / autoGenerateDescription 已抽离到
+// /admin/assets/js/article-description-helper.js，两个页面共享一套实现，
+// 避免重复代码，并统一支持：
+//   - 基于 DOMParser 的健壮 HTML 标签去除 / HTML 实体解码
+//   - 对 Markdown 装饰符号（**、#、[链接](url) 等）的清洗
+//   - 兼容编辑器协议（editor:register / api.getText()）
+//   - 覆盖描述前的二次确认
+//   - 字符计数与输入事件绑定
+
+// ==================== 页面滚动时切换按钮文字 ====================
+function updateNavToggleButton() {
+    var toggleBtn = document.getElementById('btn-nav-toggle');
+    var settingsSection = document.getElementById('section-settings');
+    if (!toggleBtn || !settingsSection) return;
+
+    // 当设置区域已经滚入视口一半以上时，显示"回到顶部"
+    var settingsTop = settingsSection.getBoundingClientRect().top;
+    var viewportMid = window.innerHeight * 0.5;
+
+    if (settingsTop < viewportMid) {
+        toggleBtn.textContent = '回到顶部';
+    } else {
+        toggleBtn.textContent = '文章设置';
+    }
+}
+
+// ==================== 按钮点击：回到顶部 / 去文章设置 ====================
+function handleNavToggle() {
+    var toggleBtn = document.getElementById('btn-nav-toggle');
+    if (!toggleBtn) return;
+
+    var currentText = toggleBtn.textContent;
+    if (currentText === '文章设置') {
+        // 当前在标题/内容区域，点击后滚动到设置区域
+        var target = document.getElementById('section-settings');
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    } else {
+        // 当前在设置区域，点击后回到页面顶部
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
+// ==================== 发布 / 草稿 ====================
+function publishArticle() {
+    var form = document.getElementById('article-form');
+    var statusInput = document.getElementById('status');
+    if (!statusInput) {
+        statusInput = document.createElement('input');
+        statusInput.type = 'hidden';
+        statusInput.name = 'status';
+        form.appendChild(statusInput);
+    }
+    statusInput.value = '1';
+    form.submit();
+}
+
+function saveDraft() {
+    var form = document.getElementById('article-form');
+    var statusInput = document.getElementById('status');
+    if (!statusInput) {
+        statusInput = document.createElement('input');
+        statusInput.type = 'hidden';
+        statusInput.name = 'status';
+        form.appendChild(statusInput);
+    }
+    statusInput.value = '0';
+    form.submit();
+}
+
+// ==================== 封面图设置功能 ====================
+function showCoverPreview(imageUrl) {
+    var previewArea = document.getElementById('cover-preview-area');
+    var previewImg = document.getElementById('current-cover-img');
+    var noCoverHint = document.getElementById('no-cover-hint');
+    if (previewArea && previewImg) {
+        previewImg.src = imageUrl;
+        previewArea.style.display = 'block';
+        if (noCoverHint) {
+            noCoverHint.style.display = 'none';
+        }
+    }
+}
+
+function hideCoverPreview() {
+    var previewArea = document.getElementById('cover-preview-area');
+    var noCoverHint = document.getElementById('no-cover-hint');
+    if (previewArea) {
+        previewArea.style.display = 'none';
+        if (noCoverHint) {
+            noCoverHint.style.display = 'block';
+        }
+    }
+}
+
+// ==================== 弹窗图片分页选择器 ====================
+// 每页显示的图片数量（对应 4 列网格 x 3 行）
+var PICKER_PAGE_SIZE = 12;
+
+// 通用：按分页渲染图片网格（items 为图片 URL 数组）
+function renderPickerItems(grid, items, page, onSelect, isMedia) {
+    grid.innerHTML = '';
+    grid.style.display = 'grid';
+    var startIdx = (page - 1) * PICKER_PAGE_SIZE;
+    // 截取当前页对应的图片切片
+    var pageItems = items.slice(startIdx, startIdx + PICKER_PAGE_SIZE);
+
+    pageItems.forEach(function(item) {
+        var url = isMedia ? item.url : item;
+        var name = isMedia ? item.name : '';
+
+        var cell = document.createElement('div');
+        cell.style.cssText = 'border: 2px solid #ddd; border-radius: 6px; overflow: hidden; cursor: pointer; transition: border-color 0.2s;';
+        cell.onmouseover = function() { this.style.borderColor = '#007bff'; };
+        cell.onmouseout = function() { this.style.borderColor = '#ddd'; };
+        cell.onclick = function() { onSelect(url); };
+
+        var img = document.createElement('img');
+        img.src = url;
+        img.style.cssText = 'width: 100%; height: 120px; object-fit: cover; display: block;';
+        // 图片加载失败时隐藏该单元格（如外链失效图片）
+        img.onerror = function() { cell.style.display = 'none'; };
+        cell.appendChild(img);
+
+        // 媒体库图片额外显示文件名与大小
+        if (isMedia && name) {
+            var caption = document.createElement('div');
+            caption.textContent = name + (item.size_formatted ? ' (' + item.size_formatted + ')' : '');
+            caption.style.cssText = 'padding: 5px; font-size: 11px; color: #666; text-align: center; background: #f8f9fa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
+            cell.appendChild(caption);
+        }
+
+        grid.appendChild(cell);
+    });
+}
+
+// 通用：构建分页条（上一页 / 页码 / 下一页）
+function buildPickerPagination(container, totalPages, currentPage, onGo) {
+    container.innerHTML = '';
+    // 只有一页时不显示分页条
+    if (totalPages <= 1) {
+        container.style.display = 'none';
+        return;
+    }
+    container.style.display = 'flex';
+    container.style.cssText += 'justify-content: center; align-items: center; gap: 6px; margin-top: 15px; flex-wrap: wrap;';
+
+    // 创建单个分页按钮（current 为 true 时高亮当前页）
+    function makeBtn(text, page, disabled, current) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = text;
+        btn.style.cssText = 'padding: 4px 10px; font-size: 13px; border-radius: 4px; cursor: pointer; border: 1px solid '
+            + (current ? '#007bff; background: #007bff; color: #fff;' : '#ddd; background: #fff; color: #333;');
+        if (disabled) {
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            btn.style.cursor = 'not-allowed';
+        } else {
+            btn.onclick = function() { onGo(page); };
+        }
+        return btn;
+    }
+
+    container.appendChild(makeBtn('上一页', currentPage - 1, currentPage <= 1, false));
+    // 页码窗口：最多显示 5 个页码，超出时在当前页左右各取 2 页
+    var start = Math.max(1, currentPage - 2);
+    var end = Math.min(totalPages, start + 4);
+    start = Math.max(1, end - 4);
+    for (var p = start; p <= end; p++) {
+        container.appendChild(makeBtn(String(p), p, false, p === currentPage));
+    }
+    container.appendChild(makeBtn('下一页', currentPage + 1, currentPage >= totalPages, false));
+}
+
+// 通用：分页渲染指定弹窗（grid + 空提示 + 分页条）
+function renderPickerPage(gridId, images, page, emptyId, emptyText, paginationId, onSelect, isMedia) {
+    var grid = document.getElementById(gridId);
+    var emptyHint = document.getElementById(emptyId);
+    var pagination = document.getElementById(paginationId);
+    if (!grid) return;
+
+    var totalPages = Math.ceil(images.length / PICKER_PAGE_SIZE);
+    // 纠正越界页码
+    if (page > totalPages) page = totalPages;
+    if (page < 1) page = 1;
+
+    if (images.length === 0) {
+        // 无图片：隐藏网格与分页条，显示空提示
+        grid.style.display = 'none';
+        grid.innerHTML = '';
+        pagination.style.display = 'none';
+        emptyHint.textContent = emptyText;
+        emptyHint.style.display = 'block';
+        return;
+    }
+
+    emptyHint.style.display = 'none';
+    renderPickerItems(grid, images, page, onSelect, isMedia);
+    buildPickerPagination(pagination, totalPages, page, function(newPage) {
+        // 翻页回调：更新当前页状态并重新渲染（由各弹窗的渲染入口处理）
+        renderPickerPage(gridId, images, newPage, emptyId, emptyText, paginationId, onSelect, isMedia);
+    });
+}
+
+function openImagePicker() {
+    var modal = document.getElementById('image-picker-modal');
+    if (!modal) return;
+
+    // 从正文内容中提取所有 <img> 的 src（去重），作为候选图片列表
+    var content = document.getElementById('content').value;
+    var imgRegex = /<img[^>]+src\s*=\s*["']([^"']+)["']/gi;
+    var match;
+    var imageUrls = [];
+    while ((match = imgRegex.exec(content)) !== null) {
+        var url = match[1].trim();
+        if (url && imageUrls.indexOf(url) === -1) {
+            imageUrls.push(url);
+        }
+    }
+
+    // 分页渲染第 1 页
+    renderPickerPage('image-picker-grid', imageUrls, 1, 'image-picker-empty', '文章内容中没有找到图片', 'image-picker-pagination', selectImageAsCover, false);
+
+    modal.style.display = 'flex';
+}
+
+function closeImagePicker() {
+    var modal = document.getElementById('image-picker-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function selectImageAsCover(imageUrl) {
+    document.getElementById('cover_image_url').value = imageUrl;
+    document.getElementById('remove_cover_image').value = '0';
+    document.getElementById('cover_image').value = '';
+    showCoverPreview(imageUrl);
+    closeImagePicker();
+}
+
+// 媒体库图片列表缓存
+var mediaPickerImages = [];
+
+function openMediaPicker() {
+    var modal = document.getElementById('media-picker-modal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    // 每次打开都重新请求，保证能看到编辑器刚上传的图片
+    loadMediaPickerImages();
+}
+
+// 通过 AJAX 实时加载媒体库图片列表（服务端接口：ArticleController::mediaList）
+function loadMediaPickerImages() {
+    var grid = document.getElementById('media-picker-grid');
+    var emptyHint = document.getElementById('media-picker-empty');
+    var pagination = document.getElementById('media-picker-pagination');
+    var loading = document.getElementById('media-picker-loading');
+    if (!grid) return;
+
+    // 显示加载中提示，隐藏其它区域
+    grid.style.display = 'none';
+    grid.innerHTML = '';
+    pagination.style.display = 'none';
+    emptyHint.style.display = 'none';
+    loading.style.display = 'block';
+
+    // 加时间戳防止浏览器缓存旧列表
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'admin.php?action=article&sub=mediaList&t=' + Date.now(), true);
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState !== 4) return;
+        loading.style.display = 'none';
+        if (xhr.status !== 200) {
+            emptyHint.textContent = '加载图片失败，请重试';
+            emptyHint.style.display = 'block';
+            return;
+        }
+        try {
+            var res = JSON.parse(xhr.responseText);
+            mediaPickerImages = (res && res.data && res.data.images) ? res.data.images : [];
+        } catch (e) {
+            mediaPickerImages = [];
+        }
+        // 渲染第 1 页
+        renderPickerPage('media-picker-grid', mediaPickerImages, 1, 'media-picker-empty', '媒体库中暂无图片，请先上传图片', 'media-picker-pagination', selectFromMedia, true);
+    };
+    xhr.send();
+}
+
+function closeMediaPicker() {
+    var modal = document.getElementById('media-picker-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function selectFromMedia(imageUrl) {
+    document.getElementById('cover_image_url').value = imageUrl;
+    document.getElementById('remove_cover_image').value = '0';
+    document.getElementById('cover_image').value = '';
+    showCoverPreview(imageUrl);
+    closeMediaPicker();
+}
+
+// ==================== 页面加载初始化 ====================
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化计数显示
+    updateTitleCounter();
+    updateDescriptionCounter();
+    updateNavToggleButton();
+
+    // 绑定标题输入事件
+    var titleInput = document.getElementById('title');
+    if (titleInput) {
+        titleInput.addEventListener('input', updateTitleCounter);
+        titleInput.addEventListener('change', updateTitleCounter);
+        titleInput.addEventListener('keyup', updateTitleCounter);
+    }
+
+    // 绑定描述输入事件（已由 article-description-helper.js 自动绑定，
+    // 这里保留一份兼容逻辑：若公共文件加载失败也不会完全失效）
+
+    // 绑定工具栏导航按钮
+    var toggleBtn = document.getElementById('btn-nav-toggle');
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', handleNavToggle);
+    }
+
+    // 监听滚动事件：动态切换按钮文字
+    window.addEventListener('scroll', updateNavToggleButton, { passive: true });
+    window.addEventListener('resize', updateNavToggleButton);
+
+    // ==================== 封面图按钮事件绑定 ====================
+    var btnUpload = document.getElementById('btn-upload-cover');
+    var fileInput = document.getElementById('cover_image');
+    if (btnUpload && fileInput) {
+        btnUpload.addEventListener('click', function() {
+            fileInput.click();
+        });
+    }
+
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            if (e.target.files && e.target.files[0]) {
+                document.getElementById('remove_cover_image').value = '0';
+                document.getElementById('cover_image_url').value = '';
+
+                var reader = new FileReader();
+                reader.onload = function(evt) {
+                    showCoverPreview(evt.target.result);
+                };
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+    }
+
+    var btnPick = document.getElementById('btn-pick-from-content');
+    if (btnPick) {
+        btnPick.addEventListener('click', function() {
+            openImagePicker();
+        });
+    }
+
+    var btnRemove = document.getElementById('btn-remove-cover');
+    if (btnRemove) {
+        btnRemove.addEventListener('click', function() {
+            if (confirm('确定要移除封面图吗？文章列表页将不会显示图片。')) {
+                document.getElementById('remove_cover_image').value = '1';
+                document.getElementById('cover_image_url').value = '';
+                document.getElementById('cover_image').value = '';
+                hideCoverPreview();
+            }
+        });
+    }
+
+    var btnMediaPick = document.getElementById('btn-pick-from-media');
+    if (btnMediaPick) {
+        btnMediaPick.addEventListener('click', function() {
+            openMediaPicker();
+        });
+    }
+});
+</script>
+
+<?php include 'components/footer_wrapper.html'; ?>

@@ -1,0 +1,525 @@
+/* ============================================================
+   BlogKit Admin - Dashboard CSS
+   仪表盘页面专属样式：统计卡片、待处理、健康状态、排行
+   ============================================================ */
+
+/* 统计卡片：左对齐 + 顶部彩色渐变条区分维度；整卡为链接可下钻 */
+.stats-grid {
+    display: grid;
+    /* 8 张卡片固定两行、每行 4 个（浏览/文章/页面/分类/标签/评论/用户/待处理） */
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+}
+.stat-card {
+    position: relative;
+    overflow: hidden;
+    display: block;
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 18px 20px;
+    text-align: center;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+/* 统计卡片 */
+
+.stat-card:hover {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+}
+.stat-card-num {
+    font-size: 30px;
+    font-weight: 700;
+    color: #333;
+    letter-spacing: 0.5px;
+}
+.stat-card-text {
+    font-size: 13px;
+    color: #888;
+    margin-top: 4px;
+}
+
+/* 快速操作区 */
+.quick-actions {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+.action-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: transparent;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #495057;
+    transition: all 0.2s ease;
+}
+.action-btn:hover {
+    background: #f8f9fa;
+    border-color: #dee2e6;
+}
+.action-btn.action-primary {
+    background: transparent;
+    border: 1px solid #667eea;
+    color: #667eea;
+}
+.action-btn.action-primary:hover {
+    background: #667eea;
+    color: #fff;
+}
+.action-icon {
+    width: 18px;
+    height: 18px;
+}
+
+/* 待处理 */
+.pending-section {
+    background: #fff8e6;
+    border: 1px solid #ffe4a0;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+}
+.pending-title {
+    font-size: 14px;
+    color: #b88a00;
+    margin: 0 0 12px 0;
+    font-weight: 500;
+}
+.pending-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.pending-item {
+    padding: 6px 14px;
+    border-radius: 16px;
+    font-size: 13px;
+    text-decoration: none;
+}
+.pending-item-warn { background: #fff3cd; color: #856404; }
+.pending-item-info { background: #cce5ff; color: #004085; }
+.pending-item-success { background: #d4edda; color: #155724; }
+.pending-item-gray { background: #e2e3e5; color: #383d41; }
+
+/* 主布局 */
+.dashboard-main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    /* 让左右两列等高，配合下方 flex:1 使六张卡片高度一致 */
+    align-items: stretch;
+}
+.dashboard-left {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.dashboard-right {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+/* 六张内容卡片平分列高度，实现同高（配合 .dashboard-left/right 的 flex 布局） */
+.dashboard-left .section-box,
+.dashboard-right .section-box {
+    flex: 1;
+    margin-bottom: 0;
+}
+/* 窄屏单列时恢复自然高度，不强制拉伸（断点与下方 1200px 单列切换保持一致） */
+@media (max-width: 1200px) {
+    .dashboard-left .section-box,
+    .dashboard-right .section-box {
+        flex: none;
+        margin-bottom: 20px;
+    }
+}
+
+/* 区块 */
+.section-box {
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+/* 区块标题：左侧主题色竖条点缀 */
+.section-title {
+    position: relative;
+    font-size: 14px;
+    color: #333;
+    margin: 0 0 15px 0;
+    font-weight: 500;
+    padding-left: 12px;
+}
+.section-title::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 14px;
+    border-radius: 2px;
+    background: #007bff;
+}
+
+/* 图表容器 */
+.chart-container {
+    height: 200px;
+}
+
+/* 最新文章 */
+.recent-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.recent-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 6px;
+    text-decoration: none;
+    color: #333;
+    transition: background 0.2s ease;
+}
+.recent-item:hover {
+    background: #f8f9fa;
+}
+.recent-status {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+}
+.recent-status.status-published {
+    background: #d4edda;
+    color: #155724;
+}
+.recent-status.status-draft {
+    background: #fff3cd;
+    color: #856404;
+}
+.recent-title {
+    flex: 1;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100px;
+}
+.recent-time {
+    font-size: 12px;
+    color: #999;
+}
+
+/* SEO分析 */
+.seo-section {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+.seo-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+.seo-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: #fff;
+    border-radius: 6px;
+}
+.seo-label {
+    font-size: 13px;
+    color: #666;
+}
+.seo-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+.seo-value.seo-success { color: #28a745; }
+.seo-value.seo-warning { color: #ffc107; }
+.seo-value.seo-error { color: #dc3545; }
+
+/* 健康状态 */
+.health-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.health-row {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    gap: 12px;
+}
+.health-row-success { background: #f0f9f0; }
+.health-row-warning { background: #fffbf0; }
+.health-row-error { background: #fff0f0; }
+.health-name { font-weight: 500; color: #333; min-width: 100px; }
+.health-msg { flex: 1; color: #666; }
+.health-status { color: #888; font-size: 12px; }
+.health-badge {
+    margin-left: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: normal;
+}
+.health-badge.health-healthy { background: #d4edda; color: #155724; }
+.health-badge.health-warning { background: #fff3cd; color: #856404; }
+.health-badge.health-error { background: #f8d7da; color: #721c24; }
+
+/* 排行 */
+.rank-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+.rank-list { }
+.rank-empty {
+    text-align: center;
+    color: #999;
+    padding: 9px 0;
+}
+.rank-row {
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f5f5f5;
+    gap: 10px;
+}
+.rank-row:last-child { border-bottom: none; }
+.rank-num {
+    width: 22px;
+    height: 22px;
+    line-height: 22px;
+    text-align: center;
+    border-radius: 50%;
+    background: #f0f0f0;
+    color: #666;
+    font-size: 12px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+.rank-num-top { background: #007bff; color: #fff; }
+/* 前三名金属色徽章：金/银/铜（模板按名次输出对应 class） */
+.rank-num-gold   { background: linear-gradient(135deg, #f6d365, #fda085) !important; color: #fff; }
+.rank-num-silver { background: #adb5bd !important; color: #fff; }
+.rank-num-bronze { background: #cd7f32 !important; color: #fff; }
+.rank-title {
+    flex: 1;
+    color: #333;
+    text-decoration: none;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.rank-title:hover { color: #007bff; }
+.rank-val {
+    color: #999;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+.rank-comment { flex: 1; min-width: 0; }
+.rank-comment-text {
+    display: block;
+    font-size: 11px;
+    color: #999;
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: color 0.15s ease;
+}
+/* 评论内容为链接：悬停变主题色提示可点击，跳转评论管理按文章过滤 */
+a.rank-comment-text:hover { color: #667eea; }
+
+/* 系统基本信息（原系统信息页精简合并） */
+.system-info-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+.system-info-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #333;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.system-info-label {
+    color: #6c757d;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+/* BlogKit 官方信息版权条 */
+.dashboard-footer {
+    text-align: center;
+    color: #6c757d;
+    font-size: 13px;
+}
+.dashboard-footer a {
+    color: #667eea;
+    text-decoration: none;
+}
+.dashboard-footer a:hover {
+    text-decoration: underline;
+}
+
+/* 响应式 */
+@media (max-width: 1200px) {
+    .stats-grid { grid-template-columns: repeat(3, 1fr); }
+    .dashboard-main { grid-template-columns: 1fr; }
+    .seo-metrics { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .rank-grid { grid-template-columns: 1fr; }
+    .quick-actions {
+        justify-content: stretch;
+    }
+    .action-btn {
+        flex: 1;
+        justify-content: center;
+        min-width: calc(50% - 6px);
+    }
+}
+@media (max-width: 480px) {
+    .stats-grid { grid-template-columns: 1fr; }
+    .action-btn {
+        min-width: 100%;
+    }
+}
+
+/* 深色主题 */
+body.dark-theme .stat-card {
+    background: #1e293b;
+    border-color: #334155;
+}
+body.dark-theme .stat-card-num {
+    color: #e2e8f0;
+}
+body.dark-theme .stat-card-text {
+    color: #94a3b8;
+}
+body.dark-theme .stat-card-realtime {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+body.dark-theme .section-box {
+    background: #1e293b;
+    border-color: #334155;
+}
+body.dark-theme .section-title {
+    color: #e2e8f0;
+}
+body.dark-theme .action-btn {
+    background: transparent;
+    border-color: #334155;
+    color: #e2e8f0;
+}
+body.dark-theme .action-btn:hover {
+    background: #334155;
+}
+body.dark-theme .action-btn.action-primary {
+    background: transparent;
+    border-color: #667eea;
+    color: #667eea;
+}
+body.dark-theme .action-btn.action-primary:hover {
+    background: #667eea;
+    color: #fff;
+}
+body.dark-theme .pending-section {
+    background: #1e293b;
+    border-color: #4a5568;
+}
+body.dark-theme .pending-title {
+    color: #fbbf24;
+}
+body.dark-theme .pending-item-warn {
+    background: #451a03;
+    color: #fcd34d;
+}
+body.dark-theme .pending-item-info {
+    background: #1e3a5f;
+    color: #93c5fd;
+}
+body.dark-theme .pending-item-success {
+    background: #14532d;
+    color: #86efac;
+}
+body.dark-theme .pending-item-gray {
+    background: #334155;
+    color: #cbd5e1;
+}
+body.dark-theme .seo-section {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
+body.dark-theme .seo-item {
+    background: #334155;
+}
+body.dark-theme .seo-label {
+    color: #94a3b8;
+}
+body.dark-theme .seo-value {
+    color: #e2e8f0;
+}
+body.dark-theme .health-row-success { background: #14532d; }
+body.dark-theme .health-row-warning { background: #451a03; }
+body.dark-theme .health-row-error { background: #581c1c; }
+body.dark-theme .health-name { color: #e2e8f0; }
+body.dark-theme .health-msg { color: #94a3b8; }
+body.dark-theme .health-status { color: #94a3b8; }
+body.dark-theme .rank-row {
+    border-bottom-color: #334155;
+}
+body.dark-theme .rank-title {
+    color: #e2e8f0;
+}
+body.dark-theme .rank-val {
+    color: #94a3b8;
+}
+body.dark-theme .rank-comment-text {
+    color: #64748b;
+}
+body.dark-theme .recent-item {
+    color: #e2e8f0;
+}
+body.dark-theme .recent-item:hover {
+    background: #334155;
+}
+body.dark-theme .rank-empty {
+    color: #64748b;
+}
+/* 深色主题：系统基本信息与官方信息条 */
+body.dark-theme .system-info-item {
+    background: #334155;
+    color: #e2e8f0;
+}
+body.dark-theme .system-info-label {
+    color: #94a3b8;
+}
+body.dark-theme .dashboard-footer {
+    color: #94a3b8;
+}

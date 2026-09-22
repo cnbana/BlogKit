@@ -1,0 +1,29 @@
+<?php $currentAction = 'hook'; $pageTitle = '钩子测试'; include 'components/page_wrapper.html'; ?>
+    
+    <!-- 操作栏 -->
+    <div class="action-section">
+        <a href="admin.php?action=hook" class="btn btn-secondary">返回钩子列表</a>
+    </div>
+    
+    <!-- 测试结果 -->
+    <div class="hook-test-result" style="margin-top: 20px;">
+        <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <h3>测试结果</h3>
+            <div class="test-result">
+                <p><strong>钩子名称:</strong> <?php echo $hook; ?></p>
+                <p><strong>测试数据:</strong> <pre style="background-color: #f8f9fa; padding: 10px; border-radius: 4px; font-size: 14px;"><?php echo json_encode(['test' => 'data'], JSON_PRETTY_PRINT); ?></pre></p>
+                <p><strong>是否有注册回调:</strong> <?php echo isset($testResult['has_callbacks']) && $testResult['has_callbacks'] ? '<span style="color: green;">是</span>' : '<span style="color: orange;">否</span>'; ?></p>
+                <p><strong>执行时间:</strong> <?php echo isset($testResult['execution_time']) ? $testResult['execution_time'] . ' ms' : '未知'; ?></p>
+                <p><strong>执行结果:</strong> <pre style="background-color: #f8f9fa; padding: 10px; border-radius: 4px; font-size: 14px;"><?php echo htmlspecialchars($result); ?></pre></p>
+                <p><strong>测试消息:</strong> <?php echo isset($testResult['message']) ? $testResult['message'] : ''; ?></p>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <h4>测试说明</h4>
+                <p>此测试会触发指定的钩子，并传递测试数据。钩子的执行结果会显示在上方。</p>
+                <p>如果钩子有注册的回调函数，它们会被执行并返回结果。</p>
+                <p>测试完成后，执行日志会记录到钩子日志中。</p>
+            </div>
+        </div>
+    </div>
+<?php include 'components/footer_wrapper.html'; ?>

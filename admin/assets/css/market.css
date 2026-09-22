@@ -1,0 +1,44 @@
+/* ========================================
+ * 后台应用市场页面样式 (market.css)
+ * 适用页面：market.html
+ * 由模板内嵌 <style> 归拢而来（2026-09 样式统一）
+ * 说明：仅包含后台内嵌市场的卡片悬停与无图占位样式，
+ *       作用域全部限定在 .mk-* 前缀，避免与公共样式冲突
+ * ======================================== */
+
+/* 市场卡片悬停效果与图片适配 */
+.mk-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+.mk-card a img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* 无图占位块（与官网 .mk-ph-* 同语义，文字居中） */
+.mk-card-ph {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+    color: #b6bfcc;
+    font-size: 16px;
+    letter-spacing: 4px;
+}
+.mk-card-ph-lg {
+    height: 140px;
+    font-size: 20px;
+    background: #eef1f5;
+    border-radius: 8px;
+}
+
+/* ===== 暗色主题适配 ===== */
+body.dark-theme .mk-card-ph {
+    color: #64748b;
+}
+body.dark-theme .mk-card-ph-lg {
+    background: #1e293b;
+}

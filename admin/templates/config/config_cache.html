@@ -1,0 +1,309 @@
+            <!-- 缓存设置内容 -->
+            <div class="form-container">
+                <form method="post" action="admin.php?action=<?php echo $currentAction; ?>&method=save">
+                    <input type="hidden" name="sub_page" value="<?php echo $sub; ?>">
+                    <!-- 缓存基本设置 -->
+                    <div class="form-section">
+                        <h4>缓存基本设置</h4>
+                        <div class="form-group">
+                            <label for="cache_enabled">缓存功能开关</label>
+                            <select id="cache_enabled" name="cache_enabled">
+                                <option value="1" <?php echo $config['cache_enabled'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['cache_enabled'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                            <p class="help-text">开启缓存可以显著提高网站访问速度，建议开启。</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="cache_type">缓存类型</label>
+                            <select id="cache_type" name="cache_type">
+                                <option value="file" <?php echo $config['cache_type'] == 'file' ? 'selected' : ''; ?>>文件缓存</option>
+                                <option value="redis" <?php echo $config['cache_type'] == 'redis' ? 'selected' : ''; ?>>Redis缓存</option>
+                            </select>
+                            <p class="help-text">文件缓存：简单易用，适合小型网站；Redis缓存：性能更好，适合大型网站（需要安装Redis服务）。</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 缓存高级设置 -->
+                    <div class="form-section">
+                        <h4>缓存高级设置</h4>
+                        <div class="form-group">
+                            <label for="cache_expire">缓存过期时间</label>
+                            <input type="number" id="cache_expire" name="cache_expire" value="<?php echo $config['cache_expire']; ?>" placeholder="请输入缓存过期时间（秒）">
+                            <p class="help-text">缓存数据的有效期，过期后会自动刷新。建议设置为3600秒（1小时）。</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="cache_size_limit">缓存大小限制</label>
+                            <input type="number" id="cache_size_limit" name="cache_size_limit" value="<?php echo $config['cache_size_limit']; ?>" placeholder="请输入缓存大小限制（MB）">
+                            <p class="help-text">限制缓存文件的总大小，超过后会自动清理旧缓存。建议设置为50-200MB。</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="cache_path">缓存存储路径</label>
+                            <input type="text" id="cache_path" name="cache_path" value="<?php echo $config['cache_path']; ?>" placeholder="请输入缓存存储路径">
+                            <p class="help-text">缓存文件的存储位置，建议使用默认路径。</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 缓存高级设置 -->
+                    <div class="form-section">
+                        <h4>缓存高级设置</h4>
+                        <div class="form-group">
+                            <label>缓存清理策略</label>
+                            <div class="static-value">LRU（最近最少使用）</div>
+                            <p class="help-text">系统当前按文件最后修改时间清理最旧的缓存文件。LFU 策略暂未实现，如需请在代码层面扩展。</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="cache_compression">启用缓存压缩</label>
+                            <select id="cache_compression" name="cache_compression">
+                                <option value="1" <?php echo $config['cache_compression'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['cache_compression'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                            <p class="help-text">开启后会压缩缓存数据，减少存储空间但会增加CPU使用。适合存储空间有限的服务器。</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="cache_key_prefix">缓存键前缀</label>
+                            <input type="text" id="cache_key_prefix" name="cache_key_prefix" value="<?php echo $config['cache_key_prefix']; ?>" placeholder="请输入缓存键前缀">
+                            <p class="help-text">为缓存键添加前缀，避免不同系统间的缓存冲突。建议使用网站名称或标识。</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="cache_batch_operation">启用批量操作</label>
+                            <select id="cache_batch_operation" name="cache_batch_operation">
+                                <option value="1" <?php echo $config['cache_batch_operation'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['cache_batch_operation'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                            <p class="help-text">开启后支持批量设置、获取和删除缓存，提高操作效率。建议开启。</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 缓存监控设置 -->
+                    <div class="form-section">
+                        <h4>缓存监控设置</h4>
+                        <div class="form-group">
+                            <label for="cache_monitoring_enabled">启用缓存监控</label>
+                            <select id="cache_monitoring_enabled" name="cache_monitoring_enabled">
+                                <option value="1" <?php echo $config['cache_monitoring_enabled'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['cache_monitoring_enabled'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                            <p class="help-text">开启后会记录缓存使用情况和性能数据，便于分析和优化。</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="cache_history_days">缓存历史数据保留天数</label>
+                            <input type="number" id="cache_history_days" name="cache_history_days" value="<?php echo $config['cache_history_days']; ?>" placeholder="请输入缓存历史数据保留天数">
+                            <p class="help-text">控制监控数据的保留时间，避免数据库过度增长。</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 提交按钮 -->
+                    <div class="buttons">
+                        <button type="submit" class="btn btn-primary">保存设置</button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- 缓存监控和清理 -->
+            <div style="margin-top: 30px;">
+                <h3>缓存监控与清理</h3>
+                <div class="form-container">
+                    <!-- 缓存健康状态 -->
+                    <div class="form-section">
+                        <h4>缓存健康状态</h4>
+                        <p class="help-text">显示缓存系统的整体运行状态，包括目录权限、磁盘空间等关键指标。</p>
+                        <?php
+                        $healthStatus = Cache::getCacheHealthStatus();
+                        $statusClass = $healthStatus['status'] == 'healthy' ? 'healthy' : ($healthStatus['status'] == 'warning' ? 'warning' : 'critical');
+                        ?>
+                        <div class="health-status <?php echo $statusClass; ?>">
+                            <div class="status-header">
+                                <span class="status-indicator"></span>
+                                <span class="status-message"><?php echo $healthStatus['message']; ?></span>
+                            </div>
+                            <div class="status-details">
+                                <?php foreach ($healthStatus['details'] as $key => $value): ?>
+                                    <div class="detail-item">
+                                        <span class="detail-label"><?php echo ucfirst(str_replace('_', ' ', $key)); ?>:</span>
+                                        <span class="detail-value"><?php echo $value; ?></span>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 缓存监控 -->
+                    <div class="form-section">
+                        <h4>缓存监控</h4>
+                        <p class="help-text">实时监控缓存的使用情况和性能指标，帮助您了解缓存效果。</p>
+                        <?php
+                        // 缓存类通过自动加载器加载
+                        $cache = Cache::getInstance();
+                        $stats = $cache->getStats();
+                        $cacheSize = $cache->getCacheSize();
+                        $total = $stats['hits'] + $stats['misses'];
+                        $hitRate = $total > 0 ? round(($stats['hits'] / $total) * 100, 2) : 0;
+                        ?>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <span class="stat-label">缓存命中率</span>
+                                <span class="stat-value">
+                                    <?php echo $hitRate; ?>%
+                                </span>
+                                <small class="stat-desc">越高越好，理想值>80%</small>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">缓存命中数</span>
+                                <span class="stat-value"><?php echo $stats['hits']; ?></span>
+                                <small class="stat-desc">从缓存中获取数据的次数</small>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">缓存未命中数</span>
+                                <span class="stat-value"><?php echo $stats['misses']; ?></span>
+                                <small class="stat-desc">缓存中未找到数据的次数</small>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">缓存大小</span>
+                                <span class="stat-value">
+                                    <?php echo round($cacheSize / (1024 * 1024), 2); ?> MB
+                                </span>
+                                <small class="stat-desc">当前缓存占用的存储空间</small>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">缓存操作数</span>
+                                <span class="stat-value"><?php echo $stats['sets'] + $stats['deletes']; ?></span>
+                                <small class="stat-desc">缓存的写入和删除操作总数</small>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">缓存运行时间</span>
+                                <span class="stat-value"><?php echo $stats['uptime']; ?> 秒</span>
+                                <small class="stat-desc">缓存系统连续运行的时间</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 缓存清理 -->
+                    <div class="form-section">
+                        <h4>缓存清理</h4>
+                        <p class="help-text">当缓存数据过期或占用空间过大时，可以清理指定类型的缓存数据。</p>
+                        <form method="post" action="admin.php?action=<?php echo $currentAction; ?>&method=clearCache">
+                            <div class="form-group">
+                                <label for="cache_clean_type">清理类型</label>
+                                <select id="cache_clean_type" name="cache_clean_type">
+                                    <option value="all">所有缓存</option>
+                                    <option value="page">页面缓存</option>
+                                    <option value="data">数据缓存</option>
+                                    <option value="expired">过期缓存</option>
+                                </select>
+                                <p class="help-text">
+                                    <strong>所有缓存</strong>：清理所有缓存数据，包括页面和数据缓存<br>
+                                    <strong>页面缓存</strong>：只清理生成的页面缓存文件<br>
+                                    <strong>数据缓存</strong>：只清理数据库查询结果等数据缓存<br>
+                                    <strong>过期缓存</strong>：只清理已过期的缓存数据
+                                </p>
+                            </div>
+                            <div class="buttons">
+                                <button type="submit" class="btn btn-danger" onclick="return confirm('确定要清理所选类型的缓存吗？');">清理缓存</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 缓存监控样式 -->
+            <style>
+                .health-status {
+                    padding: 20px;
+                    border-radius: 8px;
+                    margin-bottom: 20px;
+                }
+                .health-status.healthy {
+                    background-color: #d4edda;
+                    border: 1px solid #c3e6cb;
+                }
+                .health-status.warning {
+                    background-color: #fff3cd;
+                    border: 1px solid #ffeeba;
+                }
+                .health-status.critical {
+                    background-color: #f8d7da;
+                    border: 1px solid #f5c6cb;
+                }
+                .status-header {
+                    display: flex;
+                    align-items: center;
+                    margin-bottom: 15px;
+                }
+                .status-indicator {
+                    width: 12px;
+                    height: 12px;
+                    border-radius: 50%;
+                    margin-right: 10px;
+                }
+                .health-status.healthy .status-indicator {
+                    background-color: #28a745;
+                }
+                .health-status.warning .status-indicator {
+                    background-color: #ffc107;
+                }
+                .health-status.critical .status-indicator {
+                    background-color: #dc3545;
+                }
+                .status-message {
+                    font-weight: bold;
+                    font-size: 16px;
+                }
+                .status-details {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                    gap: 10px;
+                }
+                .detail-item {
+                    display: flex;
+                    justify-content: space-between;
+                }
+                .detail-label {
+                    color: #6c757d;
+                }
+                .detail-value {
+                    font-weight: bold;
+                }
+            </style>
+            
+            <style>
+                .help-text {
+                    font-size: 14px;
+                    color: #6c757d;
+                    margin-top: 5px;
+                    margin-bottom: 15px;
+                    line-height: 1.4;
+                }
+                
+                .stats-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                    gap: 20px;
+                    margin: 20px 0;
+                }
+                .stat-item {
+                    background: #f8f9fa;
+                    padding: 20px;
+                    border-radius: 8px;
+                    text-align: center;
+                    border: 1px solid #dee2e6;
+                }
+                .stat-label {
+                    display: block;
+                    font-size: 14px;
+                    color: #6c757d;
+                    margin-bottom: 10px;
+                }
+                .stat-value {
+                    display: block;
+                    font-size: 24px;
+                    font-weight: bold;
+                    color: #495057;
+                    margin-bottom: 5px;
+                }
+                .stat-desc {
+                    display: block;
+                    font-size: 12px;
+                    color: #6c757d;
+                    line-height: 1.3;
+                }
+            </style>

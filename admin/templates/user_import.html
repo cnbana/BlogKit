@@ -1,0 +1,88 @@
+<?php $currentAction = 'user'; $pageTitle = '导入用户'; include 'components/page_wrapper.html'; ?>
+    
+    <!-- 用户管理子菜单 -->
+    <div class="nav-tabs">
+        <a href="admin.php?action=user" class="nav-tab">用户列表</a>
+        <a href="admin.php?action=role" class="nav-tab">角色管理</a>
+        <a href="admin.php?action=permission" class="nav-tab">权限管理</a>
+    </div>
+    
+    <div class="table-container">
+        <?php if (isset($_SESSION['import_results'])): ?>
+        <div style="margin-bottom: 20px; padding: 15px; background: #f0f9ff; border: 1px solid #b3e5fc; border-radius: 4px;">
+            <h3 style="margin-top: 0;">导入结果</h3>
+            <p><strong>成功:</strong> <?php echo $_SESSION['import_results']['success']; ?> 个</p>
+            <p><strong>失败:</strong> <?php echo $_SESSION['import_results']['failed']; ?> 个</p>
+            <p><strong>跳过:</strong> <?php echo $_SESSION['import_results']['skipped']; ?> 个</p>
+            
+            <?php if (!empty($_SESSION['import_results']['errors'])): ?>
+            <div style="margin-top: 15px;">
+                <strong>详细信息:</strong>
+                <ul style="margin-top: 10px; max-height: 200px; overflow-y: auto; background: #fff; padding: 10px; border: 1px solid #ddd;">
+                <?php foreach ($_SESSION['import_results']['errors'] as $error): ?>
+                    <li style="margin: 5px 0; color: #dc3545;"><?php echo htmlspecialchars($error); ?></li>
+                <?php endforeach; ?>
+                </ul>
+            </div>
+            <?php endif; ?>
+        </div>
+        <?php unset($_SESSION['import_results']); ?>
+        <?php endif; ?>
+        
+        <div style="padding: 20px;">
+            <h3>导入说明</h3>
+            <ul style="margin: 15px 0; color: #666;">
+                <li>请上传CSV格式文件</li>
+                <li>文件格式: 用户名,昵称,邮箱,密码,角色(可选)</li>
+                <li>用户名和密码为必填项</li>
+                <li>已存在的用户名会被跳过</li>
+                <li>邮箱不能重复</li>
+                <li>角色可选值: 普通用户,作者 (如不指定则默认为普通用户)</li>
+                <li><strong style="color: #dc3545;">单次最多导入 1000 条数据</strong></li>
+            </ul>
+            
+            <h4 style="margin-top: 20px;">CSV文件示例:</h4>
+            <pre style="background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto;">
+用户名,昵称,邮箱,密码,角色
+testuser1,测试用户1,test1@example.com,123456,普通用户
+testuser2,测试用户2,test2@example.com,password123,作者</pre>
+            
+            <div style="margin-top: 20px;">
+                <a href="javascript:void(0)" onclick="downloadSample()" class="btn btn-secondary">下载示例CSV</a>
+            </div>
+            
+            <hr style="margin: 30px 0;">
+            
+            <h3>上传文件</h3>
+            <form method="post" action="admin.php?action=user&sub=doImport" enctype="multipart/form-data" style="margin-top: 20px;">
+                <div style="margin-bottom: 15px;">
+                    <input type="file" name="import_file" accept=".csv" required style="padding: 10px;">
+                </div>
+                <button type="submit" class="btn btn-primary" onclick="return confirm('确定要导入用户吗？');">开始导入</button>
+                <a href="admin.php?action=user" class="btn btn-secondary" style="margin-left: 10px;">返回</a>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+    function downloadSample() {
+        const sample = '用户名,昵称,邮箱,密码,角色\n' +
+                      'testuser1,测试用户1,test1@example.com,123456,普通用户\n' +
+                      'testuser2,测试用户2,test2@example.com,password123,作者';
+        
+        const blob = new Blob(['\ufeff' + sample], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'sample_users.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    }
+    </script>
+    
+</main>
+<?php include 'components/footer_wrapper.html'; ?>

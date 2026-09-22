@@ -1,0 +1,68 @@
+<?php $currentAction = 'role'; $pageTitle = '编辑角色'; include 'components/page_wrapper.html'; ?>
+    
+    <div class="form-container">
+        <form method="post" action="admin.php?action=role&sub=edit&id=<?php echo $role['id']; ?>">
+            <?php if (isset($error)): ?>
+            <div class="error-message" style="margin-bottom: 20px; padding: 15px; background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; border-radius: 5px;">
+                <?php echo $error; ?>
+            </div>
+            <?php endif; ?>
+            
+            <div class="form-group">
+                <label for="name">角色名称</label>
+                <input type="text" id="name" name="name" value="<?php echo $role['name']; ?>" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="description">角色描述</label>
+                <textarea id="description" name="description" rows="3"><?php echo $role['description']; ?></textarea>
+            </div>
+            
+            <?php if (!in_array($role['id'], [1, 2, 3])): ?>
+            <div class="form-group">
+                <label for="parent_id">父角色</label>
+                <select id="parent_id" name="parent_id">
+                    <option value="0">顶级角色</option>
+                    <?php foreach ($roles as $parentRole): ?>
+                    <option value="<?php echo $parentRole['id']; ?>" <?php echo $parentRole['id'] == $role['parent_id'] ? 'selected' : ''; ?>>
+                        <?php echo $parentRole['name']; ?>
+                    </option>
+                    <?php endforeach; ?>
+                </select>
+                <small>选择父角色后，将继承父角色的所有权限</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="status">状态</label>
+                <div class="checkbox-container">
+                    <input type="checkbox" id="status" name="status" <?php echo $role['status'] == 1 ? 'checked' : ''; ?>>
+                    <label for="status">启用</label>
+                </div>
+            </div>
+            <?php else: ?>
+            <div class="form-group">
+                <label>父角色</label>
+                <div style="padding: 8px; background-color: #e9ecef; border-radius: 4px; color: #495057;">
+                    <?php echo $role['name']; ?>角色
+                </div>
+                <small style="display: block; margin-top: 5px; color: #6c757d;"><?php echo $role['name']; ?>角色没有父角色</small>
+            </div>
+            
+            <div class="form-group">
+                <label>状态</label>
+                <div style="padding: 8px; background-color: #e9ecef; border-radius: 4px; color: #495057;">
+                    启用
+                </div>
+                <small style="display: block; margin-top: 5px; color: #6c757d;"><?php echo $role['name']; ?>角色状态无法更改</small>
+            </div>
+            <?php endif; ?>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">保存</button>
+                <a href="admin.php?action=role" class="btn btn-default">取消</a>
+            </div>
+        </form>
+    </div>
+</main>
+
+<?php include 'components/footer_wrapper.html'; ?>

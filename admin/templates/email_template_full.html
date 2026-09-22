@@ -1,0 +1,187 @@
+
+<!-- 主内容区 -->
+<main class="main-content">
+    <div class="header">
+        <h2><?php echo $pageTitle; ?></h2>
+        <div class="user-info">
+            <span>欢迎<?php echo $_SESSION['admin']['nickname']; ?></span>
+            <a href="admin.php?action=logout">退出登录</a>
+        </div>
+    </div>
+
+    <!-- 操作成功/失败的提示消息 -->
+    <?php if (!empty($_SESSION['flash_success'])): ?>
+        <div style="padding: 10px 16px; margin-bottom: 16px; background: #dff0d8; color: #3c763d;
+                    border: 1px solid #d6e9c6; border-radius: 4px;">
+            <?php echo htmlspecialchars($_SESSION['flash_success']); unset($_SESSION['flash_success']); ?>
+        </div>
+    <?php endif; ?>
+    <?php if (!empty($_SESSION['flash_error'])): ?>
+        <div style="padding: 10px 16px; margin-bottom: 16px; background: #f2dede; color: #a94442;
+                    border: 1px solid #ebccd1; border-radius: 4px;">
+            <?php echo htmlspecialchars($_SESSION['flash_error']); unset($_SESSION['flash_error']); ?>
+        </div>
+    <?php endif; ?>
+
+    <!-- 邮件模板管理内容 -->
+    <div class="form-container">
+        <?php if (!isset($showList) || $showList): ?>
+            <!-- 模板列表 -->
+            <div class="template-list">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <a href="admin.php?action=email_template&method=add" class="btn btn-primary">添加模板</a>
+                </div>
+                
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>模板名称</th>
+                            <th>模板类型</th>
+                            <th>主题</th>
+                            <th>是否默认</th>
+                            <th>状态</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($templates as $template): ?>
+                            <tr>
+                                <td><?php echo $template['id']; ?></td>
+                                <td><?php echo $template['name']; ?></td>
+                                <td><?php echo isset($templateTypes[$template['type']]) ? $templateTypes[$template['type']] : $template['type']; ?></td>
+                                <td><?php echo $template['subject']; ?></td>
+                                <td><?php echo $template['is_default'] ? '是' : '否'; ?></td>
+                                <td><?php echo $template['status'] ? '启用' : '禁用'; ?></td>
+                                <td><?php echo date('Y-m-d H:i:s', $template['created_at']); ?></td>
+                                <td>
+                                    <a href="admin.php?action=email_template&method=edit&id=<?php echo $template['id']; ?>" class="btn btn-sm btn-info">编辑</a>
+                                    <?php if (!$template['is_default']): ?>
+                                        <a href="admin.php?action=email_template&method=setDefault&id=<?php echo $template['id']; ?>" class="btn btn-sm btn-success">设为默认</a>
+                                    <?php endif; ?>
+                                    <a href="admin.php?action=email_template&method=delete&id=<?php echo $template['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('确定要删除这个模板吗？')">删除</a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        <?php if (empty($templates)): ?>
+                            <tr>
+                                <td colspan="8" style="text-align: center; color: #666;">暂无模板数据</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php else: ?>
+            <!-- 添加/编辑模板 -->
+            <h3 style="margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #eee;">
+                <?php echo isset($template) ? '编辑模板' : '添加模板'; ?>
+            </h3>
+            
+            <form method="post" action="admin.php?action=email_template&method=save">
+                <?php if (isset($template)): ?>
+                    <input type="hidden" name="id" value="<?php echo $template['id']; ?>">
+                <?php endif; ?>
+                
+                <div class="form-group">
+                    <label for="name">模板名称</label>
+                    <input type="text" id="name" name="name" value="<?php echo isset($template) ? $template['name'] : (isset($defaultTemplate) ? $defaultTemplate['name'] : ''); ?>" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="type">模板类型</label>
+                    <select id="type" name="type" required <?php echo isset($template) ? 'disabled' : ''; ?>>
+                        <?php foreach ($templateTypes as $type => $name): ?>
+                            <option value="<?php echo $type; ?>" 
+                                <?php echo (isset($template) && $template['type'] == $type) || (isset($defaultTemplate) && $defaultTemplate['type'] == $type) ? 'selected' : ''; ?>>
+                                <?php echo $name; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <?php if (isset($template)): ?>
+                        <input type="hidden" name="type" value="<?php echo $template['type']; ?>">
+                    <?php endif; ?>
+                </div>
+                
+                <div class="form-group">
+                    <label for="subject">邮件主题</label>
+                    <input type="text" id="subject" name="subject" value="<?php echo isset($template) ? $template['subject'] : (isset($defaultTemplate) ? $defaultTemplate['subject'] : ''); ?>" required>
+                    <small>支持使用变量，如：{site_name}、{username}等</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="content">邮件内容</label>
+                    <textarea id="content" name="content" rows="15" required><?php echo isset($template) ? $template['content'] : (isset($defaultTemplate) ? $defaultTemplate['content'] : ''); ?></textarea>
+                    <small>支持HTML格式和变量，如：{site_name}、{username}等</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="is_default">
+                        <input type="checkbox" id="is_default" name="is_default" 
+                            <?php echo (isset($template) && $template['is_default']) || (isset($defaultTemplate) && $defaultTemplate['is_default']) ? 'checked' : ''; ?>>
+                        设为默认模板
+                    </label>
+                </div>
+                
+                <div class="form-group">
+                    <label for="status">
+                        <input type="checkbox" id="status" name="status" 
+                            <?php echo (isset($template) && $template['status']) || (isset($defaultTemplate) && $defaultTemplate['status']) ? 'checked' : ''; ?>>
+                        启用模板
+                    </label>
+                </div>
+                
+                <div style="margin: 30px 0; padding: 20px; background-color: #f8f9fa; border-radius: 5px; border: 1px solid #e9ecef;">
+                    <h4>模板预览</h4>
+                    <p>点击预览按钮查看模板渲染效果</p>
+                    <button type="button" class="btn btn-info" id="preview-btn">预览模板</button>
+                    <div id="preview-result" style="margin-top: 20px; border: 1px solid #ddd; padding: 15px; background-color: white;"></div>
+                </div>
+                
+                <div class="buttons">
+                    <a href="admin.php?action=email_template" class="btn btn-secondary">返回列表</a>
+                    <button type="submit" class="btn btn-primary">保存模板</button>
+                </div>
+            </form>
+        <?php endif; ?>
+    </div><!-- /.form-container -->
+
+    <script>
+    // 预览模板功能
+    $(document).ready(function() {
+        $('#preview-btn').on('click', function() {
+            const type = $('#type').val();
+            const subject = $('#subject').val();
+            const content = $('#content').val();
+            
+            $.ajax({
+                url: 'admin.php?action=email_template&method=preview',
+                type: 'POST',
+                data: {
+                    type: type,
+                    subject: subject,
+                    content: content
+                },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        const result = response.data;
+                        let html = '<h3>预览结果</h3>';
+                        html += '<div style="margin-bottom: 20px;">';
+                        html += '<strong>主题：</strong>' + result.subject + '<br>';
+                        html += '<strong>内容：</strong>';
+                        html += '</div>';
+                        html += '<div style="border: 1px solid #eee; padding: 15px;">' + result.content + '</div>';
+                        $('#preview-result').html(html);
+                    } else {
+                        $('#preview-result').html('<div style="color: red;">预览失败：' + (response.message || '未知错误') + '</div>');
+                    }
+                },
+                error: function() {
+                    $('#preview-result').html('<div style="color: red;">预览失败：网络错误</div>');
+                }
+            });
+        });
+    });
+    </script>
+</main>

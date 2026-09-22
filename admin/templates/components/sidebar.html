@@ -1,0 +1,87 @@
+<?php
+/**
+ * 侧边栏模板
+ * 业务逻辑已提取至 sidebar_logic.html
+ */
+require_once __DIR__ . '/sidebar_logic.html';
+?>
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <span class="sidebar-title">BlogKit 管理</span>
+                <div class="sidebar-header-actions">
+                    <button class="sidebar-toggle" title="折叠/展开侧边栏">
+                        <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <nav class="sidebar-menu" id="sidebarMenu">
+                <ul>
+                    <?php echo $menuHtml; ?>
+                </ul>
+            </nav>
+            
+            <!-- 快捷键提示按钮 -->
+            <div class="sidebar-footer">
+                <button class="shortcut-hint-btn" id="shortcutHintBtn" title="查看快捷键">
+                    <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                </button>
+            </div>
+        </aside>
+        
+        <!-- 快捷键提示弹窗 -->
+        <div class="shortcut-modal" id="shortcutModal">
+            <div class="shortcut-modal-content">
+                <div class="shortcut-modal-header">
+                    <h3>键盘快捷键</h3>
+                    <button class="shortcut-modal-close" id="shortcutModalClose">
+                        <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="shortcut-modal-body">
+                    <div class="shortcut-item">
+                        <span class="shortcut-desc">菜单导航</span>
+                        <span class="shortcut-keys">↑ ↓</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-desc">展开子菜单</span>
+                        <span class="shortcut-keys">→</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-desc">收起子菜单</span>
+                        <span class="shortcut-keys">←</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-desc">激活/跳转</span>
+                        <span class="shortcut-keys">Enter / 空格</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-desc">跳转到仪表盘</span>
+                        <span class="shortcut-keys">Ctrl + D</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-desc">打开命令面板</span>
+                        <span class="shortcut-keys">Ctrl + K</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-desc">打开/关闭快捷键提示</span>
+                        <span class="shortcut-keys">Ctrl + /</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-desc">关闭弹窗</span>
+                        <span class="shortcut-keys">Esc</span>
+                    </div>
+                </div>
+            </div>
+        </div>

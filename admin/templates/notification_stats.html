@@ -1,0 +1,57 @@
+<?php $currentAction = 'notification_stats'; $pageTitle = '通知统计'; include 'components/page_wrapper.html'; ?>
+    
+    <!-- 统计卡片 -->
+    <div class="stats">
+        <div class="stat-card">
+            <h3><?php echo isset($stats['total']) ? $stats['total'] : 0; ?></h3>
+            <p>总通知数</p>
+        </div>
+        <div class="stat-card">
+            <h3><?php echo isset($stats['unread']) ? $stats['unread'] : 0; ?></h3>
+            <p>未读通知数</p>
+        </div>
+        <div class="stat-card">
+            <h3><?php echo isset($stats['read']) ? $stats['read'] : 0; ?></h3>
+            <p>已读通知数</p>
+        </div>
+        <div class="stat-card">
+            <h3><?php echo isset($stats['by_type']['system']) ? $stats['by_type']['system'] : 0; ?></h3>
+            <p>系统通知数</p>
+        </div>
+    </div>
+    
+    <!-- 类型统计 -->
+    <div class="card">
+        <h3>通知类型统计</h3>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>通知类型</th>
+                        <th>数量</th>
+                        <th>占比</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (isset($stats['by_type']) && is_array($stats['by_type'])): ?>
+                        <?php foreach ($stats['by_type'] as $type => $count): ?>
+                            <tr>
+                                <td><?php echo ucfirst($type); ?></td>
+                                <td><?php echo $count; ?></td>
+                                <td><?php echo isset($stats['total']) && $stats['total'] > 0 ? round(($count / $stats['total']) * 100, 2) : 0; ?>%</td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="3" style="text-align: center;">暂无数据</td>
+                        </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+
+</main>
+
+<?php include 'components/footer_wrapper.html'; ?>

@@ -1,0 +1,391 @@
+<!-- 数据库迁移管理 -->
+<style>
+.migrate-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 20px;
+}
+.migrate-card h4 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
+    color: #1a202c;
+}
+.migrate-status {
+    display: flex;
+    gap: 40px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+.migrate-status .item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.migrate-status .label {
+    font-size: 12px;
+    color: #718096;
+    text-transform: uppercase;
+}
+.migrate-status .value {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2d3748;
+}
+.migrate-status .value.needs-update { color: #e53e3e; }
+.migrate-status .value.up-to-date { color: #38a169; }
+.migrate-status .value.na { color: #a0aec0; }
+
+.migrate-buttons {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+.btn-danger { background: #e53e3e; color: #fff; border: none; }
+.btn-danger:hover { background: #c53030; }
+.btn-outline { background: transparent; border: 1px solid #cbd5e0; color: #4a5568; }
+.btn-outline:hover { background: #f7fafc; }
+
+.migrate-report {
+    background: #1a202c;
+    color: #e2e8f0;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 20px;
+    border-radius: 6px;
+    white-space: pre-wrap;
+    max-height: 500px;
+    overflow-y: auto;
+    display: none;
+}
+.migrate-report.visible { display: block; }
+.migrate-report.has-errors { border: 2px solid #fc8181; }
+.migrate-report.success { border: 2px solid #68d391; }
+
+.migrate-warning {
+    background: #fffff0;
+    border: 1px solid #faf089;
+    color: #975a16;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    font-size: 14px;
+}
+.migrate-warning strong { display: block; margin-bottom: 4px; }
+
+.migrate-features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+.migrate-features .feature-item {
+    background: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #4a5568;
+}
+.migrate-features .feature-item strong {
+    display: block;
+    color: #2d3748;
+    margin-bottom: 4px;
+}
+.migrate-features .feature-item .check { color: #38a169; margin-right: 4px; }
+
+/* 迁移历史表格 */
+.migrate-history { margin-top: 20px; }
+.migrate-history table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.migrate-history th {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 2px solid #e2e8f0;
+    color: #718096;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+}
+.migrate-history td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #f0f4f8;
+    color: #4a5568;
+}
+.migrate-history .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+}
+.badge-success { background: #c6f6d5; color: #22543d; }
+.badge-fail { background: #fed7d7; color: #822727; }
+.badge-preview { background: #fefcbf; color: #744210; }
+
+.spinning { animation: spin 1s linear infinite; }
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+</style>
+
+<div class="migrate-card">
+    <h4>📦 数据库迁移管理</h4>
+    <p style="color: #718096; font-size: 14px; margin-bottom: 16px;">
+        自动比对 <code>install.sql</code> 与当前数据库结构，发现差异后一键同步。
+        支持 <strong>新增表/字段/索引</strong>、<strong>外键约束同步</strong>、<strong>配置项种子数据</strong>、<strong>ENUM 类型变更</strong>。
+    </p>
+    
+    <!-- 使用说明 -->
+    <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+        <h5 style="color: #0369a1; margin: 0 0 12px 0; font-size: 15px;">📖 使用说明</h5>
+        <div style="color: #374151; font-size: 14px; line-height: 1.8;">
+            <p style="margin: 0 0 10px 0;"><strong>第一步：检查版本状态</strong></p>
+            <p style="margin: 0 0 10px 20px;">• 查看页面上方的「当前数据库版本」和「目标版本」</p>
+            <p style="margin: 0 0 10px 20px;">• 如果状态显示为「✅ 最新」，说明数据库已是最新版本</p>
+            <p style="margin: 0 0 10px 20px;">• 如果状态显示为「⚠ 需要升级」，请继续下一步</p>
+            
+            <p style="margin: 15px 0 10px 0;"><strong>第二步：预览变更（推荐）</strong></p>
+            <p style="margin: 0 0 10px 20px;">• 点击「🔍 预览变更」按钮</p>
+            <p style="margin: 0 0 10px 20px;">• 系统会分析并显示将要执行的 SQL 语句</p>
+            <p style="margin: 0 0 10px 20px;">• 仔细检查这些变更是否符合预期</p>
+            
+            <p style="margin: 15px 0 10px 0;"><strong>第三步：执行迁移</strong></p>
+            <p style="margin: 0 0 10px 20px;">• 确认预览的变更无误后，点击「⚡ 执行迁移」</p>
+            <p style="margin: 0 0 10px 20px;">• 系统会自动执行所有数据库更新操作</p>
+            <p style="margin: 0 0 10px 20px;">• 执行完成后会显示详细报告</p>
+            
+            <p style="margin: 15px 0 10px 0;"><strong>第四步：查看结果</strong></p>
+            <p style="margin: 0 0 10px 20px;">• 查看执行报告确认迁移是否成功</p>
+            <p style="margin: 0 0 10px 20px;">• 页面底部会显示最近的迁移历史记录</p>
+            <p style="margin: 0 0 5px 20px;">• 成功后状态会自动更新为「✅ 最新」</p>
+        </div>
+    </div>
+    
+    <!-- 注意事项 -->
+    <div style="background: #fefce8; border: 1px solid #fde047; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+        <h5 style="color: #854d0e; margin: 0 0 10px 0; font-size: 15px;">⚠️ 注意事项</h5>
+        <ul style="color: #713f12; font-size: 14px; line-height: 1.8; margin: 0; padding-left: 20px;">
+            <li style="margin-bottom: 8px;"><strong>备份数据：</strong>执行迁移前建议先备份数据库，以防万一</li>
+            <li style="margin-bottom: 8px;"><strong>先预览再执行：</strong>务必先点击「预览变更」检查将要执行的 SQL</li>
+            <li style="margin-bottom: 8px;"><strong>安全原则：</strong>本系统只做新增操作，不会删除任何表或字段</li>
+            <li style="margin-bottom: 8px;"><strong>失败保护：</strong>执行出错时不会更新版本号，可以安全重试</li>
+            <li><strong>查看日志：</strong>页面底部的迁移历史可以查看所有操作记录</li>
+        </ul>
+    </div>
+
+    <!-- 功能清单 -->
+    <div class="migrate-features">
+        <div class="feature-item">
+            <strong><span class="check">✅</span> 新增表/列/索引</strong>
+            检测 install.sql 中缺失的表和字段，自动生成 ALTER TABLE ADD COLUMN
+        </div>
+        <div class="feature-item">
+            <strong><span class="check">✅</span> 外键约束同步</strong>
+            自动添加缺失的外键约束（22 个），保证数据引用完整性
+        </div>
+        <div class="feature-item">
+            <strong><span class="check">✅</span> 配置项种子数据</strong>
+            自动插入新增的配置项（如时区、备案等），不动已有配置
+        </div>
+        <div class="feature-item">
+            <strong><span class="check">✅</span> ENUM 类型变更</strong>
+            检测 ENUM 列的新增取值，自动 MODIFY COLUMN 追加
+        </div>
+        <div class="feature-item">
+            <strong><span class="check">✅</span> 版本自动识别</strong>
+            从 install.sql 头部注释自动提取目标版本号，无需手动修改常量
+        </div>
+        <div class="feature-item">
+            <strong><span class="check">✅</span> 迁移审计日志</strong>
+            每次操作记录到 bk_migration_log 表，可追溯历史变更
+        </div>
+        <div class="feature-item">
+            <strong><span class="check">✅</span> 失败保护</strong>
+            执行出错不更新版本号，避免数据库处于不一致状态
+        </div>
+        <div class="feature-item">
+            <strong><span class="check">✅</span> 安全原则</strong>
+            绝不 DROP COLUMN / DROP INDEX，不修改已有列类型（ENUM 除外）
+        </div>
+    </div>
+
+    <!-- 版本状态 -->
+    <div class="migrate-status">
+        <div class="item">
+            <span class="label">当前数据库版本</span>
+            <span class="value <?php echo ($migrateStatus['current_version'] === null) ? 'na' : ''; ?>">
+                <?php echo $migrateStatus['current_version'] ?? '未知（首次安装）'; ?>
+            </span>
+        </div>
+        <div class="item">
+            <span class="label">目标版本（install.sql）</span>
+            <span class="value"><?php echo htmlspecialchars($migrateStatus['target_version']); ?></span>
+        </div>
+        <div class="item">
+            <span class="label">状态</span>
+            <?php if ($migrateStatus['current_version'] === null): ?>
+                <span class="value na">未记录</span>
+            <?php elseif ($migrateStatus['current_version'] === $migrateStatus['target_version']): ?>
+                <span class="value up-to-date">✅ 最新</span>
+            <?php else: ?>
+                <span class="value needs-update">⚠ 需要升级</span>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <div class="migrate-warning">
+        <strong>⚠ 操作提示</strong>
+        建议先点击"预览变更"，确认无异常后再"执行迁移"。系统会自动检查并同步：缺失的表、字段、索引、外键、新配置项、ENUM 枚举值。执行失败不会更新版本号。
+    </div>
+
+    <div class="migrate-buttons">
+        <button id="btn-preview" class="btn btn-outline" onclick="doMigrate('preview')">
+            🔍 预览变更
+        </button>
+        <button id="btn-run" class="btn btn-danger" onclick="doMigrate('run')">
+            ⚡ 执行迁移
+        </button>
+    </div>
+
+    <!-- 报告输出区 -->
+    <div id="migrate-report" class="migrate-report"></div>
+    <div id="migrate-loading" style="display:none; text-align:center; padding: 20px; color: #718096;">
+        ⏳ 正在分析数据库结构，请稍候...
+    </div>
+</div>
+
+<!-- 迁移历史日志 -->
+<?php
+// 查询最近 20 条迁移日志
+$migrateHistory = [];
+try {
+    $db = Database::getInstance();
+    $logTable = $db->table('migration_log');
+    // 检查表是否存在
+    $tableCheck = $db->fetch("SHOW TABLES LIKE '$logTable'");
+    if ($tableCheck) {
+        $historyRows = $db->fetchAll("SELECT * FROM `$logTable` ORDER BY id DESC LIMIT 20");
+        if ($historyRows) {
+            $migrateHistory = $historyRows;
+        }
+    }
+} catch (Exception $e) {
+    // 忽略查询错误
+}
+?>
+
+<?php if (!empty($migrateHistory)): ?>
+<div class="migrate-card">
+    <h4>📋 迁移历史日志</h4>
+    <p style="color: #718096; font-size: 13px; margin-bottom: 12px;">最近 20 次迁移操作记录</p>
+    <div class="migrate-history">
+        <table>
+            <thead>
+                <tr>
+                    <th>时间</th>
+                    <th>操作</th>
+                    <th>版本</th>
+                    <th>结果</th>
+                    <th>表</th>
+                    <th>字段</th>
+                    <th>索引</th>
+                    <th>外键</th>
+                    <th>配置项</th>
+                    <th>枚举</th>
+                    <th>耗时</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($migrateHistory as $log): ?>
+                <tr>
+                    <td><?php echo date('m-d H:i', $log['created_at']); ?></td>
+                    <td>
+                        <?php if ($log['action'] === 'preview'): ?>
+                            <span class="badge badge-preview">预览</span>
+                        <?php else: ?>
+                            <span class="badge <?php echo $log['success'] ? 'badge-success' : 'badge-fail'; ?>">
+                                <?php echo $log['success'] ? '执行' : '失败'; ?>
+                            </span>
+                        <?php endif; ?>
+                    </td>
+                    <td><?php echo htmlspecialchars($log['version_from'] ?? '-'); ?> → <?php echo htmlspecialchars($log['version_to']); ?></td>
+                    <td><?php echo $log['success'] ? '✅' : '❌'; ?></td>
+                    <td><?php echo $log['new_tables']; ?></td>
+                    <td><?php echo $log['new_columns']; ?></td>
+                    <td><?php echo $log['new_indexes']; ?></td>
+                    <td><?php echo $log['new_fk']; ?></td>
+                    <td><?php echo $log['new_config_items']; ?></td>
+                    <td><?php echo $log['enum_changes']; ?></td>
+                    <td><?php echo $log['duration_ms']; ?>ms</td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+<?php endif; ?>
+
+<script>
+function doMigrate(action) {
+    var report = document.getElementById('migrate-report');
+    var loading = document.getElementById('migrate-loading');
+    var btnPreview = document.getElementById('btn-preview');
+    var btnRun = document.getElementById('btn-run');
+
+    // 显示加载状态
+    report.classList.remove('visible', 'has-errors', 'success');
+    report.textContent = '';
+    loading.style.display = 'block';
+    btnPreview.disabled = true;
+    btnRun.disabled = true;
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', 'admin.php?action=migrate', true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.onload = function() {
+        loading.style.display = 'none';
+        btnPreview.disabled = false;
+        btnRun.disabled = false;
+
+        var result;
+        try {
+            result = JSON.parse(xhr.responseText);
+        } catch(e) {
+            report.textContent = '响应解析失败，请查看网络请求。\n\n原始响应:\n' + xhr.responseText.slice(0, 500);
+            report.classList.add('visible', 'has-errors');
+            return;
+        }
+
+        report.textContent = result.report || result.message || JSON.stringify(result, null, 2);
+        report.classList.add('visible');
+
+        if (result.success) {
+            report.classList.add('success');
+            // 如果执行了迁移，刷新页面更新版本号和日志
+            if (action === 'run' && result.changed) {
+                setTimeout(function() { location.reload(); }, 2000);
+            } else if (action === 'run' && !result.changed) {
+                // 无需变更也刷新以更新版本状态
+                setTimeout(function() { location.reload(); }, 1500);
+            }
+        } else {
+            report.classList.add('has-errors');
+        }
+    };
+    xhr.onerror = function() {
+        loading.style.display = 'none';
+        btnPreview.disabled = false;
+        btnRun.disabled = false;
+        report.textContent = '网络请求失败，请检查后台是否正常运行。';
+        report.classList.add('visible', 'has-errors');
+    };
+    xhr.send('migrate_action=' + encodeURIComponent(action));
+}
+</script>

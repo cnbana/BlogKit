@@ -1,0 +1,51 @@
+<?php
+/**
+ * 表头排序链接生成函数（公共组件）
+ *
+ * 使用方法：在列表模板的 <thead> 之前 include 本组件一次，然后对需要排序的表头调用：
+ *   <?php include ADMIN_PATH . '/templates/components/sort_link.html'; ?>
+ *   <th><?php echo sortLink('created_at', '发布时间', $sort, $order); ?></th>
+ *
+ * 排序交互逻辑：
+ *   未排序 → 点击降序（▼）→ 点击升序（▲）→ 点击取消排序回到默认
+ *   自动保留当前 URL 中的筛选参数，切换排序后回到第 1 页
+ *
+ * 依赖变量：$sort（当前排序字段）、$order（当前升降序），由控制器通过 ListQuery::sort() 获取
+ */
+if (!function_exists('sortLink')) {
+    /**
+     * 生成表头排序链接
+     * @param string $field 排序字段名（需与控制器白名单一致）
+     * @param string $label 表头显示文字
+     * @param string $sort  当前排序字段
+     * @param string $order 当前升降序（asc/desc）
+     * @return string 带箭头指示的排序链接 HTML
+     */
+    function sortLink($field, $label, $sort, $order) {
+        // 计算点击后的目标排序状态与箭头图标
+        if ($sort !== $field) {
+            $nextOrder = 'desc';                                    // 未排序 → 降序
+            $arrow = '<span class="sort-arrow">⇅</span>';
+        } elseif ($order === 'desc') {
+            $nextOrder = 'asc';                                     // 降序 → 升序
+            $arrow = '<span class="sort-arrow active">▼</span>';
+        } else {
+            $nextOrder = '';                                        // 升序 → 取消排序
+            $arrow = '<span class="sort-arrow active">▲</span>';
+        }
+        // 组装 URL：保留现有 GET 筛选参数，替换 sort/order，重置页码
+        $params = $_GET;
+        unset($params['page']); // 切换排序后回到第一页
+        if ($nextOrder === '') {
+            unset($params['sort'], $params['order']); // 取消排序
+        } else {
+            $params['sort'] = $field;
+            $params['order'] = $nextOrder;
+        }
+        $url = 'admin.php?' . http_build_query($params);
+        // 当前正在按此列排序时高亮显示
+        $active = ($sort === $field) ? ' class="sorted"' : '';
+        return '<a href="' . htmlspecialchars($url) . '"' . $active . '>' . $label . ' ' . $arrow . '</a>';
+    }
+}
+?>

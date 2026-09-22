@@ -1,0 +1,252 @@
+<?php $currentAction = 'dashboard'; $pageTitle = '仪表盘'; $pageCss = 'dashboard.css'; include 'components/page_wrapper.html'; ?>
+
+    <!-- 统计卡片：整卡为链接，点击可下钻到对应管理页 -->
+    <div class="stats-grid">
+        <a href="admin.php?action=article" class="stat-card" title="查看文章列表">
+            <div class="stat-card-num"><?php echo number_format($stats['total_views']); ?></div>
+            <div class="stat-card-text">浏览总数</div>
+        </a>
+        <a href="admin.php?action=article" class="stat-card" title="查看文章列表">
+            <div class="stat-card-num"><?php echo $stats['articles']; ?></div>
+            <div class="stat-card-text">文章总数</div>
+        </a>
+        <a href="admin.php?action=page" class="stat-card" title="管理页面">
+            <div class="stat-card-num"><?php echo $stats['pages']; ?></div>
+            <div class="stat-card-text">页面总数</div>
+        </a>
+        <a href="admin.php?action=category" class="stat-card" title="管理分类">
+            <div class="stat-card-num"><?php echo $stats['categories']; ?></div>
+            <div class="stat-card-text">分类总数</div>
+        </a>
+        <a href="admin.php?action=tag" class="stat-card" title="管理标签">
+            <div class="stat-card-num"><?php echo $stats['tags']; ?></div>
+            <div class="stat-card-text">标签总数</div>
+        </a>
+        <a href="admin.php?action=comment" class="stat-card" title="管理评论">
+            <div class="stat-card-num"><?php echo $stats['comments']; ?></div>
+            <div class="stat-card-text">评论总数</div>
+        </a>
+        <a href="admin.php?action=user" class="stat-card" title="管理用户">
+            <div class="stat-card-num"><?php echo $stats['users']; ?></div>
+            <div class="stat-card-text">用户总数</div>
+        </a>
+        <!-- 待处理事项：待审评论+待审文章+待审用户+待审友链合计（数据复用下方待办区的 $total_pending，零新增查询）；
+             大于0时数字红色警示；点击平滑滚动到下方"待处理事项"区块，由分类链接分别跳转对应管理页（为0时无跳转） -->
+        <a <?php echo $total_pending > 0 ? 'href="#pending-section" onclick="document.getElementById(\'pending-section\').scrollIntoView({behavior:\'smooth\'});return false;"' : 'style="cursor:default;"'; ?> class="stat-card" title="<?php echo $total_pending > 0 ? '查看待处理事项明细' : '暂无待处理事项'; ?>">
+            <div class="stat-card-num" <?php echo $total_pending > 0 ? 'style="color:#e74c3c;"' : ''; ?>><?php echo $total_pending; ?></div>
+            <div class="stat-card-text">待处理事项</div>
+        </a>
+    </div>
+
+    <!-- 待处理事项与升级提醒（统计卡的滚动目标）：
+         区块渲染条件 = 有待办工单 或 有升级提醒（主系统新版本/应用可升级） -->
+    <?php if ($total_pending > 0 || $hasNewVersion == 1 || $appUpdates > 0): ?>
+    <div class="pending-section" id="pending-section">
+        <h3 class="pending-title">待处理事项<?php echo $total_pending > 0 ? ' (' . $total_pending . '项)' : ''; ?></h3>
+        <div class="pending-items">
+            <?php if ($hasNewVersion == 1): ?>
+            <!-- 主系统升级提醒：点击直达在线升级页（提醒语义，不计入待办统计数） -->
+            <a href="admin.php?action=update" class="pending-item pending-item-warn" title="前往在线升级">
+                发现新版本 v<?php echo htmlspecialchars($latestVersion); ?>，点击前往升级
+            </a>
+            <?php endif; ?>
+
+            <?php if ($appUpdates > 0): ?>
+            <!-- 应用升级提醒：点击直达应用市场查看可更新的插件/主题（提醒语义，不计入待办统计数） -->
+            <a href="admin.php?action=market" class="pending-item pending-item-info" title="前往应用市场">
+                <?php echo (int)$appUpdates; ?> 个插件/主题有可用更新
+            </a>
+            <?php endif; ?>
+
+            <?php if ($pending_items['pending_comments'] > 0): ?>
+            <a href="admin.php?action=comment" class="pending-item pending-item-warn">
+                <?php echo $pending_items['pending_comments']; ?> 条待审核评论
+            </a>
+            <?php endif; ?>
+
+            <?php if ($pending_items['pending_articles'] > 0): ?>
+            <a href="admin.php?action=article&status=0" class="pending-item pending-item-info">
+                <?php echo $pending_items['pending_articles']; ?> 篇草稿文章
+            </a>
+            <?php endif; ?>
+
+            <?php if ($pending_items['pending_users'] > 0): ?>
+            <a href="admin.php?action=user" class="pending-item pending-item-success">
+                <?php echo $pending_items['pending_users']; ?> 位待审核用户
+            </a>
+            <?php endif; ?>
+
+            <?php if ($pending_items['pending_friendlinks'] > 0): ?>
+            <a href="admin.php?action=friendlink" class="pending-item pending-item-gray">
+                <?php echo $pending_items['pending_friendlinks']; ?> 条友链待审核
+            </a>
+            <?php endif; ?>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- 主内容区域 -->
+    <div class="dashboard-main">
+        <!-- 左侧区域 -->
+        <div class="dashboard-left">
+            <!-- 最新文章 -->
+            <div class="section-box">
+                <h3 class="section-title">最新文章</h3>
+                <div class="recent-content">
+                    <?php if (empty($recent_articles)): ?>
+                        <div class="rank-empty">暂无数据</div>
+                    <?php else: ?>
+                        <?php foreach ($recent_articles as $article): ?>
+                        <a href="admin.php?action=article&sub=edit&id=<?php echo $article['id']; ?>" class="recent-item">
+                            <span class="recent-status status-<?php echo $article['status'] == 1 ? 'published' : 'draft'; ?>">
+                                <?php echo $article['status'] == 1 ? '已发布' : '草稿'; ?>
+                            </span>
+                            <span class="recent-title"><?php echo htmlspecialchars($article['title']); ?></span>
+                            <span class="recent-time"><?php echo date('m-d H:i', strtotime($article['created_at'])); ?></span>
+                        </a>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- 阅读量排行 -->
+            <div class="section-box">
+                <h3 class="section-title">阅读量排行</h3>
+                <div class="rank-list">
+                    <?php if (empty($top_articles_views)): ?>
+                        <div class="rank-empty">暂无数据</div>
+                    <?php else: ?>
+                        <?php foreach ($top_articles_views as $index => $article): ?>
+<!-- 阅读量排行：标题跳转前台文章内容页（Router 支持 ?c=home&m=article&id=X，兼容伪静态开关） -->
+                        <div class="rank-row">
+                            <span class="rank-num <?php echo $index == 0 ? 'rank-num-top rank-num-gold' : ($index == 1 ? 'rank-num-top rank-num-silver' : ($index == 2 ? 'rank-num-top rank-num-bronze' : '')); ?>"><?php echo $index + 1; ?></span>
+                            <a href="index.php?c=home&m=article&id=<?php echo $article['id']; ?>" class="rank-title" target="_blank" title="查看前台文章"><?php echo htmlspecialchars($article['title']); ?></a>
+                            <span class="rank-val"><?php echo number_format($article['view_count']); ?></span>
+                        </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- 点赞量排行 -->
+            <div class="section-box">
+                <h3 class="section-title">点赞量排行</h3>
+                <div class="rank-list">
+                    <?php if (empty($top_articles_likes)): ?>
+                        <div class="rank-empty">暂无数据</div>
+                    <?php else: ?>
+                        <?php foreach ($top_articles_likes as $index => $article): ?>
+<!-- 点赞量排行：标题跳转前台文章内容页 -->
+                        <div class="rank-row">
+                            <span class="rank-num <?php echo $index == 0 ? 'rank-num-top rank-num-gold' : ($index == 1 ? 'rank-num-top rank-num-silver' : ($index == 2 ? 'rank-num-top rank-num-bronze' : '')); ?>"><?php echo $index + 1; ?></span>
+                            <a href="index.php?c=home&m=article&id=<?php echo $article['id']; ?>" class="rank-title" target="_blank" title="查看前台文章"><?php echo htmlspecialchars($article['title']); ?></a>
+                            <span class="rank-val"><?php echo number_format($article['like_count']); ?></span>
+                        </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧区域 -->
+        <div class="dashboard-right">
+            <!-- 热门评论排行 -->
+            <div class="section-box">
+                <h3 class="section-title">热门评论排行</h3>
+                <div class="rank-list">
+                    <?php if (empty($top_comments)): ?>
+                        <div class="rank-empty">暂无数据</div>
+                    <?php else: ?>
+                        <?php foreach ($top_comments as $index => $comment): ?>
+                        <div class="rank-row">
+                            <span class="rank-num <?php echo $index == 0 ? 'rank-num-top rank-num-gold' : ($index == 1 ? 'rank-num-top rank-num-silver' : ($index == 2 ? 'rank-num-top rank-num-bronze' : '')); ?>"><?php echo $index + 1; ?></span>
+                            <div class="rank-comment">
+                                <!-- 标题跳转前台文章内容页；评论内容跳转评论管理按文章过滤 -->
+                                <a href="index.php?c=home&m=article&id=<?php echo $comment['article_id']; ?>#comments" class="rank-title" target="_blank" title="查看前台文章及评论"><?php echo htmlspecialchars($comment['article_title'] ?? '[已删除]'); ?></a>
+                                <!-- 评论内容可点击：跳转评论管理并按所属文章过滤，便于直接管理该文章下的评论 -->
+                                <a href="admin.php?action=comment&article_id=<?php echo $comment['article_id']; ?>" class="rank-comment-text" title="在评论管理中查看该文章的全部评论"><?php echo htmlspecialchars(mb_substr($comment['content'], 0, 30, 'utf-8')) . (mb_strlen($comment['content'], 'utf-8') > 30 ? '...' : ''); ?></a>
+                            </div>
+                            <span class="rank-val"><?php echo number_format($comment['like_count']); ?></span>
+                        </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- 热门收藏排行 -->
+            <div class="section-box">
+                <h3 class="section-title">热门收藏排行</h3>
+                <div class="rank-list">
+                    <?php if (empty($top_favorites)): ?>
+                        <div class="rank-empty">暂无数据</div>
+                    <?php else: ?>
+                        <?php foreach ($top_favorites as $index => $article): ?>
+<!-- 热门收藏排行：标题跳转前台文章内容页 -->
+                        <div class="rank-row">
+                            <span class="rank-num <?php echo $index == 0 ? 'rank-num-top rank-num-gold' : ($index == 1 ? 'rank-num-top rank-num-silver' : ($index == 2 ? 'rank-num-top rank-num-bronze' : '')); ?>"><?php echo $index + 1; ?></span>
+                            <a href="index.php?c=home&m=article&id=<?php echo $article['id']; ?>" class="rank-title" target="_blank" title="查看前台文章"><?php echo htmlspecialchars($article['title']); ?></a>
+                            <span class="rank-val"><?php echo number_format($article['favorite_count']); ?></span>
+                        </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- 最新评论（与左侧"最新文章"对称的时间维度互动流） -->
+            <div class="section-box">
+                <h3 class="section-title">最新评论</h3>
+                <div class="rank-list">
+                    <?php if (empty($recent_comments)): ?>
+                        <div class="rank-empty">暂无数据</div>
+                    <?php else: ?>
+                        <?php foreach ($recent_comments as $comment): ?>
+                        <div class="rank-row">
+                            <!-- 状态标识：红点=待审核，绿点=已审核 -->
+                            <span class="rank-num" style="background: <?php echo $comment['status'] == 1 ? '#28a745' : '#e74c3c'; ?>; color: #fff;" title="<?php echo $comment['status'] == 1 ? '已审核' : '待审核'; ?>"></span>
+                            <div class="rank-comment">
+                                <!-- 昵称+时间行；点击跳转评论管理并按文章过滤 -->
+                                <a href="admin.php?action=comment&article_id=<?php echo $comment['article_id']; ?>" class="rank-title" title="在评论管理中查看该文章的评论">
+                                    <?php echo htmlspecialchars($comment['nickname'] ?: $comment['username'] ?: '未知用户'); ?>
+                                    <span style="color:#bbb;font-size:11px;font-weight:normal;"><?php echo date('m-d H:i', $comment['created_at']); ?></span>
+                                    <?php if ($comment['status'] == 0): ?><span style="color:#e74c3c;font-size:11px;font-weight:normal;">[待审]</span><?php endif; ?>
+                                </a>
+                                <!-- 评论内容摘要 -->
+                                <div class="rank-comment-text"><?php echo htmlspecialchars(mb_substr($comment['content'], 0, 30, 'utf-8')) . (mb_strlen($comment['content'], 'utf-8') > 30 ? '...' : ''); ?></div>
+                            </div>
+                            <span class="rank-val" style="font-size:11px;color:#bbb;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="<?php echo htmlspecialchars($comment['article_title'] ?? ''); ?>"><?php echo htmlspecialchars($comment['article_title'] ?? '[已删除]'); ?></span>
+                        </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 系统基本信息（原系统信息页精简合并） -->
+    <div class="section-box" style="margin-top: 20px;">
+        <h3 class="section-title">系统基本信息</h3>
+        <div class="system-info-list">
+            <div class="system-info-item"><span class="system-info-label">系统版本</span><?php echo htmlspecialchars($system_basic['version']); ?></div>
+            <div class="system-info-item"><span class="system-info-label">运行环境</span><?php echo htmlspecialchars($system_basic['environment']); ?></div>
+            <div class="system-info-item"><span class="system-info-label">系统环境</span><?php echo htmlspecialchars($system_basic['os']); ?> · <?php echo htmlspecialchars($system_basic['web_server']); ?></div>
+            <div class="system-info-item"><span class="system-info-label">PHP / MySQL</span><?php echo htmlspecialchars($system_basic['php_version']); ?> / <?php echo htmlspecialchars($system_basic['mysql_version']); ?></div>
+            <div class="system-info-item"><span class="system-info-label">安装时间</span><?php echo htmlspecialchars($system_basic['install_time']); ?></div>
+            <div class="system-info-item"><span class="system-info-label">运行时长</span><?php echo htmlspecialchars($system_basic['uptime']); ?></div>
+        </div>
+    </div>
+
+    <!-- BlogKit 官方信息（版本信息来源 core/config/version.php，链接为占位符待补充） -->
+    <div class="dashboard-footer" style="margin: 10px 0 30px 0;">
+        <strong><?php echo htmlspecialchars($system_basic['name']); ?> v<?php echo htmlspecialchars($system_basic['version']); ?></strong>
+        ·
+        <a href="<?php echo htmlspecialchars($system_basic['official_site']); ?>" target="_blank" rel="noopener">官网</a>
+        ·
+        <a href="<?php echo htmlspecialchars($system_basic['docs_url']); ?>" target="_blank" rel="noopener">开发文档</a>
+        ·
+        <a href="<?php echo htmlspecialchars($system_basic['feedback_url']); ?>" target="_blank" rel="noopener">问题反馈</a>
+        <br>© 2025 - <?php echo date('Y'); ?> <?php echo htmlspecialchars($system_basic['author']); ?>
+    </div>
+
+</main>
+
+<?php include 'components/footer_wrapper.html'; ?>

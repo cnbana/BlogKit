@@ -1,0 +1,160 @@
+            <!-- 注册设置内容 -->
+            <div class="form-container">
+                <form method="post" action="admin.php?action=<?php echo $currentAction; ?>&method=save">
+                    <input type="hidden" name="sub_page" value="<?php echo $sub; ?>">
+                    <!-- 注册验证设置 -->
+                    <div class="form-section">
+                        <h4>注册验证设置</h4>
+                        <div class="form-group">
+                            <label for="register_force_email_verify">强制邮箱验证</label>
+                            <select id="register_force_email_verify" name="register_force_email_verify">
+                                <option value="1" <?php echo $config['register_force_email_verify'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['register_force_email_verify'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- IP限制设置 -->
+                    <div class="form-section">
+                        <h4>IP限制设置</h4>
+                        <div class="form-group">
+                            <label for="register_ip_limit_time">IP注册限制时间</label>
+                            <input type="number" id="register_ip_limit_time" name="register_ip_limit_time" value="<?php echo $config['register_ip_limit_time']; ?>" placeholder="请输入IP注册限制时间（分钟）">
+                        </div>
+                        <div class="form-group">
+                            <label for="register_ip_limit_count">同一IP注册数量限制</label>
+                            <input type="number" id="register_ip_limit_count" name="register_ip_limit_count" value="<?php echo $config['register_ip_limit_count']; ?>" placeholder="请输入同一IP注册数量限制">
+                        </div>
+                    </div>
+                    
+                    <!-- 用户名设置 -->
+                    <div class="form-section">
+                        <h4>用户名设置</h4>
+                        <div class="form-group">
+                            <label for="register_username_ban_pure_number">禁止纯数字用户名</label>
+                            <select id="register_username_ban_pure_number" name="register_username_ban_pure_number">
+                                <option value="1" <?php echo $config['register_username_ban_pure_number'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['register_username_ban_pure_number'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="register_username_ban_simple_string">禁止简单字符串用户名</label>
+                            <select id="register_username_ban_simple_string" name="register_username_ban_simple_string">
+                                <option value="1" <?php echo $config['register_username_ban_simple_string'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['register_username_ban_simple_string'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="register_username_min_length">用户名最小长度</label>
+                            <input type="number" id="register_username_min_length" name="register_username_min_length" value="<?php echo $config['register_username_min_length']; ?>" placeholder="请输入用户名最小长度">
+                        </div>
+                        <div class="form-group">
+                            <label for="register_username_max_length">用户名最大长度</label>
+                            <input type="number" id="register_username_max_length" name="register_username_max_length" value="<?php echo $config['register_username_max_length']; ?>" placeholder="请输入用户名最大长度">
+                        </div>
+                        <div class="form-group">
+                            <label for="register_username_ban_keywords">用户名违禁词</label>
+                            <textarea id="register_username_ban_keywords" name="register_username_ban_keywords" rows="3" placeholder="请输入违禁词，使用英文逗号或中文逗号分隔&#10;例如：管理员,客服,认证,官方,色情,赌博,暴力,政治"><?php echo isset($config['register_username_ban_keywords']) ? htmlspecialchars($config['register_username_ban_keywords']) : ''; ?></textarea>
+                            <small>注册用户名包含其中任意词将被拒绝。支持中文关键词。</small>
+                        </div>
+                    </div>
+
+                    <!-- 密码设置 -->
+                    <div class="form-section">
+                        <h4>密码设置</h4>
+                        <div class="form-group">
+                            <label for="register_password_min_length">密码最小长度</label>
+                            <input type="number" id="register_password_min_length" name="register_password_min_length" value="<?php echo $config['register_password_min_length']; ?>" placeholder="请输入密码最小长度">
+                        </div>
+                        <div class="form-group">
+                            <label for="register_password_require_uppercase">必须包含大写字母</label>
+                            <select id="register_password_require_uppercase" name="register_password_require_uppercase">
+                                <option value="1" <?php echo $config['register_password_require_uppercase'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['register_password_require_uppercase'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="register_password_require_lowercase">必须包含小写字母</label>
+                            <select id="register_password_require_lowercase" name="register_password_require_lowercase">
+                                <option value="1" <?php echo $config['register_password_require_lowercase'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['register_password_require_lowercase'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="register_password_require_number">必须包含数字</label>
+                            <select id="register_password_require_number" name="register_password_require_number">
+                                <option value="1" <?php echo $config['register_password_require_number'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['register_password_require_number'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="register_password_require_special">必须包含特殊字符</label>
+                            <select id="register_password_require_special" name="register_password_require_special">
+                                <option value="1" <?php echo $config['register_password_require_special'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['register_password_require_special'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- 新用户限制设置 -->
+                    <div class="form-section">
+                        <h4>新用户限制设置</h4>
+                        <div class="form-group">
+                            <label for="register_new_user_restrict_hours">新用户限制时长</label>
+                            <input type="number" id="register_new_user_restrict_hours" name="register_new_user_restrict_hours" value="<?php echo $config['register_new_user_restrict_hours']; ?>" placeholder="请输入新用户限制时长（小时）">
+                        </div>
+                        <div class="form-group">
+                            <label for="register_new_user_ban_post">禁止新用户发布文章</label>
+                            <select id="register_new_user_ban_post" name="register_new_user_ban_post">
+                                <option value="1" <?php echo $config['register_new_user_ban_post'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['register_new_user_ban_post'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="register_new_user_ban_comment">禁止新用户评论</label>
+                            <select id="register_new_user_ban_comment" name="register_new_user_ban_comment">
+                                <option value="1" <?php echo $config['register_new_user_ban_comment'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['register_new_user_ban_comment'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="register_new_user_ban_like">禁止新用户点赞</label>
+                            <select id="register_new_user_ban_like" name="register_new_user_ban_like">
+                                <option value="1" <?php echo $config['register_new_user_ban_like'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['register_new_user_ban_like'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="register_new_user_ban_favorite">禁止新用户收藏</label>
+                            <select id="register_new_user_ban_favorite" name="register_new_user_ban_favorite">
+                                <option value="1" <?php echo $config['register_new_user_ban_favorite'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['register_new_user_ban_favorite'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- 验证码设置 -->
+                    <div class="form-section">
+                        <h4>验证码设置</h4>
+                        <div class="form-group">
+                            <label for="register_enable_honeypot">启用蜜罐防护</label>
+                            <select id="register_enable_honeypot" name="register_enable_honeypot">
+                                <option value="1" <?php echo $config['register_enable_honeypot'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['register_enable_honeypot'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="register_enable_device_limit">启用设备限制</label>
+                            <select id="register_enable_device_limit" name="register_enable_device_limit">
+                                <option value="1" <?php echo $config['register_enable_device_limit'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['register_enable_device_limit'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- 提交按钮 -->
+                    <div class="buttons">
+                        <button type="submit" class="btn btn-primary">保存设置</button>
+                    </div>
+                </form>
+            </div>

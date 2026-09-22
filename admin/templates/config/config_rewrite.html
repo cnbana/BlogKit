@@ -1,0 +1,430 @@
+            <!-- 伪静态设置内容 -->
+            <div class="form-container">
+                <form method="post" action="admin.php?action=<?php echo $currentAction; ?>&method=save">
+                    <input type="hidden" name="sub_page" value="<?php echo $sub; ?>">
+                    <!-- 伪静态基本设置 -->
+                    <div class="form-section">
+                        <h4>伪静态基本设置</h4>
+                        <div class="form-group">
+                            <label for="rewrite_enabled">伪静态功能开关</label>
+                            <select id="rewrite_enabled" name="rewrite_enabled">
+                                <option value="1" <?php echo $config['rewrite_enabled'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['rewrite_enabled'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- 伪静态使用说明 -->
+                    <div class="form-section">
+                        <h4>使用说明</h4>
+                        <div style="padding: 12px 16px; background: #f5f7fa; border-left: 4px solid #409eff; border-radius: 4px; font-size: 13px; line-height: 1.8; color: #555;">
+                            <div><strong>什么是伪静态？</strong> 把动态 URL（如 <code>index.php?c=home&m=article&id=123</code>）变成静态 URL（如 <code>/article/123</code>），更利于搜索引擎收录（SEO）且更美观。</div>
+                            <div><strong>使用步骤：</strong> ① 把顶部「伪静态功能开关」设为「开启」→ ② 在下方填写自定义 URL 规则 → ③ 保存后，在站点服务器（Nginx 或 Apache）中配置对应的重写规则（见页面底部说明）→ ④ 完成。</div>
+                            <div><strong>规则写法：</strong> 在规则中使用 <code>{id}</code>、<code>{slug}</code>、<code>{year}</code> 等占位符。保存后，前台页面的链接将自动按您填写的规则生成。</div>
+                        </div>
+                    </div>
+
+                    <!-- 占位符说明 -->
+                    <div class="form-section">
+                        <h4>支持的占位符</h4>
+                        <div style="padding: 10px 12px; background: #e8f4ff; border-left: 4px solid #409eff; border-radius: 4px; font-size: 12px; color: #303133; margin-bottom: 12px;">
+                            <strong>📋 完整占位符速查：</strong>以下是系统支持的所有 URL 占位符，可任意组合使用。推荐使用 <code>{slug}</code> 或 <code>{category_slug}</code> 以获得更友好的 SEO URL。
+                        </div>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 13px; background: #fff;">
+                            <thead>
+                                <tr style="background: #f5f7fa;">
+                                    <th style="padding: 10px 12px; text-align: left; border: 1px solid #ebeef5; width: 140px;">占位符</th>
+                                    <th style="padding: 10px 12px; text-align: left; border: 1px solid #ebeef5; width: 140px;">含义</th>
+                                    <th style="padding: 10px 12px; text-align: left; border: 1px solid #ebeef5;">可用页面</th>
+                                    <th style="padding: 10px 12px; text-align: left; border: 1px solid #ebeef5;">示例规则</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- === ID 系列 === -->
+                                <tr>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>{id}</code></td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">数字 ID</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">文章 / 分类 / 标签 / 页面 / 用户</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>article/{id}</code> → <code>/article/123</code></td>
+                                </tr>
+                                <tr style="background: #fafbfc;">
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>{post_id}</code> / <code>{article_id}</code></td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">文章ID（同 <code>{id}</code>）</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">文章</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>news/{post_id}</code> → <code>/news/123</code></td>
+                                </tr>
+                                <!-- === 别名/短名 系列 === -->
+                                <tr>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>{slug}</code></td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">别名 / 短名</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">文章 / 分类 / 页面</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>post/{slug}.html</code> → <code>/post/hello-world.html</code></td>
+                                </tr>
+                                <tr style="background: #fafbfc;">
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>{postname}</code></td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">文章别名（同 <code>{slug}</code>）</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">文章</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>blog/{postname}</code> → <code>/blog/hello-world</code></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>{category_slug}</code> / <code>{cat_slug}</code> / <code>{category}</code></td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">文章所属分类别名</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">文章 / 分类</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>{category_slug}/{slug}</code> → <code>/tech/hello-world</code></td>
+                                </tr>
+                                <tr style="background: #fafbfc;">
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>{tag_slug}</code> / <code>{tag}</code></td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">标签别名</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">文章 / 标签</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>tag/{tag_slug}</code> → <code>/tag/php-basics</code></td>
+                                </tr>
+                                <!-- === 名称/标题 系列 === -->
+                                <tr>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>{name}</code></td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">名称</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">分类 / 标签 / 用户</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>cat-{name}</code> → <code>/cat-PHP教程</code></td>
+                                </tr>
+                                <tr style="background: #fafbfc;">
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>{title}</code></td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">文章标题（URL编码）</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">文章 / 页面</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>{title}</code> → <code>/我的第一篇文章</code></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>{category_name}</code></td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">分类名称</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">文章 / 分类</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>category/{category_name}</code> → <code>/category/技术分享</code></td>
+                                </tr>
+                                <tr style="background: #fafbfc;">
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>{category_id}</code> / <code>{cat_id}</code></td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">分类ID</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">文章 / 分类</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>cat/{category_id}</code> → <code>/cat/5</code></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>{tag_name}</code></td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">标签名称</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">文章 / 标签</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>tag/{tag_name}</code> → <code>/tag/PHP</code></td>
+                                </tr>
+                                <tr style="background: #fafbfc;">
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>{tag_id}</code></td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">标签ID</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">文章 / 标签</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>t/{tag_id}</code> → <code>/t/3</code></td>
+                                </tr>
+                                <!-- === 作者/用户 系列 === -->
+                                <tr>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>{author}</code> / <code>{nickname}</code></td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">作者昵称</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">文章 / 用户</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>author/{author}</code> → <code>/author/小明</code></td>
+                                </tr>
+                                <tr style="background: #fafbfc;">
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>{username}</code> / <code>{author_slug}</code></td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">用户名</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">文章 / 用户</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>u/{username}</code> → <code>/u/admin_xiaoming</code></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>{author_id}</code> / <code>{user_id}</code></td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">作者/用户ID</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">文章 / 用户</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>user/{author_id}</code> → <code>/user/1</code></td>
+                                </tr>
+                                <!-- === 日期时间 系列 === -->
+                                <tr style="background: #fafbfc;">
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>{year}</code></td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">年份（4位）</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">文章</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>{year}/{slug}</code> → <code>/2026/hello-world</code></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>{month}</code> / <code>{monthnum}</code></td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">月份</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">文章</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>{year}/{month}/{id}</code> → <code>/2026/06/123</code></td>
+                                </tr>
+                                <tr style="background: #fafbfc;">
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>{day}</code></td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">日期（2位）</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">文章</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>{year}/{month}/{day}/{slug}</code></td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>{hour}</code> / <code>{minute}</code> / <code>{second}</code></td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">时/分/秒</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">文章</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>{year}/{month}/{day}/{hour}/{slug}</code></td>
+                                </tr>
+                                <!-- === 页码 === -->
+                                <tr style="background: #fafbfc;">
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>{page}</code></td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">页码（可选）</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">任何列表页</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>category/{slug}/page/{page}</code></td>
+                                </tr>
+                                <!-- === 浏览量（较少用） === -->
+                                <tr>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;"><code>{views}</code> / <code>{view_count}</code></td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">浏览量（较少用于URL）</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5;">文章</td>
+                                    <td style="padding: 8px 12px; border: 1px solid #ebeef5; color: #909399;">不推荐用于 URL 结构</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div style="margin-top: 12px; font-size: 12px; color: #303133;">
+                            <div style="margin-bottom: 6px;"><strong>📌 组合使用示例（推荐）：</strong></div>
+                            <div style="padding: 8px 10px; background: #f5f7fa; border-radius: 4px; margin-bottom: 4px; font-family: 'Courier New', monospace;">
+                                <span style="color: #67c23a;">文章:</span> <code>{category_slug}/{year}/{month}/{slug}.html</code> → <code>/tech/2026/06/hello-world.html</code>
+                            </div>
+                            <div style="padding: 8px 10px; background: #f5f7fa; border-radius: 4px; margin-bottom: 4px; font-family: 'Courier New', monospace;">
+                                <span style="color: #409eff;">分类:</span> <code>category/{slug}</code> → <code>/category/technology</code>
+                            </div>
+                            <div style="padding: 8px 10px; background: #f5f7fa; border-radius: 4px; margin-bottom: 4px; font-family: 'Courier New', monospace;">
+                                <span style="color: #e6a23c;">作者文章:</span> <code>author/{username}/{page}</code> → <code>/author/xiaoming/2</code>
+                            </div>
+                        </div>
+                        <div style="margin-top: 10px; font-size: 12px; color: #909399;">
+                            💡 <strong>提示：</strong> 没有占位符的规则（如 <code>login</code>、<code>signin</code>）是固定页面 URL。规则中 <strong>不包含</strong> 域名和 <code>/</code> 开头的前缀。多参数规则（如 <code>{year}/{month}/{slug}</code>）会自动将最后一个参数作为文章/分类/页面的标识符。
+                        </div>
+                    </div>
+
+                    <!-- URL重写规则设置 -->
+                    <div class="form-section">
+                        <h4>URL重写规则设置</h4>
+                        <div class="form-group">
+                            <label for="rewrite_article">文章URL规则</label>
+                            <input type="text" id="rewrite_article" name="rewrite_article" value="<?php echo $config['rewrite_article']; ?>" placeholder="请输入文章URL规则，如：article/{id}">
+                        </div>
+                        <div class="form-group">
+                            <label for="rewrite_category">分类URL规则</label>
+                            <input type="text" id="rewrite_category" name="rewrite_category" value="<?php echo $config['rewrite_category']; ?>" placeholder="请输入分类URL规则，如：category/{id}">
+                        </div>
+                        <div class="form-group">
+                            <label for="rewrite_tag">标签URL规则</label>
+                            <input type="text" id="rewrite_tag" name="rewrite_tag" value="<?php echo $config['rewrite_tag']; ?>" placeholder="请输入标签URL规则，如：tag/{id}">
+                        </div>
+                        <div class="form-group">
+                            <label for="rewrite_tags">标签列表URL规则</label>
+                            <input type="text" id="rewrite_tags" name="rewrite_tags" value="<?php echo $config['rewrite_tags']; ?>" placeholder="请输入标签列表URL规则，如：tags">
+                        </div>
+                        <div class="form-group">
+                            <label for="rewrite_archives">归档页面URL规则</label>
+                            <input type="text" id="rewrite_archives" name="rewrite_archives" value="<?php echo $config['rewrite_archives']; ?>" placeholder="请输入归档页面URL规则，如：archives">
+                        </div>
+                        <div class="form-group">
+                            <label for="rewrite_page">页面URL规则</label>
+                            <input type="text" id="rewrite_page" name="rewrite_page" value="<?php echo $config['rewrite_page']; ?>" placeholder="请输入页面URL规则，如：page/{id}">
+                        </div>
+                        <div class="form-group">
+                            <label for="rewrite_login">登录URL规则</label>
+                            <input type="text" id="rewrite_login" name="rewrite_login" value="<?php echo $config['rewrite_login']; ?>" placeholder="请输入登录URL规则，如：login">
+                        </div>
+                        <div class="form-group">
+                            <label for="rewrite_register">注册URL规则</label>
+                            <input type="text" id="rewrite_register" name="rewrite_register" value="<?php echo $config['rewrite_register']; ?>" placeholder="请输入注册URL规则，如：register">
+                        </div>
+                        <div class="form-group">
+                            <label for="rewrite_logout">登出URL规则</label>
+                            <input type="text" id="rewrite_logout" name="rewrite_logout" value="<?php echo $config['rewrite_logout']; ?>" placeholder="请输入登出URL规则，如：logout">
+                        </div>
+                        <div class="form-group">
+                            <label for="rewrite_profile">个人资料URL规则</label>
+                            <input type="text" id="rewrite_profile" name="rewrite_profile" value="<?php echo $config['rewrite_profile']; ?>" placeholder="请输入个人资料URL规则，如：profile">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="rewrite_rss">RSS订阅URL规则</label>
+                            <input type="text" id="rewrite_rss" name="rewrite_rss" value="<?php echo $config['rewrite_rss']; ?>" placeholder="请输入RSS订阅URL规则，如：rss">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="rewrite_forgot_password">忘记密码URL规则</label>
+                            <input type="text" id="rewrite_forgot_password" name="rewrite_forgot_password" value="<?php echo $config['rewrite_forgot_password']; ?>" placeholder="请输入忘记密码URL规则，如：forgot-password">
+                        </div>
+                        <div class="form-group">
+                            <label for="rewrite_reset_password">重置密码URL规则</label>
+                            <input type="text" id="rewrite_reset_password" name="rewrite_reset_password" value="<?php echo $config['rewrite_reset_password']; ?>" placeholder="请输入重置密码URL规则，如：reset-password">
+                        </div>
+                        <div class="form-group">
+                            <label for="rewrite_user">用户URL规则</label>
+                            <input type="text" id="rewrite_user" name="rewrite_user" value="<?php echo $config['rewrite_user']; ?>" placeholder="请输入用户URL规则，如：user/{id}">
+                        </div>
+                        <div class="form-group">
+                            <label for="rewrite_follow">关注URL规则</label>
+                            <input type="text" id="rewrite_follow" name="rewrite_follow" value="<?php echo $config['rewrite_follow']; ?>" placeholder="请输入关注URL规则，如：follow/{id}">
+                        </div>
+                        <div class="form-group">
+                            <label for="rewrite_following">关注列表URL规则</label>
+                            <input type="text" id="rewrite_following" name="rewrite_following" value="<?php echo $config['rewrite_following']; ?>" placeholder="请输入关注列表URL规则，如：following/{id}">
+                        </div>
+                        <div class="form-group">
+                            <label for="rewrite_followers">粉丝列表URL规则</label>
+                            <input type="text" id="rewrite_followers" name="rewrite_followers" value="<?php echo $config['rewrite_followers']; ?>" placeholder="请输入粉丝列表URL规则，如：followers/{id}">
+                        </div>
+                        <div class="form-group">
+                            <label for="rewrite_profile_articles">个人资料文章列表URL规则</label>
+                            <input type="text" id="rewrite_profile_articles" name="rewrite_profile_articles" value="<?php echo $config['rewrite_profile_articles']; ?>" placeholder="请输入个人资料文章列表URL规则，如：profile/articles">
+                        </div>
+                        <div class="form-group">
+                            <label for="rewrite_profile_comments">个人资料评论列表URL规则</label>
+                            <input type="text" id="rewrite_profile_comments" name="rewrite_profile_comments" value="<?php echo $config['rewrite_profile_comments']; ?>" placeholder="请输入个人资料评论列表URL规则，如：profile/comments">
+                        </div>
+                        <div class="form-group">
+                            <label for="rewrite_profile_settings">个人资料设置URL规则</label>
+                            <input type="text" id="rewrite_profile_settings" name="rewrite_profile_settings" value="<?php echo $config['rewrite_profile_settings']; ?>" placeholder="请输入个人资料设置URL规则，如：profile/settings">
+                        </div>
+                        <div class="form-group">
+                            <label for="rewrite_profile_favorites">个人资料收藏列表URL规则</label>
+                            <input type="text" id="rewrite_profile_favorites" name="rewrite_profile_favorites" value="<?php echo $config['rewrite_profile_favorites']; ?>" placeholder="请输入个人资料收藏列表URL规则，如：profile/favorites">
+                        </div>
+                        <div class="form-group">
+                            <label for="rewrite_profile_likes">个人资料点赞列表URL规则</label>
+                            <input type="text" id="rewrite_profile_likes" name="rewrite_profile_likes" value="<?php echo $config['rewrite_profile_likes']; ?>" placeholder="请输入个人资料点赞列表URL规则，如：profile/likes">
+                        </div>
+                        <div class="form-group">
+                            <label for="rewrite_profile_notifications">个人资料通知列表URL规则</label>
+                            <input type="text" id="rewrite_profile_notifications" name="rewrite_profile_notifications" value="<?php echo $config['rewrite_profile_notifications']; ?>" placeholder="请输入个人资料通知列表URL规则，如：profile/notifications">
+                        </div>
+                        <div class="form-group">
+                            <label for="rewrite_profile_history">个人资料历史记录URL规则</label>
+                            <input type="text" id="rewrite_profile_history" name="rewrite_profile_history" value="<?php echo $config['rewrite_profile_history']; ?>" placeholder="请输入个人资料历史记录URL规则，如：profile/history">
+                        </div>
+                        <div class="form-group">
+                            <label for="rewrite_profile_following">个人资料关注列表URL规则</label>
+                            <input type="text" id="rewrite_profile_following" name="rewrite_profile_following" value="<?php echo $config['rewrite_profile_following']; ?>" placeholder="请输入个人资料关注列表URL规则，如：profile/following">
+                        </div>
+                        <div class="form-group">
+                            <label for="rewrite_profile_followers">个人资料粉丝列表URL规则</label>
+                            <input type="text" id="rewrite_profile_followers" name="rewrite_profile_followers" value="<?php echo $config['rewrite_profile_followers']; ?>" placeholder="请输入个人资料粉丝列表URL规则，如：profile/followers">
+                        </div>
+                        <div class="form-group">
+                            <label for="rewrite_search">搜索URL规则</label>
+                            <input type="text" id="rewrite_search" name="rewrite_search" value="<?php echo $config['rewrite_search']; ?>" placeholder="请输入搜索URL规则，如：search">
+                        </div>
+                    </div>
+                    
+                    <!-- Nginx / Apache 服务器配置 -->
+                    <div class="form-section">
+                        <h4>服务器配置说明（重要）</h4>
+                        <div style="padding: 12px 16px; background: #fff7e6; border-left: 4px solid #e6a23c; border-radius: 4px; font-size: 13px; line-height: 1.8; color: #555; margin-bottom: 15px;">
+                            ⚠️ <strong>保存 URL 规则后，必须同时在 Nginx 或 Apache 中添加相应的重写规则，否则自定义的 URL（如 <code>/post/123.html</code>）会出现 404 错误。</strong>
+                        </div>
+
+                        <!-- Nginx 配置 -->
+                        <div style="margin-bottom: 20px;">
+                            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                <strong style="font-size: 14px;">Nginx 配置（宝塔面板 / 军哥 LNMP / 自行部署）</strong>
+                                <button type="button" onclick="copyRewriteConfig('nginx')" style="margin-left: 12px; padding: 4px 12px; font-size: 12px; background: #409eff; color: #fff; border: none; border-radius: 4px; cursor: pointer;">一键复制</button>
+                            </div>
+                            <p style="font-size: 12px; color: #909399; margin: 0 0 8px 0;">在站点的 Nginx 配置中添加以下规则（通常是 <code>server { ... }</code> 块内的 <code>location /</code> 中）：</p>
+                            <pre id="rewrite-config-nginx" style="background: #2d2d2d; color: #e0e0e0; padding: 12px 16px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.7; overflow-x: auto; white-space: pre;">location / {
+    try_files $uri $uri/ /index.php?$args;
+}</pre>
+                            <div style="margin-top: 8px;">
+                                <details style="font-size: 12px; color: #606266;">
+                                    <summary style="cursor: pointer;">如果使用宝塔面板，直接在「网站设置 → 伪静态」中粘贴上面规则即可</summary>
+                                    <div style="margin-top: 8px; padding: 8px 12px; background: #f5f7fa; border-radius: 4px;">
+                                        宝塔步骤：登录面板 → 左侧「网站」→ 找到您的站点 → 点击「设置」→ 左侧「伪静态」→ 粘贴上面的规则（即 <code>try_files $uri $uri/ /index.php?$args;</code>）→ 保存。
+                                    </div>
+                                </details>
+                            </div>
+                        </div>
+
+                        <!-- Apache 配置 -->
+                        <div style="margin-bottom: 20px;">
+                            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                <strong style="font-size: 14px;">Apache 配置（phpStudy / XAMPP / WAMP）</strong>
+                                <button type="button" onclick="copyRewriteConfig('apache')" style="margin-left: 12px; padding: 4px 12px; font-size: 12px; background: #409eff; color: #fff; border: none; border-radius: 4px; cursor: pointer;">一键复制</button>
+                            </div>
+                            <p style="font-size: 12px; color: #909399; margin: 0 0 8px 0;">在站点根目录的 <code>.htaccess</code> 文件中添加以下规则（通常系统已自动生成，若无则手动创建）：</p>
+                            <pre id="rewrite-config-apache" style="background: #2d2d2d; color: #e0e0e0; padding: 12px 16px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.7; overflow-x: auto; white-space: pre;">&lt;IfModule mod_rewrite.c&gt;
+    RewriteEngine On
+    RewriteBase /
+
+    # 如果请求的是已存在的文件或目录，直接返回
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # 其他所有请求交给 index.php 处理
+    RewriteRule ^(.*)$ index.php/$1 [L,QSA]
+&lt;/IfModule&gt;</pre>
+                            <div style="margin-top: 8px;">
+                                <details style="font-size: 12px; color: #606266;">
+                                    <summary style="cursor: pointer;">Apache 常见问题排查</summary>
+                                    <div style="margin-top: 8px; padding: 8px 12px; background: #f5f7fa; border-radius: 4px;">
+                                        1. 确认 <code>mod_rewrite</code> 模块已启用（phpStudy：其他选项菜单 → Apache 模块 → 勾选 rewrite_module）<br>
+                                        2. 确认 Apache 配置中 <code>AllowOverride All</code>（否则 .htaccess 不生效）<br>
+                                        3. <code>.htaccess</code> 文件必须放在站点根目录（与 <code>index.php</code> 同级）
+                                    </div>
+                                </details>
+                            </div>
+                        </div>
+
+                        <!-- IIs / 其他 -->
+                        <div>
+                            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                <strong style="font-size: 14px;">IIS / 其他环境</strong>
+                            </div>
+                            <p style="font-size: 12px; color: #909399; margin: 0;">
+                                IIS 用户需要安装 <strong>URL Rewrite Module</strong>，然后在 <code>web.config</code> 中添加规则将所有请求重写到 <code>index.php</code>。如不确定如何配置，建议使用上面的 Nginx 或 Apache 方案。
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 提交按钮 -->
+                    <div class="buttons">
+                        <button type="submit" class="btn btn-primary">保存设置</button>
+                    </div>
+                </form>
+
+                <!-- 一键复制的脚本 -->
+                <script>
+                function copyRewriteConfig(type) {
+                    var elId = 'rewrite-config-' + type;
+                    var el = document.getElementById(elId);
+                    var text = el.innerText;
+
+                    // 尝试使用现代 API
+                    if (navigator.clipboard && window.isSecureContext) {
+                        navigator.clipboard.writeText(text).then(function() {
+                            showToast('已复制到剪贴板，请粘贴到服务器配置中');
+                        }).catch(function() {
+                            fallbackCopy(text);
+                        });
+                    } else {
+                        fallbackCopy(text);
+                    }
+                }
+                function fallbackCopy(text) {
+                    var ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.left = '-9999px';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    try {
+                        document.execCommand('copy');
+                        showToast('已复制到剪贴板，请粘贴到服务器配置中');
+                    } catch (e) {
+                        showToast('复制失败，请手动选中文本复制');
+                    }
+                    document.body.removeChild(ta);
+                }
+                function showToast(msg) {
+                    var t = document.createElement('div');
+                    t.textContent = msg;
+                    t.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#67c23a;color:#fff;padding:10px 20px;border-radius:4px;font-size:13px;z-index:99999;box-shadow:0 2px 8px rgba(0,0,0,0.15);';
+                    document.body.appendChild(t);
+                    setTimeout(function() {
+                        t.style.transition = 'opacity .3s';
+                        t.style.opacity = '0';
+                        setTimeout(function() { document.body.removeChild(t); }, 300);
+                    }, 1800);
+                }
+                </script>
+            </div>

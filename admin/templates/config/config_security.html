@@ -1,0 +1,101 @@
+            <!-- 安全设置内容 -->
+            <div class="form-container">
+                <form method="post" action="admin.php?action=<?php echo $currentAction; ?>&method=save">
+                    <input type="hidden" name="sub_page" value="<?php echo $sub; ?>">
+                    <!-- 基本安全设置 -->
+                    <div class="form-section">
+                        <h4>基本安全设置</h4>
+                        <div class="form-group">
+                            <label for="security_xss_protection">XSS防护</label>
+                            <select id="security_xss_protection" name="security_xss_protection">
+                                <option value="1" <?php echo $config['security_xss_protection'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['security_xss_protection'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="security_csrf_protection">CSRF防护</label>
+                            <select id="security_csrf_protection" name="security_csrf_protection">
+                                <option value="1" <?php echo $config['security_csrf_protection'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['security_csrf_protection'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 文件上传安全设置 -->
+                    <div class="form-section">
+                        <h4>文件上传安全设置</h4>
+                        <div class="form-group">
+                            <label for="security_file_upload_enabled">启用文件上传</label>
+                            <select id="security_file_upload_enabled" name="security_file_upload_enabled">
+                                <option value="1" <?php echo $config['security_file_upload_enabled'] == '1' ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo $config['security_file_upload_enabled'] == '0' ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="security_file_upload_max_size">最大上传大小（字节）</label>
+                            <input type="number" id="security_file_upload_max_size" name="security_file_upload_max_size" value="<?php echo $config['security_file_upload_max_size']; ?>" placeholder="请输入最大上传大小（字节）">
+                        </div>
+                        <div class="form-group">
+                            <label for="security_file_upload_allowed_types">允许的文件类型</label>
+                            <input type="text" id="security_file_upload_allowed_types" name="security_file_upload_allowed_types" value="<?php echo $config['security_file_upload_allowed_types']; ?>" placeholder="请输入允许的文件类型，用逗号分隔">
+                        </div>
+                        <div class="form-group">
+                            <label for="security_file_upload_forbidden_exts">禁止的文件扩展名</label>
+                            <input type="text" id="security_file_upload_forbidden_exts" name="security_file_upload_forbidden_exts" value="<?php echo $config['security_file_upload_forbidden_exts']; ?>" placeholder="请输入禁止的文件扩展名，用逗号分隔">
+                        </div>
+                    </div>
+
+                    <!-- 图片优化设置（原“文章设置”里的图片优化项，现已合并到安全/上传设置） -->
+                    <div class="form-section">
+                        <h4>图片优化设置</h4>
+                        <div class="form-group">
+                            <label for="image_webp_enabled">上传图片时自动生成 WebP 格式</label>
+                            <select id="image_webp_enabled" name="image_webp_enabled">
+                                <option value="1" <?php echo (isset($config['image_webp_enabled']) && $config['image_webp_enabled'] == '1') ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo (isset($config['image_webp_enabled']) && $config['image_webp_enabled'] == '0') ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="image_compress_enabled">上传图片时自动压缩</label>
+                            <select id="image_compress_enabled" name="image_compress_enabled">
+                                <option value="1" <?php echo (isset($config['image_compress_enabled']) && $config['image_compress_enabled'] == '1') ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo (isset($config['image_compress_enabled']) && $config['image_compress_enabled'] == '0') ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="image_compress_quality">图片压缩质量（1-100，越大越清晰，文件越大）</label>
+                            <input type="number" id="image_compress_quality" name="image_compress_quality" min="1" max="100" value="<?php echo isset($config['image_compress_quality']) ? $config['image_compress_quality'] : '85'; ?>" placeholder="请输入 1-100 之间的数值">
+                        </div>
+                        <div class="form-group">
+                            <label for="image_max_width">图片最大宽度（像素，超过会按比例缩小）</label>
+                            <input type="number" id="image_max_width" name="image_max_width" min="100" max="5000" value="<?php echo isset($config['image_max_width']) ? $config['image_max_width'] : '1920'; ?>" placeholder="请输入 100-5000 之间的数值">
+                        </div>
+                        <div class="form-group">
+                            <label for="image_thumbnail_enabled">上传图片时自动生成多尺寸缩略图</label>
+                            <select id="image_thumbnail_enabled" name="image_thumbnail_enabled">
+                                <option value="1" <?php echo (isset($config['image_thumbnail_enabled']) && $config['image_thumbnail_enabled'] == '1') ? 'selected' : ''; ?>>开启</option>
+                                <option value="0" <?php echo (isset($config['image_thumbnail_enabled']) && $config['image_thumbnail_enabled'] == '0') ? 'selected' : ''; ?>>关闭</option>
+                            </select>
+                            <p class="help-text">开启后会为每张图片生成 small/medium/large 三个尺寸的副本，用于列表页等小图场景加速加载。</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="image_thumbnail_small">缩略图 small 尺寸（像素）</label>
+                            <input type="number" id="image_thumbnail_small" name="image_thumbnail_small" min="20" max="2000" value="<?php echo isset($config['image_thumbnail_small']) ? $config['image_thumbnail_small'] : '150'; ?>" placeholder="默认 150">
+                        </div>
+                        <div class="form-group">
+                            <label for="image_thumbnail_medium">缩略图 medium 尺寸（像素）</label>
+                            <input type="number" id="image_thumbnail_medium" name="image_thumbnail_medium" min="50" max="3000" value="<?php echo isset($config['image_thumbnail_medium']) ? $config['image_thumbnail_medium'] : '400'; ?>" placeholder="默认 400">
+                        </div>
+                        <div class="form-group">
+                            <label for="image_thumbnail_large">缩略图 large 尺寸（像素）</label>
+                            <input type="number" id="image_thumbnail_large" name="image_thumbnail_large" min="100" max="5000" value="<?php echo isset($config['image_thumbnail_large']) ? $config['image_thumbnail_large'] : '800'; ?>" placeholder="默认 800">
+                            <p class="help-text">缩略图按原图比例缩放，此值为边长上限。修改后仅对之后新上传的图片生效。</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 提交按钮 -->
+                    <div class="buttons">
+                        <button type="submit" class="btn btn-primary">保存设置</button>
+                    </div>
+                </form>
+            </div>

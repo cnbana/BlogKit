@@ -1,0 +1,162 @@
+{assign var="page_title" value="{field name='category_name'}"}
+{include file="header"}
+{if theme_show_breadcrumb}{breadcrumb}{/if}
+    <main>
+        <div class="container">
+            <div class="content-area">
+                <div class="content">
+                    
+                    <!-- 筛选标签 -->
+                    <div class="filter-tabs-container">
+                        <div class="filter-tabs">
+                            <button class="filter-tab active" data-filter="latest">最新文章</button>
+                            <button class="filter-tab" data-filter="most-viewed">最多阅读</button>
+                            <button class="filter-tab" data-filter="most-liked">最多点赞</button>
+                            <button class="filter-tab" data-filter="most-favorited">最多收藏</button>
+                            <button class="filter-tab" data-filter="most-commented">最多评论</button>
+                        </div>
+                    </div>
+                    
+                    <!-- 文章列表容器 -->
+                    <div class="articles-container" id="articles-container">
+                    {if articles}
+                        {loop name="articles"}
+                            <article class="post">
+                                <!-- 封面图显示：仅使用 cover_image 字段（不自动提取首图，站长需手动设置） -->
+                                {picture src="cover_image" alt="title" class="lazy-img" wrap_url="article" url_field="id"}
+                                
+                                <div class="post-content">
+                                    <h3 class="post-title">
+                                        {top_badge}
+                                        <a href="{url:article:id}">{field name="title"}</a>
+                                    </h3>
+                                    <div class="post-excerpt">
+                                        {field name='description'}
+                                    </div>
+                                    <div class="post-footer">
+                                        <div class="post-meta">
+                                            <span class="post-author">
+                                                <a href="/index.php?c=Auth&m=user&id={field name='user_id'}">{field name="author"}</a>
+                                            </span>
+                                            <span class="post-date">
+                                                {field name="created_at" filter="relative1"}
+                                            </span>
+                                            <span class="post-category">
+                                                <a href="{url:category:category_id}">{field name="category_name"}</a>
+                                            </span>
+                                            <span class="post-views">
+                                                {field name="view_count" filter="cn_number"} 浏览
+                                            </span>
+                                            <span class="post-likes">
+                                                {field name="like_count" filter="cn_number"} 点赞
+                                            </span>
+                                            <span class="post-favorites">
+                                                {field name="favorite_count" filter="cn_number"} 收藏
+                                            </span>
+                                            {if config.comment_enabled}
+                                            <span class="post-comments">
+                                                <a href="{url:article:id}#comments">{field name="comment_count" filter="cn_number"} 评论</a>
+                                            </span>
+                                            {endif}
+                                        </div>
+                                        <div class="post-tags-list">
+                                            {loop name=":tags"}
+                                                <a href="{url:tag:id}" class="tag">{field name="name"}</a>
+                                            {/loop}
+                                        </div>
+                                    </div>
+                                </div>
+                            </article>
+                        {/loop}
+                        
+                        <!-- 分页导航 -->
+                        {include file="common/pagination.html"}
+                    {else}
+                        <!-- 空状态 -->
+                        <div class="empty-state">
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="8" y1="12" x2="16" y2="12"></line>
+                            </svg>
+                            <p>该分类下暂无文章，敬请期待！</p>
+                        </div>
+                    {/if}
+                    </div>
+                    
+                    <!-- 筛选功能脚本 -->
+                    <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const filterTabs = document.querySelectorAll('.filter-tab');
+                        const articlesContainer = document.getElementById('articles-container');
+                        
+                        // 从当前URL中获取分类参数，这样更可靠
+                        function getCategoryParam() {
+                            const urlParams = new URLSearchParams(window.location.search);
+                            let id = urlParams.get('id');
+                            
+                            // 如果URL中没有id参数，尝试从路径中获取
+                            if (!id) {
+                                const pathParts = window.location.pathname.split('/');
+                                const categoryIndex = pathParts.indexOf('category');
+                                if (categoryIndex !== -1 && pathParts.length > categoryIndex + 1) {
+                                    id = pathParts[categoryIndex + 1];
+                                }
+                            }
+                            
+                            return id;
+                        }
+                        
+                        const categoryParam = getCategoryParam();
+                        
+                        if (!categoryParam) {
+                            console.error('无法获取分类参数');
+                            return;
+                        }
+                        
+                        filterTabs.forEach(tab => {
+                            tab.addEventListener('click', function() {
+                                // 移除所有标签的激活状态
+                                filterTabs.forEach(t => t.classList.remove('active'));
+                                // 添加当前标签的激活状态
+                                this.classList.add('active');
+                                
+                                const filter = this.dataset.filter;
+                                
+                                // 显示加载状态
+                                articlesContainer.innerHTML = '<div class="loading">加载中...</div>';
+                                
+                                // 构建URL
+                                const url = '/index.php?c=Home&m=category&id=' + encodeURIComponent(categoryParam) + '&filter=' + encodeURIComponent(filter);
+                                
+                                // 发送AJAX请求获取筛选结果
+                                fetch(url)
+                                    .then(response => response.text())
+                                    .then(html => {
+                                        // 使用一个临时div来解析HTML，避免DOMParser的问题
+                                        const tempDiv = document.createElement('div');
+                                        tempDiv.innerHTML = html;
+                                        const newContent = tempDiv.querySelector('#articles-container');
+                                        if (newContent) {
+                                            articlesContainer.innerHTML = newContent.innerHTML;
+                                            // 新内容加载后，重新初始化懒加载
+                                            if (window.initLazyLoad) {
+                                                window.initLazyLoad();
+                                            }
+                                        } else {
+                                            articlesContainer.innerHTML = '<div class="error">内容加载失败，请重试</div>';
+                                        }
+                                    })
+                                    .catch(error => {
+                                        console.error('筛选失败:', error);
+                                        articlesContainer.innerHTML = '<div class="error">加载失败，请重试</div>';
+                                    });
+                            });
+                        });
+                    });
+                    </script>
+                </div>
+                {include file="sidebar"}
+            </div>
+        </div>
+    </main>
+{include file="footer"}

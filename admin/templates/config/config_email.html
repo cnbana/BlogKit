@@ -1,0 +1,132 @@
+            <!-- 邮箱设置内容 -->
+            
+            <!-- 邮箱配置子菜单 -->
+            <div class="nav-tabs">
+                <?php foreach ($emailSubPages as $key => $name): ?>
+                    <a href="admin.php?action=config&sub=email&email_sub=<?php echo $key; ?>" class="nav-tab <?php echo $emailSubPage == $key ? 'active' : ''; ?>"><?php echo $name; ?></a>
+                <?php endforeach; ?>
+            </div>
+            
+            <div class="config-content">
+                <?php if ($emailSubPage == 'settings'): ?>
+                    <div class="form-container">
+                <form method="post" action="admin.php?action=<?php echo $currentAction; ?>&method=save" id="emailSettingsForm">
+                    <input type="hidden" name="sub_page" value="<?php echo $sub; ?>">
+                    <!-- SMTP配置 -->
+                    <div class="form-section">
+                        <h4>SMTP配置</h4>
+                        <div class="form-group">
+                            <label for="email_smtp_host">SMTP服务器地址</label>
+                            <input type="text" id="email_smtp_host" name="email_smtp_host" value="<?php echo $config['email_smtp_host']; ?>" placeholder="请输入SMTP服务器地址">
+                        </div>
+                        <div class="form-group">
+                            <label for="email_smtp_port">SMTP服务器端口</label>
+                            <input type="number" id="email_smtp_port" name="email_smtp_port" value="<?php echo $config['email_smtp_port']; ?>" placeholder="请输入SMTP服务器端口">
+                        </div>
+                        <div class="form-group">
+                            <label for="email_smtp_encryption">SMTP加密方式</label>
+                            <select id="email_smtp_encryption" name="email_smtp_encryption">
+                                <option value="ssl" <?php echo $config['email_smtp_encryption'] == 'ssl' ? 'selected' : ''; ?>>SSL</option>
+                                <option value="tls" <?php echo $config['email_smtp_encryption'] == 'tls' ? 'selected' : ''; ?>>TLS</option>
+                                <option value="" <?php echo $config['email_smtp_encryption'] == '' ? 'selected' : ''; ?>>无</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="email_smtp_username">SMTP用户名</label>
+                            <input type="text" id="email_smtp_username" name="email_smtp_username" value="<?php echo $config['email_smtp_username']; ?>" placeholder="请输入SMTP用户名">
+                        </div>
+                        <div class="form-group">
+                            <label for="email_smtp_password">SMTP密码</label>
+                            <input type="password" id="email_smtp_password" name="email_smtp_password"
+                                value=""
+                                data-placeholder-value="<?php echo empty($config['email_smtp_password']) ? '' : '__KEEP__'; ?>"
+                                placeholder="<?php echo empty($config['email_smtp_password']) ? '请输入SMTP密码' : '如需修改请输入新密码（未修改则沿用原配置）'; ?>">
+                            <small style="color: #666;">密码将加密保存到数据库，不会在页面上显示原值。</small>
+                        </div>
+                    </div>
+                    
+                    <!-- 发件人设置 -->
+                    <div class="form-section">
+                        <h4>发件人设置</h4>
+                        <div class="form-group">
+                            <label for="email_from_address">发件人邮箱地址</label>
+                            <input type="email" id="email_from_address" name="email_from_address" value="<?php echo $config['email_from_address']; ?>" placeholder="请输入发件人邮箱地址">
+                        </div>
+                        <div class="form-group">
+                            <label for="email_from_name">发件人名称</label>
+                            <input type="text" id="email_from_name" name="email_from_name" value="<?php echo $config['email_from_name']; ?>" placeholder="请输入发件人名称">
+                        </div>
+                    </div>
+                    
+                    <!-- 提交按钮 -->
+                    <div class="buttons">
+                        <button type="submit" class="btn btn-primary">保存设置</button>
+                        <button type="button" class="btn btn-info" onclick="sendTestEmail()" style="margin-left: 10px;">发送测试邮件</button>
+                        <span id="testEmailResult" style="margin-left: 10px; font-size: 14px;"></span>
+                    </div>
+                </form>
+            </div>
+            <script>
+            // —— 邮箱配置表单的交互逻辑 ——
+            // 1. 管理员点击"保存设置"时：若密码输入框仍为空，将 value 改为 __KEEP__
+            //    以便后端识别"未修改密码"并保留数据库中已加密的原值。
+            // 2. 点击"发送测试邮件"时：
+            //    - 若密码输入框为空，后端也会收到 __KEEP__ 作为"沿用已有密码"的信号
+            //    - 若管理员手动输入了新密码，则用该新密码发送测试邮件，并在发送成功后自动持久化
+            (function(){
+                var passwordInput = document.getElementById('email_smtp_password');
+                var placeholderValue = passwordInput ? passwordInput.getAttribute('data-placeholder-value') : '';
+
+                function buildSmtpFormData() {
+                    var formData = new FormData();
+                    formData.append('email_smtp_host', document.getElementById('email_smtp_host').value);
+                    formData.append('email_smtp_port', document.getElementById('email_smtp_port').value);
+                    formData.append('email_smtp_encryption', document.getElementById('email_smtp_encryption').value);
+                    formData.append('email_smtp_username', document.getElementById('email_smtp_username').value);
+                    formData.append('email_from_address', document.getElementById('email_from_address').value);
+                    formData.append('email_from_name', document.getElementById('email_from_name').value);
+                    // 密码框的 value：空则表示沿用已有密码（后端会从数据库解密取出）
+                    var passwordValue = passwordInput.value.trim();
+                    if (passwordValue === '') {
+                        formData.append('email_smtp_password', placeholderValue || '__KEEP__');
+                    } else {
+                        formData.append('email_smtp_password', passwordValue);
+                    }
+                    return formData;
+                }
+
+                // 提交表单时：若密码仍为空，将其替换为 __KEEP__，防止把明文"空"当作新密码入库
+                var form = document.getElementById('emailSettingsForm');
+                if (form) {
+                    form.addEventListener('submit', function(){
+                        if (passwordInput.value.trim() === '' && placeholderValue) {
+                            passwordInput.value = placeholderValue;
+                        }
+                    });
+                }
+
+                window.sendTestEmail = function() {
+                    var resultEl = document.getElementById('testEmailResult');
+                    resultEl.innerHTML = '<span style="color: #f0ad4e;">正在发送...</span>';
+                    var testEmail = prompt('请输入测试接收邮箱地址：');
+                    if (!testEmail) { resultEl.innerHTML = ''; return; }
+                    var formData = buildSmtpFormData();
+                    formData.append('test_email', testEmail);
+                    fetch('admin.php?action=<?php echo $currentAction; ?>&method=test', {
+                        method: 'POST', body: formData
+                    })
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) {
+                        resultEl.innerHTML = d.success
+                            ? '<span style="color: #5cb85c;">✓ ' + d.message + '</span>'
+                            : '<span style="color: #d9534f;">✗ ' + (d.message || '发送失败') + '</span>';
+                    })
+                    .catch(function(e) {
+                        resultEl.innerHTML = '<span style="color: #d9534f;">✗ 请求失败: ' + e + '</span>';
+                    });
+                };
+            })();
+            </script>
+
+                <?php endif; ?>
+            </div>

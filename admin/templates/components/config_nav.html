@@ -1,0 +1,96 @@
+<?php
+/**
+ * 配置侧边导航（垂直分组）
+ * 
+ * 从水平Tab栏改为左侧垂直分组导航，解决 17 个导航项溢出问题。
+ * 数据源：components/admin_nav.html
+ * 
+ * 使用方式：
+ *   <?php $sub = $_GET['sub'] ?? 'basic'; ?>
+ *   <?php include 'components/config_nav.html'; ?>
+ */
+if (!isset($sub)) {
+    $sub = $_GET['sub'] ?? 'basic';
+}
+
+// 加载配置导航数据
+$configNav = require __DIR__ . '/admin_nav.html';
+$currentUserRole = $_SESSION['admin']['role'] ?? 0;
+
+require_once __DIR__ . '/svg_icons.php';
+if (!function_exists('config_nav_svg')) {
+    function config_nav_svg($name) {
+        return admin_svg_icon($name);
+    }
+}
+?>
+<!-- 配置侧边导航 -->
+<aside class="config-sidebar" id="configSidebar">
+    <div class="config-sidebar-header">
+        <h3>系统设置</h3>
+        <input type="text" class="config-search" id="configSearch"
+               placeholder="搜索设置项..." autocomplete="off">
+    </div>
+    <nav class="config-menu" id="configMenu">
+        <?php foreach ($configNav['groups'] as $groupKey => $group): ?>
+            <?php
+            // 角色过滤：如果分组指定了 roles，检查当前用户角色
+            if (!empty($group['roles'])) {
+                $roleMatch = false;
+                foreach ($group['roles'] as $allowedRole) {
+                    if ((int)$currentUserRole === (int)$allowedRole) {
+                        $roleMatch = true;
+                        break;
+                    }
+                }
+                if (!$roleMatch) {
+                    continue;
+                }
+            }
+
+            // 检查该分组是否包含当前激活的子页面
+            $isGroupActive = false;
+            foreach ($group['items'] as $itemKey => $item) {
+                if ($sub === $itemKey) {
+                    $isGroupActive = true;
+                    break;
+                }
+            }
+            ?>
+            <div class="config-group <?php echo $isGroupActive ? 'active' : ''; ?>"
+                 data-group="<?php echo $groupKey; ?>"
+                 data-search-tags="<?php echo htmlspecialchars($group['title']); ?>">
+                <div class="config-group-title" title="<?php echo htmlspecialchars($group['title']); ?>">
+                    <span class="config-group-icon">
+                        <?php echo config_nav_svg($group['icon']); ?>
+                    </span>
+                    <span class="config-group-label"><?php echo htmlspecialchars($group['title']); ?></span>
+                    <?php if (!empty($group['danger'])): ?>
+                        <span class="danger-badge" title="需要谨慎操作">高级</span>
+                    <?php endif; ?>
+                    <span class="config-group-arrow">
+                        <svg class="svg-icon svg-icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </span>
+                </div>
+                <div class="config-group-items" style="<?php echo $isGroupActive ? '' : 'display:none;'; ?>">
+                    <?php foreach ($group['items'] as $itemKey => $item): ?>
+                        <a href="admin.php?action=config&sub=<?php echo $itemKey; ?>"
+                           class="config-item <?php echo ($sub === $itemKey) ? 'active' : ''; ?>"
+                           data-sub="<?php echo $itemKey; ?>"
+                           data-search-tags="<?php echo htmlspecialchars($item['title']); ?>">
+                            <span class="config-item-icon">
+                                <?php echo admin_svg_icon($item['icon']); ?>
+                            </span>
+                            <span class="config-item-label"><?php echo htmlspecialchars($item['title']); ?></span>
+                            <?php if (!empty($item['danger'])): ?>
+                                <span class="danger-dot" title="危险操作"></span>
+                            <?php endif; ?>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    </nav>
+</aside>

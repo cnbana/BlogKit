@@ -1,0 +1,139 @@
+<?php $currentAction = 'notification'; $pageTitle = '通知回收站'; include 'components/page_wrapper.html'; ?>
+    
+    <div style="margin-bottom: 15px;">
+        <a href="admin.php?action=notification" class="btn btn-primary">返回列表</a>
+        <a href="admin.php?action=notification&method=send" class="btn btn-secondary" style="margin-left: 10px;">发送系统通知</a>
+    </div>
+    
+    <!-- 筛选功能 -->
+    <div class="filter-section">
+        <form method="GET" action="admin.php">
+            <input type="hidden" name="action" value="notification">
+            <input type="hidden" name="method" value="recycle">
+            
+            <div style="margin-right: 15px; display: inline-block;">
+                <label for="search">搜索:</label>
+                <input type="text" name="search" id="search" placeholder="搜索通知..." value="<?php echo isset($search) ? $search : ''; ?>" style="padding: 5px; margin-right: 10px;">
+                <button type="submit" class="btn btn-primary" style="margin-right: 5px;">搜索</button>
+                <a href="admin.php?action=notification&method=recycle" class="btn btn-secondary">重置</a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- 通知列表 -->
+    <div class="table-section">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="select-all"></th>
+                    <th>通知标题</th>
+                    <th>类型</th>
+                    <th>用户</th>
+                    <th>删除时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (isset($notifications) && !empty($notifications)): ?>
+                    <?php foreach ($notifications as $notification): ?>
+                    <tr>
+                        <td><input type="checkbox" name="notification_ids[]" value="<?php echo $notification['id']; ?>"></td>
+                        <td><?php echo $notification['title']; ?></td>
+                        <td><?php echo isset($notification['type_label']) ? $notification['type_label'] : $notification['type']; ?></td>
+                        <td><?php echo isset($notification['username']) ? $notification['username'] : '未知用户'; ?></td>
+                        <td><?php echo $notification['deleted_at_formatted']; ?></td>
+                        <td>
+                            <a href="javascript:void(0);" onclick="restoreNotification(<?php echo $notification['id']; ?>);" class="btn btn-success btn-sm">恢复</a>
+                            <a href="javascript:void(0);" onclick="forceDeleteNotification(<?php echo $notification['id']; ?>);" class="btn btn-danger btn-sm">永久删除</a>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="6" style="text-align: center;">回收站暂无数据</td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- 批量操作 -->
+    <?php if (isset($notifications) && !empty($notifications)): ?>
+    <div style="margin-top: 15px;">
+        <button type="button" class="btn btn-success" onclick="batchRestore();">批量恢复</button>
+        <button type="button" class="btn btn-danger" onclick="batchForceDelete();" style="margin-left: 10px;">批量永久删除</button>
+    </div>
+    <?php endif; ?>
+    
+    <!-- 分页 -->
+    <?php 
+        // 引入公共分页组件
+        $action = 'notification';
+        $total = isset($totalNotifications) ? $totalNotifications : 0;
+        $limit = 20;
+        $filters = [];
+        $filters['method'] = 'recycle';
+        if (isset($search) && !empty($search)) $filters['search'] = $search;
+        include ADMIN_PATH . '/templates/components/pagination.html';
+    ?> 
+    
+    <script>
+        // 全选/取消全选
+        document.getElementById('select-all').addEventListener('change', function() {
+            var checkboxes = document.querySelectorAll('input[name="notification_ids[]"]');
+            checkboxes.forEach(function(checkbox) {
+                checkbox.checked = document.getElementById('select-all').checked;
+            });
+        });
+        
+        // 恢复通知
+        function restoreNotification(id) {
+            if (confirm('确定要恢复这条通知吗？')) {
+                window.location.href = 'admin.php?action=notification&method=restore&id=' + id;
+            }
+        }
+        
+        // 永久删除通知
+        function forceDeleteNotification(id) {
+            if (confirm('确定要永久删除这条通知吗？此操作无法撤销！')) {
+                window.location.href = 'admin.php?action=notification&method=forceDelete&id=' + id;
+            }
+        }
+        
+        // 批量恢复通知
+        function batchRestore() {
+            var checkboxes = document.querySelectorAll('input[name="notification_ids[]"]:checked');
+            if (checkboxes.length === 0) {
+                alert('请先选择要恢复的通知');
+                return;
+            }
+            
+            if (confirm('确定要恢复选中的 ' + checkboxes.length + ' 条通知吗？')) {
+                var ids = [];
+                checkboxes.forEach(function(checkbox) {
+                    ids.push(checkbox.value);
+                });
+                window.location.href = 'admin.php?action=notification&method=batchRestore&ids=' + ids.join(',');
+            }
+        }
+        
+        // 批量永久删除通知
+        function batchForceDelete() {
+            var checkboxes = document.querySelectorAll('input[name="notification_ids[]"]:checked');
+            if (checkboxes.length === 0) {
+                alert('请先选择要永久删除的通知');
+                return;
+            }
+            
+            if (confirm('确定要永久删除选中的 ' + checkboxes.length + ' 条通知吗？此操作无法撤销！')) {
+                var ids = [];
+                checkboxes.forEach(function(checkbox) {
+                    ids.push(checkbox.value);
+                });
+                window.location.href = 'admin.php?action=notification&method=batchForceDelete&ids=' + ids.join(',');
+            }
+        }
+    </script>
+</main>
+
+<?php include 'components/footer_wrapper.html'; ?>

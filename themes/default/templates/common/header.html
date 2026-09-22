@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="{site.charset}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=5.0, minimum-scale=0.5">
+    <!-- 主题色与深色模式支持：移动端浏览器地址栏配色 -->
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#1a1d23" media="(prefers-color-scheme: dark)">
+    <meta name="color-scheme" content="light dark">
+    
+    <!-- CSRF令牌 - 用于API请求安全验证（同时提供meta和隐藏input两种方式）-->
+    <meta name="csrf-token" content="{csrf_token}">
+    <input type="hidden" id="csrf-token-input" value="{csrf_token}">
+    
+    <!-- 核心SEO标签 -->
+    <title>{seo_title}</title>
+    <meta name="description" content="{seo_description}">
+    <meta name="keywords" content="{seo_keywords}">
+    
+    <!-- 网站信息 -->
+    <meta name="author" content="{site.name}">
+    <meta name="copyright" content="Copyright © {site.name}">
+    <meta name="robots" content="index,follow">
+    
+    <!-- 网站图标 -->
+    {if isset="config.site_favicon" && config.site_favicon}
+    <link rel="icon" href="{config.site_favicon}" type="image/x-icon">
+    <link rel="shortcut icon" href="{config.site_favicon}" type="image/x-icon">
+    <link rel="apple-touch-icon" sizes="180x180" href="{config.site_favicon}">
+    {else}
+    <link rel="icon" href="{site.url}/favicon.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="{site.url}/favicon.ico" type="image/x-icon">
+    {/if}
+    
+    <!-- 规范URL -->
+    <link rel="canonical" href="{if canonical_url}{canonical_url}{else}{site.url}{current_path}{endif}">
+    
+    <!-- RSS订阅 -->
+    <link rel="alternate" type="application/rss+xml" title="{site.name} - RSS订阅" href="{site.rss_url}">
+    
+    <!-- Open Graph标签 - 微信、微博等社交平台支持 -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{seo_title}">
+    <meta property="og:description" content="{seo_description}">
+    <meta property="og:url" content="{if canonical_url}{canonical_url}{else}{site.url}{current_path}{endif}">
+    <meta property="og:site_name" content="{site.name}">
+    <meta property="og:locale" content="zh_CN">
+    
+    <!-- 资源文件 -->
+    <link rel="stylesheet" href="{site.url}/themes/default/assets/css/style.css">
+    <script src="{site.url}/themes/default/assets/js/jquery-4.0.0.min.js"></script>
+    
+    <!-- 自定义全局头部内容 -->
+    {theme_custom_header}
+    
+    <!-- 插件钩子：页面头部 -->
+    {plugin_hook name="page_header"}
+
+</head>
+<body>
+
+    {include file="common/navbar.html"}
+

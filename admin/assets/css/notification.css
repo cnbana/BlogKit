@@ -1,0 +1,284 @@
+/* ========================================
+ * 通知管理页面样式 (notification.css)
+ * 适用页面：notification_list.html（列表）、notification_send.html（发送）
+ * 由模板内嵌 <style> 归拢而来（2026-09 样式统一）
+ * 说明：列表页详情弹窗为独立 ID 作用域（#notification-modal-*），
+ *       不复用 components.css 的 .modal 结构
+ * ======================================== */
+
+/* ===== 列表页：通知详情弹窗 ===== */
+#notification-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+}
+#notification-modal-overlay.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+#notification-modal-content {
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    width: 600px;
+    max-width: 90%;
+    max-height: 80vh;
+    overflow: hidden;
+}
+
+/* ===== 发送页：用户搜索下拉选择器 ===== */
+.user-select-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+.user-search-input {
+    width: 100%;
+    padding: 10px 34px 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+    transition: border-color 0.3s;
+    height: 38px;
+}
+.user-search-input:focus {
+    outline: none;
+    border-color: #4a90d9;
+    box-shadow: 0 0 0 2px rgba(74, 144, 217, 0.2);
+}
+.clear-search-btn {
+    position: absolute;
+    right: 7px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #ddd;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: #666;
+    transition: all 0.2s;
+    padding: 0;
+    line-height: 1;
+    z-index: 10;
+}
+.clear-search-btn:hover {
+    background: #999;
+    color: #fff;
+}
+.clear-search-btn.hidden {
+    display: none;
+}
+
+/* 搜索结果下拉 */
+.user-select-result {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    max-height: 200px;
+    overflow-y: auto;
+}
+.user-select-result::-webkit-scrollbar {
+    width: 6px;
+}
+.user-select-result::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+.user-select-result::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+.user-select-result::-webkit-scrollbar-thumb:hover {
+    background: #a1a1a1;
+}
+.result-count {
+    padding: 6px 12px;
+    background: #f5f7fa;
+    border-bottom: 1px solid #eee;
+    font-size: 12px;
+    color: #999;
+    text-align: right;
+}
+.user-select-result ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.user-select-result li {
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s;
+}
+.user-select-result li:last-child {
+    border-bottom: none;
+}
+.user-select-result li:hover {
+    background-color: #f5f7fa;
+}
+.user-select-result .user-name {
+    display: block;
+    font-weight: 500;
+    color: #333;
+    font-size: 14px;
+}
+.user-select-result .user-email {
+    display: block;
+    font-size: 12px;
+    color: #999;
+    margin-top: 2px;
+}
+.user-select-result .no-result {
+    padding: 12px;
+    text-align: center;
+    color: #999;
+    font-size: 14px;
+}
+
+/* 已选用户回显条 */
+.selected-user {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background-color: #e8f4fd;
+    border: 1px solid #b3d9f5;
+    border-radius: 4px;
+    margin-top: 8px;
+}
+.selected-user span {
+    color: #1a73e8;
+    font-weight: 500;
+    font-size: 14px;
+}
+.clear-user-btn {
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0 8px;
+    transition: color 0.2s;
+    line-height: 1;
+}
+.clear-user-btn:hover {
+    color: #e53935;
+}
+
+/* ===== 发送页：Markdown 编辑器工具栏 ===== */
+.editor-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px 4px 0 0;
+    border-bottom: none;
+}
+.toolbar-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #ddd;
+    background: #fff;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+.toolbar-btn:hover {
+    background: #e8f4fd;
+    border-color: #4a90d9;
+}
+.toolbar-divider {
+    width: 1px;
+    height: 18px;
+    background: #ddd;
+    margin: 0 4px;
+}
+
+/* 编辑器帮助提示 */
+.editor-help {
+    padding: 8px 12px;
+    background: #f9f9f9;
+    border: 1px solid #eee;
+    border-radius: 0 0 4px 4px;
+    font-size: 12px;
+    color: #666;
+    margin-top: -1px;
+}
+.help-tag {
+    display: inline-block;
+    padding: 2px 6px;
+    background: #e8f4fd;
+    color: #1a73e8;
+    border-radius: 3px;
+    margin: 0 4px;
+    font-size: 11px;
+}
+
+/* ===== 暗色主题适配 ===== */
+body.dark-theme #notification-modal-content {
+    background-color: #1e293b;
+}
+body.dark-theme .user-search-input {
+    background: #0f172a;
+    border-color: #334155;
+    color: #e2e8f0;
+}
+body.dark-theme .user-select-result {
+    background: #1e293b;
+    border-color: #334155;
+}
+body.dark-theme .user-select-result li {
+    border-color: #334155;
+    color: #e2e8f0;
+}
+body.dark-theme .user-select-result li:hover {
+    background-color: #24324a;
+}
+body.dark-theme .result-count {
+    background: #0f172a;
+    border-color: #334155;
+    color: #94a3b8;
+}
+body.dark-theme .selected-user {
+    background-color: #16324a;
+    border-color: #2b5278;
+}
+body.dark-theme .editor-toolbar {
+    background: #0f172a;
+    border-color: #334155;
+}
+body.dark-theme .toolbar-btn {
+    background: #1e293b;
+    border-color: #334155;
+    color: #e2e8f0;
+}
+body.dark-theme .editor-help {
+    background: #0f172a;
+    border-color: #334155;
+    color: #94a3b8;
+}

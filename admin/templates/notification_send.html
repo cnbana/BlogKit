@@ -1,0 +1,258 @@
+<?php $currentAction = 'notification'; $pageTitle = '发送系统通知'; $pageCss = 'notification.css'; include 'components/page_wrapper.html'; ?>
+    
+    <div style="margin-bottom: 15px;">
+        <a href="admin.php?action=notification" class="btn btn-secondary">返回列表</a>
+    </div>
+    <!-- 页面专属样式已归拢至 assets/css 页面级文件（经 $pageCss 加载，2026-09 样式统一） -->
+
+    
+    <!-- 表单内容 -->
+    <div class="form-container">
+        <form method="POST" action="admin.php?action=notification&method=send" class="form" onsubmit="return validateForm()">
+            <div class="form-group">
+                <label for="title">通知标题 <span class="required">*</span></label>
+                <input type="text" id="title" name="title" placeholder="请输入通知标题" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="content">通知内容 <span class="required">*</span></label>
+                <!-- 简易富文本工具栏 -->
+                <div class="editor-toolbar">
+                    <button type="button" class="toolbar-btn" onclick="formatText('bold')" title="粗体 (Ctrl+B)"><strong>B</strong></button>
+                    <button type="button" class="toolbar-btn" onclick="formatText('italic')" title="斜体 (Ctrl+I)"><em>I</em></button>
+                    <button type="button" class="toolbar-btn" onclick="formatText('link')" title="插入链接">🔗</button>
+                    <button type="button" class="toolbar-btn" onclick="formatText('br')" title="换行">↵</button>
+                    <span class="toolbar-divider"></span>
+                    <button type="button" class="toolbar-btn" onclick="formatText('undo')" title="撤销 (Ctrl+Z)">↶</button>
+                    <button type="button" class="toolbar-btn" onclick="formatText('redo')" title="重做 (Ctrl+Y)">↷</button>
+                </div>
+                <textarea id="content" name="content" rows="10" placeholder="请输入通知内容，支持粗体、斜体、链接等基本格式..." required></textarea>
+                <div class="editor-help">
+                    <strong>支持的格式：</strong>
+                    <span class="help-tag">**粗体**</span>
+                    <span class="help-tag">*斜体*</span>
+                    <span class="help-tag">[链接文本](URL)</span>
+                    <span class="help-tag">换行使用 Enter</span>
+                    <span class="help-tag">HTML标签将被过滤</span>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="type">通知类型</label>
+                <select id="type" name="type">
+                    <option value="system">系统通知</option>
+                    <option value="system_update">系统更新</option>
+                    <option value="article_approved">文章通过</option>
+                    <option value="article_rejected">文章退回</option>
+                    <option value="new_follower">新粉丝</option>
+                    <option value="article_likes">文章点赞</option>
+                    <option value="comment_likes">评论点赞</option>
+                    <option value="favorites">收藏通知</option>
+                    <option value="default">普通通知</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="send_to">发送对象 <span class="required">*</span></label>
+                <select id="send_to" name="send_to" onchange="toggleUserIdField()">
+                    <option value="all">所有用户</option>
+                    <option value="single">单个用户</option>
+                </select>
+            </div>
+            
+            <div class="form-group" id="user_id_field" style="display: none;">
+                <label for="user_id">选择用户 <span class="required" id="user_required" style="display: none;">*</span></label>
+                <div class="user-select-wrapper">
+                    <input type="text" id="user_search" placeholder="搜索用户名、邮箱或用户ID..." class="user-search-input">
+                    <button type="button" id="clear_search_btn" class="clear-search-btn hidden" onclick="clearSearchInput()">×</button>
+                    <input type="hidden" id="user_id" name="user_id" value="0">
+                    <div class="user-select-result" id="user_select_result"></div>
+                    <div class="selected-user" id="selected_user" style="display: none;">
+                        <span id="selected_user_name"></span>
+                        <button type="button" class="clear-user-btn" onclick="clearSelectedUser()">×</button>
+                    </div>
+                </div>
+                <small>请搜索并选择一个用户（支持用户名、邮箱、ID搜索）</small>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">发送通知</button>
+                <a href="admin.php?action=notification" class="btn btn-default">取消</a>
+            </div>
+        </form>
+    </div>
+    
+    <script>
+        // 表单验证
+        function validateForm() {
+            var sendTo = document.getElementById('send_to').value;
+            
+            // 如果选择单个用户，必须选择用户
+            if (sendTo === 'single') {
+                var userId = document.getElementById('user_id').value;
+                if (!userId || userId <= 0) {
+                    alert('请先选择要发送通知的用户');
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+        
+        // 简易富文本格式化函数
+        function formatText(action) {
+            var textarea = document.getElementById('content');
+            var start = textarea.selectionStart;
+            var end = textarea.selectionEnd;
+            var selectedText = textarea.value.substring(start, end);
+            var beforeText = textarea.value.substring(0, start);
+            var afterText = textarea.value.substring(end);
+            
+            switch (action) {
+                case 'bold':
+                    textarea.value = beforeText + '**' + selectedText + '**' + afterText;
+                    break;
+                case 'italic':
+                    textarea.value = beforeText + '*' + selectedText + '*' + afterText;
+                    break;
+                case 'link':
+                    var url = prompt('请输入链接地址:', 'https://');
+                    if (url) {
+                        textarea.value = beforeText + '[' + (selectedText || '链接文本') + '](' + url + ')' + afterText;
+                    }
+                    break;
+                case 'br':
+                    textarea.value = beforeText + '\n' + afterText;
+                    break;
+                case 'undo':
+                    document.execCommand('undo', false, null);
+                    return;
+                case 'redo':
+                    document.execCommand('redo', false, null);
+                    return;
+            }
+            
+            // 设置光标位置
+            setTimeout(function() {
+                var newPos = start + (action === 'bold' ? 2 : action === 'italic' ? 1 : 0);
+                textarea.setSelectionRange(newPos, newPos + selectedText.length);
+                textarea.focus();
+            }, 0);
+        }
+        
+        function toggleUserIdField() {
+            var sendTo = document.getElementById('send_to').value;
+            var userIdField = document.getElementById('user_id_field');
+            var userIdInput = document.getElementById('user_id');
+            var userRequired = document.getElementById('user_required');
+            
+            if (sendTo === 'single') {
+                userIdField.style.display = 'block';
+                userIdInput.required = true;
+                userRequired.style.display = 'inline';
+            } else {
+                userIdField.style.display = 'none';
+                userIdInput.required = false;
+                userIdInput.value = '0';
+                userRequired.style.display = 'none';
+                clearSelectedUser();
+            }
+        }
+        
+        var searchTimeout = null;
+        
+        function searchUsers() {
+            var keyword = document.getElementById('user_search').value.trim();
+            var resultContainer = document.getElementById('user_select_result');
+            var selectedUser = document.getElementById('selected_user');
+            var clearBtn = document.getElementById('clear_search_btn');
+            
+            // 显示/隐藏清除按钮
+            if (keyword.length > 0) {
+                clearBtn.classList.remove('hidden');
+            } else {
+                clearBtn.classList.add('hidden');
+            }
+            
+            // 清除之前的定时器
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
+            }
+            
+            if (keyword.length < 1) {
+                resultContainer.innerHTML = '';
+                resultContainer.style.display = 'none';
+                return;
+            }
+            
+            // 300ms 防抖
+            searchTimeout = setTimeout(function() {
+                $.get('admin.php?action=user&method=search', { keyword: keyword, limit: 10 }, function(res) {
+                    if (res.success && res.data && res.data.length > 0) {
+                        var html = '<div class="result-count">共找到 ' + res.data.length + ' 个用户</div>';
+                        html += '<ul>';
+                        res.data.forEach(function(user) {
+                            html += '<li onclick="selectUser(' + user.id + ', \'' + escapeHtml(user.username) + '\')">';
+                            html += '<span class="user-name">' + escapeHtml(user.username) + '</span>';
+                            if (user.email) {
+                                html += '<span class="user-email">' + escapeHtml(user.email) + '</span>';
+                            }
+                            html += '</li>';
+                        });
+                        html += '</ul>';
+                        resultContainer.innerHTML = html;
+                        resultContainer.style.display = 'block';
+                        selectedUser.style.display = 'none';
+                    } else {
+                        resultContainer.innerHTML = '<div class="no-result">未找到匹配的用户</div>';
+                        resultContainer.style.display = 'block';
+                    }
+                }, 'json').fail(function() {
+                    resultContainer.innerHTML = '<div class="no-result">搜索失败</div>';
+                    resultContainer.style.display = 'block';
+                });
+            }, 300);
+        }
+        
+        function clearSearchInput() {
+            document.getElementById('user_search').value = '';
+            document.getElementById('clear_search_btn').classList.add('hidden');
+            document.getElementById('user_select_result').innerHTML = '';
+            document.getElementById('user_select_result').style.display = 'none';
+        }
+        
+        function selectUser(userId, username) {
+            document.getElementById('user_id').value = userId;
+            document.getElementById('selected_user_name').textContent = username;
+            document.getElementById('selected_user').style.display = 'block';
+            document.getElementById('user_select_result').style.display = 'none';
+            document.getElementById('user_search').value = '';
+            // 隐藏清除按钮
+            document.getElementById('clear_search_btn').classList.add('hidden');
+        }
+        
+        function clearSelectedUser() {
+            document.getElementById('user_id').value = '0';
+            document.getElementById('selected_user').style.display = 'none';
+            document.getElementById('user_search').value = '';
+            document.getElementById('user_select_result').style.display = 'none';
+        }
+        
+        function escapeHtml(str) {
+            return str.replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                      .replace(/"/g, '&quot;');
+        }
+        
+        // 绑定搜索事件
+        document.addEventListener('DOMContentLoaded', function() {
+            var searchInput = document.getElementById('user_search');
+            if (searchInput) {
+                searchInput.addEventListener('input', searchUsers);
+            }
+        });
+    </script>
+</main>
+
+<?php include 'components/footer_wrapper.html'; ?>

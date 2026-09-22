@@ -1,0 +1,63 @@
+<?php $currentAction = 'category'; $pageTitle = '分类管理'; include 'components/page_wrapper.html'; ?>
+            
+        <div style="margin-bottom: 15px;">
+            <a href="admin.php?action=category&sub=add" class="btn btn-primary">添加分类</a>
+            <button type="submit" form="category-form" class="btn btn-success">保存排序</button>
+        </div>
+            
+        <div class="table-container">
+            <form id="category-form" action="admin.php?action=category&sub=updateOrder" method="post">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>分类名称</th>
+                        <th>别名</th>
+                        <th>跳转链接</th>
+                        <th>排序</th>
+                        <th>文章数量</th>
+                        <th>创建时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($categories as $category): ?>
+                    <tr>
+                        <td><?php echo $category['id']; ?></td>
+                        <td>
+                            <?php 
+                            // 显示树形结构的分类名称
+                            if ($category['parent_id'] == 0) {
+                                echo '<strong>' . $category['name'] . '</strong>';
+                            } else {
+                                // 计算缩进级别
+                                $indent = '';
+                                $parentId = $category['parent_id'];
+                                $currentCategory = $category;
+                                
+                                // 只显示一级子分类的缩进
+                                if ($parentId != 0) {
+                                    $indent = '└─ ';
+                                }
+                                echo $indent . $category['name'];
+                            }
+                            ?>
+                        </td>
+                        <td><?php echo isset($category['slug']) && !empty($category['slug']) ? $category['slug'] : '-'; ?></td>
+                        <td><?php echo isset($category['redirect_url']) && !empty($category['redirect_url']) ? '<a href="' . htmlspecialchars($category['redirect_url']) . '" target="_blank" style="color: #667eea; text-decoration: none;">' . htmlspecialchars(mb_substr($category['redirect_url'], 0, 30)) . (mb_strlen($category['redirect_url']) > 30 ? '...' : '') . '</a>' : '-'; ?></td>
+                        <td><input type="number" name="order_by[<?php echo $category['id']; ?>]" value="<?php echo $category['sort']; ?>" style="width: 60px;"></td>
+                        <td><?php echo $category['article_count']; ?></td>
+                        <td><?php echo date('Y-m-d H:i:s', $category['created_at']); ?></td>
+                        <td>
+                            <a href="admin.php?action=category&sub=edit&id=<?php echo $category['id']; ?>" class="btn btn-primary">编辑</a>
+                            <a href="admin.php?action=category&sub=delete&id=<?php echo $category['id']; ?>" class="btn btn-danger" onclick="return confirm('确定要删除这个分类吗？');">删除</a>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            </form>
+        </div>
+    </main>
+
+<?php include 'components/footer_wrapper.html'; ?>

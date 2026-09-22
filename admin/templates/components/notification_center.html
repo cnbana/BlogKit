@@ -1,0 +1,44 @@
+<!-- 通知中心弹窗 -->
+<div class="notification-center" id="notificationCenter">
+    <div class="notification-center-mask" id="notificationCenterMask"></div>
+    <div class="notification-center-panel" id="notificationCenterPanel">
+        <div class="notification-center-header">
+            <h3>通知中心</h3>
+            <button class="notification-center-close" id="notificationCenterClose">
+                <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        
+        <div class="notification-center-body" id="notificationCenterBody">
+            <div class="notification-loading" id="notificationLoading">
+                <svg class="loading-spinner" viewBox="0 0 50 50">
+                    <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="4"></circle>
+                </svg>
+                <span>加载中...</span>
+            </div>
+            
+            <div class="notification-empty" id="notificationEmpty" style="display: none;">
+                <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6.002 6.002 0 0 0-4-5.659V5a2 2 0 1 0-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9"></path>
+                </svg>
+                <p>暂无通知</p>
+            </div>
+            
+            <div class="notification-list" id="notificationList" style="display: none;">
+                <!-- 通知项将通过JS动态渲染 -->
+            </div>
+        </div>
+        
+        <div class="notification-center-footer">
+            <button class="notification-mark-all-read" id="notificationMarkAllRead">
+                <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>全部标为已读</span>
+            </button>
+        </div>
+    </div>
+</div>

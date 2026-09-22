@@ -1,0 +1,259 @@
+<?php $currentAction = 'user'; $pageTitle = '用户列表'; include 'components/page_wrapper.html'; ?>
+    
+
+    
+    <div style="margin-bottom: 15px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+        <a href="admin.php?action=user&sub=add" class="btn btn-primary">添加用户</a>
+        <a href="admin.php?action=user&sub=import" class="btn btn-info">导入用户</a>
+        <?php Hook::trigger('admin_user_after_list', []); ?>
+        <div class="btn-group">
+            <button type="button" class="btn btn-success dropdown-toggle" onclick="toggleDropdown(this)">
+                导出数据
+            </button>
+            <ul class="dropdown-menu">
+                <li>
+                    <a href="javascript:void(0)" onclick="exportUsers('csv')">导出CSV</a>
+                </li>
+                <li>
+                    <a href="javascript:void(0)" onclick="exportUsers('xls')">导出Excel</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- 搜索和筛选表单 -->
+    <div class="table-container" style="padding: 15px; margin-bottom: 15px;">
+        <form method="get" action="admin.php" id="search-form">
+            <input type="hidden" name="action" value="user">
+            <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center;">
+                <input type="text" name="search" placeholder="搜索用户名/昵称/邮箱" 
+                       value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>"
+                       style="padding: 8px 12px; width: 250px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px;">
+                
+                <select name="role" style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px;">
+                    <option value="">全部角色</option>
+                    <?php foreach ($roleList as $roleId => $roleName): ?>
+                    <option value="<?php echo $roleId; ?>" 
+                            <?php echo isset($_GET['role']) && $_GET['role'] == $roleId ? 'selected' : ''; ?>>
+                        <?php echo htmlspecialchars($roleName); ?>
+                    </option>
+                    <?php endforeach; ?>
+                </select>
+                
+                <select name="status" style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px;">
+                    <option value="">全部状态</option>
+                    <option value="1" <?php echo isset($_GET['status']) && $_GET['status'] === '1' ? 'selected' : ''; ?>>正常</option>
+                    <option value="0" <?php echo isset($_GET['status']) && $_GET['status'] === '0' ? 'selected' : ''; ?>>禁用</option>
+                </select>
+                
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <label style="font-size: 14px; font-weight: 500;">注册时间:</label>
+                    <input type="date" name="created_at_start" 
+                           value="<?php echo isset($_GET['created_at_start']) ? htmlspecialchars($_GET['created_at_start']) : ''; ?>"
+                           style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px;">
+                    <span style="font-size: 14px;">至</span>
+                    <input type="date" name="created_at_end" 
+                           value="<?php echo isset($_GET['created_at_end']) ? htmlspecialchars($_GET['created_at_end']) : ''; ?>"
+                           style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px;">
+                </div>
+                
+                <div style="margin-left: auto; display: flex; gap: 10px;">
+                    <button type="submit" class="btn btn-primary">搜索</button>
+                    <a href="admin.php?action=user" class="btn btn-secondary">重置</a>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <div class="table-container">
+        
+        <!-- 批量操作 -->
+        <div style="padding: 15px; border-bottom: 1px solid #eee; margin-bottom: 0; display: flex; flex-wrap: wrap; gap: 15px; align-items: center;">
+            <select id="batch-action" style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px;">
+                <option value="">批量操作</option>
+                <option value="batch-disable">批量禁用</option>
+                <option value="batch-enable">批量启用</option>
+                <option value="batch-delete">批量删除</option>
+                <option value="batch-role">批量修改角色</option>
+            </select>
+            
+            <select id="batch-role-select" style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px; display: none;">
+                <option value="">选择角色</option>
+                <?php foreach ($roleList as $roleId => $roleName): ?>
+                <option value="<?php echo $roleId; ?>">
+                    <?php echo htmlspecialchars($roleName); ?>
+                </option>
+                <?php endforeach; ?>
+            </select>
+            
+            <button onclick="executeBatchAction()" class="btn btn-primary">执行</button>
+        </div>
+        
+        <table class="table table-striped">
+            <?php include ADMIN_PATH . '/templates/components/sort_link.html'; ?>
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="select-all-table" class="user-checkbox" onclick="selectAllUsersInTable(this)"></th>
+                    <th><?php echo sortLink('id', 'ID', $sort, $order); ?></th>
+                    <th>用户名</th>
+                    <th>昵称</th>
+                    <th>邮箱</th>
+                    <th>角色</th>
+                    <th>账号状态</th>
+                    <?php Hook::trigger('admin_user_list_column_header'); ?>
+                    <th><?php echo sortLink('created_at', '创建时间', $sort, $order); ?></th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($users as $user): ?>
+                <tr>
+                    <td><input type="checkbox" class="user-checkbox" value="<?php echo $user['id']; ?>"<?php echo $user['id'] == 1 ? ' disabled' : ''; ?>></td>
+                    <td><?php echo $user['id']; ?></td>
+                    <td><?php echo htmlspecialchars($user['username']); ?></td>
+                    <td><?php echo htmlspecialchars($user['nickname']); ?></td>
+                    <td><?php echo htmlspecialchars($user['email']); ?></td>
+                    <td>
+                        <span class="role-tag <?php echo $user['role_class']; ?>"><?php echo htmlspecialchars($user['role_name']); ?></span>
+                    </td>
+                    <td>
+                        <span class="status-tag <?php echo $user['status'] == 1 ? 'status-active' : 'status-inactive'; ?>">
+                            <?php echo htmlspecialchars($user['status_name']); ?>
+                        </span>
+                    </td>
+                    <?php Hook::trigger('admin_user_list_column_cell', $user); ?>
+                    <td><?php echo htmlspecialchars($user['created_at']); ?></td>
+                    <td>
+                        <a href="admin.php?action=user&sub=detail&id=<?php echo $user['id']; ?>" class="btn btn-info">详情</a>
+                        <a href="admin.php?action=user&sub=edit&id=<?php echo $user['id']; ?>" style="margin-left: 5px;" class="btn btn-primary">编辑</a>
+                        <?php if ($user['id'] != 1): ?>
+                        <div class="btn-group" style="display: inline-block; margin-left: 5px;">
+                            <button type="button" class="btn btn-secondary dropdown-toggle" onclick="toggleDropdown(this)">
+                                操作
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a href="admin.php?action=user&sub=toggleStatus&id=<?php echo $user['id']; ?>&status=<?php echo $user['status'] == 1 ? 0 : 1; ?>" onclick="return confirm('确定<?php echo $user['status'] == 1 ? '禁用' : '解封'; ?>这个用户吗？');">
+                                        <?php echo $user['status'] == 1 ? '禁用' : '解封'; ?>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="admin.php?action=user&sub=delete&id=<?php echo $user['id']; ?>" onclick="return confirm('确定要将这个用户移至回收站吗？');" style="color: #dc3545;">
+                                        删除
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        
+        <!-- 分页 -->
+        <?php if (isset($totalPages) && $totalPages > 1): ?>
+        <div class="pagination-container" style="margin-top: 20px;">
+            <?php include 'components/pagination.html'; ?>
+        </div>
+        <?php endif; ?>
+        </div>
+        
+
+    
+    <script>
+        // 用户页面特定的JavaScript
+        
+        // 切换下拉菜单显示/隐藏
+        function toggleDropdown(button) {
+            const btnGroup = button.parentElement;
+            const isOpen = btnGroup.classList.contains('show');
+            
+            // 先关闭所有其他下拉菜单
+            document.querySelectorAll('.btn-group').forEach(group => {
+                group.classList.remove('show');
+            });
+            
+            // 切换当前下拉菜单
+            if (!isOpen) {
+                btnGroup.classList.add('show');
+            }
+        }
+        
+        // 点击页面其他地方关闭下拉菜单
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.btn-group')) {
+                document.querySelectorAll('.btn-group').forEach(group => {
+                    group.classList.remove('show');
+                });
+            }
+        });
+        
+        // 全选用户
+        function selectAllUsersInTable(checkbox) {
+            const userCheckboxes = document.querySelectorAll('.user-checkbox');
+            userCheckboxes.forEach(cb => {
+                if (!cb.disabled) {
+                    cb.checked = checkbox.checked;
+                }
+            });
+        }
+        
+        // 批量操作选择变化
+        document.getElementById('batch-action').addEventListener('change', function() {
+            const roleSelect = document.getElementById('batch-role-select');
+            if (this.value === 'batch-role') {
+                roleSelect.style.display = 'inline-block';
+            } else {
+                roleSelect.style.display = 'none';
+            }
+        });
+        
+        // 执行批量操作
+        function executeBatchAction() {
+            const action = document.getElementById('batch-action').value;
+            const selectedUsers = document.querySelectorAll('.user-checkbox:checked');
+            const roleId = document.getElementById('batch-role-select').value;
+            
+            if (selectedUsers.length === 0) {
+                showToast('请选择至少一个用户', 'error');
+                return;
+            }
+            
+            const userIds = Array.from(selectedUsers).map(cb => cb.value).join(',');
+            
+            if (action === 'batch-disable') {
+                if (confirm('确定要禁用选中的' + selectedUsers.length + '个用户吗？')) {
+                    window.location.href = 'admin.php?action=user&sub=batchToggleStatus&status=0&user_ids=' + userIds;
+                }
+            } else if (action === 'batch-enable') {
+                if (confirm('确定要启用选中的' + selectedUsers.length + '个用户吗？')) {
+                    window.location.href = 'admin.php?action=user&sub=batchToggleStatus&status=1&user_ids=' + userIds;
+                }
+            } else if (action === 'batch-delete') {
+                if (confirm('确定要将选中的' + selectedUsers.length + '个用户移至回收站吗？')) {
+                    window.location.href = 'admin.php?action=user&sub=batchDelete&user_ids=' + userIds;
+                }
+            } else if (action === 'batch-role') {
+                if (!roleId) {
+                    showToast('请选择要修改的角色', 'error');
+                    return;
+                }
+                if (confirm('确定要将选中的' + selectedUsers.length + '个用户的角色修改吗？')) {
+                    window.location.href = 'admin.php?action=user&sub=batchUpdateRole&user_ids=' + userIds + '&role_id=' + roleId;
+                }
+            }
+        }
+        
+        // 导出用户
+        function exportUsers(format) {
+            const searchParams = new URLSearchParams(window.location.search);
+            searchParams.set('action', 'user');
+            searchParams.set('sub', 'export');
+            searchParams.set('format', format);
+            window.location.href = 'admin.php?' + searchParams.toString();
+        }
+    </script>
+
+</main>
+<?php include 'components/footer_wrapper.html'; ?>

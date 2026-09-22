@@ -1,0 +1,198 @@
+{assign var="page_title" value="404 - 页面未找到"}
+{include file="header"}
+    <main>
+        <div class="container">
+            <div class="content-area">
+                <div class="content">
+                    <!-- 404错误页面内容 -->
+                    <div class="error-page">
+                        <div class="error-content">
+                            <h1 class="error-code">404</h1>
+                            <h2 class="error-title">页面未找到</h2>
+                            <p class="error-description">
+                                抱歉，您访问的页面不存在或已被删除。
+                                可能的原因：
+                            </p>
+                            <ul class="error-reasons">
+                                <li>URL地址输入错误</li>
+                                <li>页面已被移动或删除</li>
+                                <li>链接已过期</li>
+                            </ul>
+                            
+
+                        </div>
+                    </div>
+
+                </div>
+                {include file="sidebar"}
+            </div>
+        </div>
+    </main>
+{include file="footer"}
+
+<style>
+/* 404错误页面样式 */
+.error-page {
+    background-color: var(--background-white, #ffffff);
+    padding: 60px 40px;
+    margin-bottom: 40px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color, #e9ecef);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    text-align: center;
+}
+
+.error-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.error-code {
+    font-size: 7.5rem;                    /* 120px 超大展示字号 */
+    font-weight: 900;
+    color: var(--primary-color, #007AFF);
+    margin: 0 0 20px 0;
+    line-height: 1;
+    text-shadow: 0 2px 4px rgba(0, 122, 255, 0.2);
+}
+
+.error-title {
+    font-size: var(--font-size-3xl);       /* 30px 大标题 */
+    font-weight: 700;
+    color: var(--text-primary, #333);
+    margin: 0 0 20px 0;
+}
+
+.error-description {
+    font-size: var(--font-size-base);      /* 16px 正文 */
+    color: var(--text-secondary, #666);
+    margin: 0 0 20px 0;
+    line-height: 1.6;
+}
+
+.error-reasons {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 40px 0;
+    text-align: left;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.error-reasons li {
+    padding: 8px 0;
+    color: var(--text-secondary, #666);
+    position: relative;
+    padding-left: 20px;
+}
+
+.error-reasons li:before {
+    content: "•";
+    color: var(--primary-color, #007AFF);
+    font-size: var(--font-size-lg);        /* 18px */
+    position: absolute;
+    left: 0;
+    top: 6px;
+}
+
+.error-search {
+    margin: 40px 0;
+    padding: 30px;
+    background-color: var(--background-muted, #F5F6F7);
+    border-radius: 8px;
+    text-align: left;
+}
+
+.error-search h3 {
+    margin: 0 0 20px 0;
+    color: var(--text-primary, #333);
+    font-size: var(--font-size-lg);        /* 18px */
+}
+
+.error-links {
+    margin: 40px 0;
+    text-align: left;
+}
+
+.error-links h3 {
+    margin: 0 0 20px 0;
+    color: var(--text-primary, #333);
+    font-size: var(--font-size-lg);        /* 18px */
+}
+
+.link-buttons {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.link-buttons .btn {
+    padding: 12px 24px;
+    font-size: var(--font-size-base);      /* 16px 按钮文字 */
+    font-weight: 500;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    display: inline-block;
+}
+
+.btn-primary {
+    background-color: var(--primary-color, #007AFF);
+    color: white;
+    border: 1px solid var(--primary-color, #007AFF);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-color-hover, #0056b3);
+    border-color: var(--primary-color-hover, #0056b3);
+}
+
+.btn-secondary {
+    background-color: var(--background-white, #ffffff);
+    color: var(--primary-color, #007AFF);
+    border: 1px solid var(--primary-color, #007AFF);
+}
+
+.btn-secondary:hover {
+    background-color: var(--info-bg);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .error-page {
+        padding: 40px 20px;
+    }
+
+    .error-code {
+        font-size: 5.625rem;                  /* 90px */
+    }
+
+    .error-title {
+        font-size: var(--font-size-2xl);      /* 24px */
+    }
+
+    .link-buttons {
+        flex-direction: column;
+    }
+
+    .link-buttons .btn {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .error-code {
+        font-size: 4.375rem;                  /* 70px */
+    }
+
+    .error-title {
+        font-size: var(--font-size-xl);       /* 20px */
+    }
+
+    .error-search {
+        padding: 20px;
+    }
+}
+</style>

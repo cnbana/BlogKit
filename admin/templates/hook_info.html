@@ -1,0 +1,124 @@
+<?php $currentAction = 'hook'; $pageTitle = '钩子信息'; include 'components/page_wrapper.html'; ?>
+    
+    <!-- 操作栏 -->
+    <div class="action-section">
+        <a href="admin.php?action=hook" class="btn btn-secondary">返回钩子列表</a>
+        <a href="admin.php?action=hook&sub=test&hook=<?php echo $hookInfo['value']; ?>" class="btn btn-success">测试此钩子</a>
+    </div>
+    
+    <!-- 钩子详情 -->
+    <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-top: 20px;">
+        <h3>基本信息</h3>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label>钩子名称</label>
+                    <p class="form-control-plaintext"><?php echo $hookInfo['value']; ?></p>
+                </div>
+                <div class="form-group">
+                    <label>钩子常量</label>
+                    <p class="form-control-plaintext"><?php echo $hookInfo['name']; ?></p>
+                </div>
+                <div class="form-group">
+                    <label>描述</label>
+                    <p class="form-control-plaintext"><?php echo $hookInfo['description']; ?></p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label>分类</label>
+                    <p class="form-control-plaintext">
+                        <?php
+                            $category = 'other';
+                            $hookValue = $hookInfo['value'];
+                            if (strpos($hookValue, 'user_') === 0) $category = 'user';
+                            elseif (strpos($hookValue, 'article_') === 0) $category = 'article';
+                            elseif (strpos($hookValue, 'comment_') === 0) $category = 'comment';
+                            elseif (strpos($hookValue, 'page_') === 0) $category = 'page';
+                            elseif (strpos($hookValue, 'category_') === 0) $category = 'category';
+                            elseif (strpos($hookValue, 'tag_') === 0) $category = 'tag';
+                            elseif (strpos($hookValue, 'system_') === 0) $category = 'system';
+                            elseif (strpos($hookValue, 'file_') === 0) $category = 'file';
+                            elseif (strpos($hookValue, 'notification_') === 0 || $hookValue === 'send_notification') $category = 'notification';
+                            elseif (strpos($hookValue, 'email_') === 0) $category = 'email';
+                            elseif (strpos($hookValue, 'sms_') === 0) $category = 'sms';
+                            elseif (strpos($hookValue, 'admin_') === 0) $category = 'admin';
+                            elseif (strpos($hookValue, 'api_') === 0) $category = 'api';
+                            elseif (strpos($hookValue, 'template_') === 0) $category = 'template';
+                            elseif (strpos($hookValue, 'database_') === 0) $category = 'database';
+                            elseif (strpos($hookValue, 'security_') === 0) $category = 'security';
+                            elseif (strpos($hookValue, 'seo_') === 0) $category = 'seo';
+                            elseif (strpos($hookValue, 'theme_') === 0) $category = 'theme';
+                            elseif (strpos($hookValue, 'plugin_') === 0) $category = 'plugin';
+                            elseif (strpos($hookValue, 'membership_') === 0) $category = 'membership';
+                            elseif (strpos($hookValue, 'payment_') === 0) $category = 'payment';
+                            elseif (strpos($hookValue, 'search_') === 0) $category = 'search';
+                            elseif (strpos($hookValue, 'cache_') === 0) $category = 'cache';
+                            elseif (strpos($hookValue, 'performance_') === 0 || $hookValue === 'resource_load' || $hookValue === 'page_load_complete') $category = 'performance';
+                            elseif (strpos($hookValue, 'language_') === 0 || strpos($hookValue, 'translation_') === 0) $category = 'language';
+                            elseif (strpos($hookValue, 'social_') === 0) $category = 'social';
+                            elseif (strpos($hookValue, 'statistics_') === 0) $category = 'statistics';
+                            
+                            echo $category;
+                        ?>
+                    </p>
+                </div>
+                <div class="form-group">
+                    <label>是否有注册回调</label>
+                    <p class="form-control-plaintext">
+                        <?php echo !empty($hookCallbacks) ? '<span style="color: green;">是</span>' : '<span style="color: orange;">否</span>'; ?>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 注册的回调 -->
+    <?php if (!empty($hookCallbacks)): ?>
+    <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-top: 20px;">
+        <h3>注册的回调函数</h3>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>优先级</th>
+                        <th>回调数量</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($hookCallbacks as $priority => $callbacks): ?>
+                    <tr>
+                        <td><?php echo $priority; ?></td>
+                        <td><?php echo count($callbacks); ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <?php endif; ?>
+    
+    <!-- 使用示例 -->
+    <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-top: 20px;">
+        <h3>使用示例</h3>
+        <div class="form-group">
+            <label>触发钩子</label>
+            <pre class="form-control-plaintext" style="background-color: #f8f9fa; padding: 10px; border-radius: 4px;">
+// 方法1：直接使用 Hook::trigger
+Hook::trigger('<?php echo $hookInfo['value']; ?>', $data);
+
+// 方法2：使用 HookTrigger 辅助类
+// 注意：需要根据钩子类型选择对应的方法
+// 例如：HookTrigger::articleCreateBefore($data);</pre>
+        </div>
+        <div class="form-group">
+            <label>注册钩子回调</label>
+            <pre class="form-control-plaintext" style="background-color: #f8f9fa; padding: 10px; border-radius: 4px;">
+// 在插件的初始化方法中注册
+Plugin::getInstance()->addHook('<?php echo $hookInfo['value']; ?>', function($data) {
+    // 回调函数逻辑
+    return $result;
+}, $priority);</pre>
+        </div>
+    </div>
+<?php include 'components/footer_wrapper.html'; ?>
