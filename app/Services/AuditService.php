@@ -6,8 +6,8 @@
  * Copyright (C) 2026 Shi Linbo (Bana). All rights reserved.
  *
  * 项目主页：https://www.blogkit.cn
- * 源码仓库：https://github.com/Bana/blogkit （主仓库）
- *           https://gitee.com/Bana/blogkit （镜像仓库）
+ * 源码仓库：https://github.com/cnbana/BlogKit （主仓库）
+ *           https://gitee.com/slinbo/blogkit （镜像仓库）
  * 社区反馈：https://www.blogkit.cn/community
  *
  * 本程序为自由软件，依据 GNU General Public License v3.0 (GPLv3) 授权发布：
