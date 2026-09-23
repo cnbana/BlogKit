@@ -1,4 +1,18 @@
+<div align="center">
+  <img src="docs/logo-mark.svg" width="120" alt="BlogKit Logo">
+
 # BlogKit
+
+**轻量级开源博客系统 · 原生 PHP · 开箱即用**
+
+[![PHP](https://img.shields.io/badge/PHP-%3E%3D7.4-8892BF?logo=php&logoColor=white)](https://www.php.net)
+[![MySQL](https://img.shields.io/badge/MySQL-%3E%3D5.7-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com)
+[![License](https://img.shields.io/badge/license-GPL--3.0-green)](LICENSE)
+[![Release](https://img.shields.io/badge/version-1.0.0-blue)](https://github.com/cnbana/BlogKit/releases)
+[![Gitee Star](https://gitee.com/slinbo/blogkit/badge/star.svg?theme=dark)](https://gitee.com/slinbo/blogkit/stargazers)
+[![Gitee Fork](https://gitee.com/slinbo/blogkit/badge/fork.svg?theme=dark)](https://gitee.com/slinbo/blogkit/members)
+
+</div>
 
 BlogKit 是一款轻量级开源博客系统，使用原生 PHP 开发，不依赖任何框架，开箱即用、易于二次开发。
 
