@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/logo-mark.svg" width="120" alt="BlogKit Logo">
+  <img src="https://www.blogkit.cn/assets/img/brand/logo-mark.svg" width="120" alt="BlogKit Logo">
 
 # BlogKit
 
