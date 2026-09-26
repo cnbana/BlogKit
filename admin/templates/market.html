@@ -5,10 +5,15 @@
      搜索/类型/分类筛选全部在主系统本地完成（与官网 /apps 同口径）；
      安装走 do_install 一键管线（POST+CSRF）；详情走 op=detail 后台子页 -->
 
-<!-- 操作栏 -->
+<!-- 操作栏（检测应用更新为 2026-09-26 决议③附加需求：清列表缓存实时重拉官网，
+     按本地清单版本号比对后弹窗反馈；动作写 bk_config 缓存键，POST+CSRF 与安装同策略） -->
 <div class="action-section">
     <a href="admin.php?action=market&op=settings" class="btn btn-info">市场设置</a>
     <a href="<?php echo htmlspecialchars(Config::get('market_api_url', ''), ENT_QUOTES); ?>/apps" target="_blank" class="btn btn-default">访问官网应用市场</a>
+    <form method="post" action="admin.php?action=market&op=check_apps" style="display:inline-block;">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Security::generateCsrfToken(), ENT_QUOTES); ?>">
+        <button type="submit" class="btn btn-default">检测应用更新</button>
+    </form>
 </div>
 
 <?php if (!empty($notice)): ?>

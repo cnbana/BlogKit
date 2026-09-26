@@ -44,7 +44,7 @@ try {
 // 使用文件缓存减少数据库查询（5分钟过期）
 // 跟随系统"缓存设置"中的 cache_enabled 开关：关闭时跳过缓存直接查库
 // 注意：修改此文件后请递增 CACHE_VERSION 以使旧缓存失效
-const SIDEBAR_CACHE_VERSION = 7;
+const SIDEBAR_CACHE_VERSION = 8;
 $sidebarCacheEnabled = Config::get('cache_enabled', '1') == '1';
 $cacheKey = 'admin_menu_user_' . $_SESSION['admin']['id'] . '_v' . SIDEBAR_CACHE_VERSION;
 $cacheFile = STORAGE_PATH . '/cache/menu_' . md5($cacheKey) . '.php';
@@ -186,8 +186,8 @@ function renderMenu($permissions, $currentAction, $currentSub, $iconMap, $svgIco
         $badgeHtml = '';
         if ($permission['code'] === 'comment' && $pendingCommentCount > 0) {
             $badgeHtml = '<span class="menu-badge">' . $pendingCommentCount . '</span>';
-        } elseif ($permission['code'] === 'market' && $marketHasNewVersion > 0) {
-            // 应用市场有新版本（P1-9）：显示「新」字徽章提示
+        } elseif (($permission['code'] === 'market' || $permission['code'] === 'update') && $marketHasNewVersion > 0) {
+            // 应用市场/系统升级有新版本（P1-9 + 2026-09-26 入口显性化）：显示「新」字徽章提示
             $badgeHtml = '<span class="menu-badge">新</span>';
         }
 

@@ -974,6 +974,12 @@ INSERT INTO `bk_permission` (`id`, `name`, `code`, `type`, `parent_id`, `path`, 
 INSERT INTO `bk_permission` (`name`, `code`, `type`, `parent_id`, `path`, `icon`, `sort`, `status`, `created_at`, `updated_at`) VALUES
 ('应用市场', 'market', 1, 13, 'admin.php?action=market', 'shopping-cart', 4, 1, UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
 
+-- 系统升级菜单（2026-09-26 双包分发方案）：与「应用市场」同分组（parent_id=13），
+-- 显性化在线升级入口（原入口仅市场页横幅）；权限校验沿用 PERMISSION_MAP（update→config），
+-- 本行仅控制侧栏可见性；老站升级请执行 database/upgrade_add_update_menu.sql
+INSERT INTO `bk_permission` (`name`, `code`, `type`, `parent_id`, `path`, `icon`, `sort`, `status`, `created_at`, `updated_at`) VALUES
+('系统升级', 'update', 1, 13, 'admin.php?action=update', 'refresh', 5, 1, UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
+
 -- 为管理员角色分配所有权限
 INSERT IGNORE INTO `bk_role_permission` (`role_id`, `permission_id`, `created_at`) 
         SELECT 1, id, UNIX_TIMESTAMP() FROM `bk_permission` WHERE status = 1;

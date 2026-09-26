@@ -64,6 +64,9 @@ class MarketController
             $this->install();
         } elseif ($op === 'do_install') {
             $this->doInstall();
+        } elseif ($op === 'check_apps') {
+            // 手动检测应用更新（2026-09-26 决议③附加需求）
+            $this->checkAppsUpdate();
         } else {
             $this->marketList();
         }
@@ -346,6 +349,55 @@ class MarketController
 
         // 4. 共用安装管线：下载 → 解压 → 安装 → 回执
         $this->installByToken($token, $app, $targetVersion, $back);
+    }
+
+    /**
+     * 手动检测应用更新（2026-09-26 决议③附加需求：应用市场「检测应用更新」按钮）
+     *
+     * 流程：POST + CSRF 校验 → 绑定检查 → 清应用列表缓存（market_cache /
+     * market_cache_time）→ 实时重拉官网 /api/market/apps 并写回缓存 →
+     * countUpdatableApps() 按本地清单版本号比对统计 → 弹窗反馈结果并回列表页
+     * （页面以新缓存重渲染，卡片上的「有更新」徽章与「更新」按钮即时刷新）。
+     * 动作会写 bk_config 缓存键，故与 doInstall 同用 POST + CSRF 安全策略。
+     */
+    private function checkAppsUpdate()
+    {
+        $back = 'admin.php?action=market';
+        // 仅接受 POST（按钮为 POST 表单，与安装/更新同安全策略）
+        if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->showMessage('非法请求方式', $back);
+        }
+        // CSRF 校验（复用全局 Security，与安装/市场设置同策略）
+        if (!Security::validateCsrfToken(isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '')) {
+            $this->showMessage('安全校验失败，请刷新页面后重试', $back);
+        }
+        // 绑定检查：未配置官网地址/密钥时无法检测
+        if ($this->apiUrl() === '' || $this->siteKey() === '') {
+            $this->showMessage('请先在市场设置中完成官网绑定', 'admin.php?action=market&op=settings');
+        }
+
+        // 1. 清应用列表缓存：强制绕过 10 分钟 TTL，本次结果直接反映官网最新状态
+        $this->saveConfig('market_cache', '');
+        $this->saveConfig('market_cache_time', 0);
+
+        // 2. 实时重拉官网应用列表（带当前版本号做兼容过滤），成功后写回缓存
+        //    （仪表盘 countUpdatableApps 与侧栏红点共用同份缓存，检测后同步更新）
+        $version = $this->currentVersion();
+        $resp = $this->httpGet($this->apiUrl() . '/index.php/api/market/apps'
+            . '?site_key=' . urlencode($this->siteKey())
+            . '&version=' . urlencode($version));
+        $data = $this->parseApi($resp);
+        if ($data === null || !isset($data['apps'])) {
+            $this->showMessage('检测失败：无法连接官网应用市场，请检查官网地址与站点密钥', $back);
+        }
+        $this->writeCache($data['apps']);
+
+        // 3. 按本地清单版本号比对统计可更新应用数，弹窗反馈并回列表页
+        $count = $this->countUpdatableApps();
+        $msg = $count > 0
+            ? '检测到 ' . $count . ' 个插件/主题有可用更新，可在列表中直接点击「更新」'
+            : '所有已安装插件/主题均为最新版本';
+        $this->showMessage($msg, $back);
     }
 
     /**

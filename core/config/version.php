@@ -22,8 +22,8 @@
  * BlogKit 版本号唯一真相来源
  */
 return [
-    'version' => '1.0.1',
-    'version_code' => 1000001,
+    'version' => '1.0.2',
+    'version_code' => 1000002,
     'release_date' => '2026-09-26',
     'name' => 'BlogKit',
     'codename' => 'Genesis',

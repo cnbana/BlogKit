@@ -65,7 +65,7 @@ class UpdateController
     const BACKUP_KEEP = 3;
 
     /**
-     * 入口：按 op 参数分流（'' 升级页 / run 执行升级）
+     * 入口：按 op 参数分流（'' 升级页 / run 执行升级 / check 手动检测更新）
      * 与 MarketController 同策略：本控制器不在 admin.php 的 SUB_METHOD_CONTROLLERS
      * 白名单内，op 由内部路由，避免改动主系统白名单配置。
      */
@@ -74,9 +74,49 @@ class UpdateController
         $op = isset($_GET['op']) ? (string)$_GET['op'] : '';
         if ($op === 'run') {
             $this->run();
+        } elseif ($op === 'check') {
+            $this->checkUpdate();
         } else {
             $this->updatePage();
         }
+    }
+
+    /**
+     * 手动检测更新（2026-09-26 入口显性化决议③：升级页「检测更新」按钮）
+     *
+     * 清除 checkNewVersion() 的 bk_config 10 分钟缓存（含失败空结果缓存）后
+     * 重新请求官网 latest-version，弹窗反馈结果并回升级页（页面以新缓存重渲染）。
+     * POST + CSRF：动作会写 bk_config 缓存键，与升级执行同安全策略。
+     */
+    private function checkUpdate()
+    {
+        $back = 'admin.php?action=update';
+        if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->showMessage('非法请求', $back);
+        }
+        if (!Security::validateCsrfToken(isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '')) {
+            $this->showMessage('安全校验失败，请刷新页面后重试', $back);
+        }
+        $apiUrl = rtrim((string)Config::get('market_api_url', ''), '/');
+        $siteKey = (string)Config::get('market_site_key', '');
+        if ($apiUrl === '' || $siteKey === '') {
+            $this->showMessage('尚未绑定官网站点，请先在「应用市场 → 市场设置」完成绑定', 'admin.php?action=market&op=settings');
+        }
+        // 清除版本检测缓存（含"失败空结果"缓存），强制下次检测实时请求官网
+        $this->saveConfig('market_latest_ver', '');
+        $this->saveConfig('market_latest_time', 0);
+        try {
+            list($latestVersion, $hasNew) = (new MarketController())->checkNewVersion();
+        } catch (Exception $e) {
+            $latestVersion = '';
+            $hasNew = 0;
+        }
+        if ($hasNew && $latestVersion !== '') {
+            $this->showMessage('检测到新版本：BlogKit ' . $latestVersion . '，请点击「开始升级」完成升级', $back);
+        }
+        $this->showMessage($latestVersion !== ''
+            ? '当前已是最新版本 BlogKit ' . $latestVersion
+            : '检测失败：无法连接官网，请稍后重试', $back);
     }
 
     /**
@@ -166,6 +206,8 @@ class UpdateController
         $expectedSha = isset($latest['sha256']) ? (string)$latest['sha256'] : '';
         $expectedSize = isset($latest['file_size']) ? (int)$latest['file_size'] : 0;
         $downloadToken = isset($latest['download_token']) ? (string)$latest['download_token'] : '';
+        // 分发包类型（2026-09-26 双包分发决议①：官网未上传升级差量包时回退完整包）
+        $packageType = isset($latest['package_type']) ? (string)$latest['package_type'] : 'full';
 
         // 版本码仅允许向前（防官网数据异常导致降级覆盖）
         if ($targetCode <= 0 || $targetCode <= $this->currentVersionCode()) {
@@ -303,7 +345,10 @@ class UpdateController
 
         // 弹窗成功 → 回升级页（页面展示新版本状态 + 按需的迁移引导）
         $this->showMessage('升级成功：' . $fromVersion . ' → ' . $afterVersion
-            . '（文件备份 ' . basename($backupZip) . '，数据库备份 ' . $dbBackupName . '，共覆盖 ' . $copied . ' 个文件）', $back);
+            . '（文件备份 ' . basename($backupZip) . '，数据库备份 ' . $dbBackupName . '，共覆盖 ' . $copied . ' 个文件'
+            // 双包回退提示：官网未上传升级差量包时本次实际下发的是完整安装包
+            . ($packageType === 'full' ? '；官网未上传升级差量包，本次使用完整包升级' : '')
+            . '）', $back);
     }
 
     // ================================================

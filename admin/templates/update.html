@@ -3,6 +3,17 @@
 <!-- ============ 系统升级（U1 在线升级，方案 blogkit-online-update-plan.md） ============ -->
 <!-- 升级链路：市场页红点横幅 → 本页确认 → POST 执行（下载→校验→备份→覆盖→引导迁移） -->
 
+<?php if ($bound): ?>
+<!-- 手动检测更新（2026-09-26 入口显性化决议③）：清版本检测缓存后实时请求官网，
+     结果弹窗反馈；动作写 bk_config 缓存键，POST+CSRF 与升级执行同策略 -->
+<div style="margin-top:15px; text-align:right;">
+    <form method="post" action="admin.php?action=update&op=check" style="display:inline-block;">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Security::generateCsrfToken(), ENT_QUOTES); ?>">
+        <button type="submit" class="btn btn-default btn-sm">检测更新</button>
+    </form>
+</div>
+<?php endif; ?>
+
 <?php if (!$bound): ?>
 <!-- 未绑定官网：升级入口不可用，引导先完成市场设置 -->
 <div style="background-color:#fcf8e3; border:1px solid #faebcc; color:#8a6d3b; padding:12px 15px; border-radius:4px; margin-top:15px;">

@@ -1,5 +1,16 @@
 <?php $currentAction = 'dashboard'; $pageTitle = '仪表盘'; $pageCss = 'dashboard.css'; include 'components/page_wrapper.html'; ?>
 
+    <?php if ($hasNewVersion == 1): ?>
+    <!-- 仪表盘顶部新版本横幅（2026-09-26 入口显性化决议③）：
+         与市场页同款样式，进页即见（区别于下方需滚动的待办提醒）；
+         数据复用 DashboardController 已检测的 checkNewVersion() 结果（10 分钟缓存，零额外开销） -->
+    <div style="background-color:#d9edf7; border:1px solid #bce8f1; color:#31708f; padding:10px 15px; border-radius:4px; margin-bottom:15px;">
+        发现新版本 BlogKit <?php echo htmlspecialchars($latestVersion, ENT_QUOTES); ?>，
+        <a href="admin.php?action=update" style="font-weight:bold;">立即升级</a>
+        ｜ <a href="<?php echo htmlspecialchars(Config::get('market_api_url', ''), ENT_QUOTES); ?>/download" target="_blank">前往官网下载</a>
+    </div>
+    <?php endif; ?>
+
     <!-- 统计卡片：整卡为链接，点击可下钻到对应管理页 -->
     <div class="stats-grid">
         <a href="admin.php?action=article" class="stat-card" title="查看文章列表">
