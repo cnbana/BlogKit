@@ -976,7 +976,7 @@ INSERT INTO `bk_permission` (`name`, `code`, `type`, `parent_id`, `path`, `icon`
 
 -- 系统升级菜单（2026-09-26 双包分发方案）：与「应用市场」同分组（parent_id=13），
 -- 显性化在线升级入口（原入口仅市场页横幅）；权限校验沿用 PERMISSION_MAP（update→config），
--- 本行仅控制侧栏可见性；老站升级请执行 database/upgrade_add_update_menu.sql
+-- 本行仅控制侧栏可见性；老站由迁移引擎自动补插（Migrate 按 code 幂等，方案 B），无需手工 SQL
 INSERT INTO `bk_permission` (`name`, `code`, `type`, `parent_id`, `path`, `icon`, `sort`, `status`, `created_at`, `updated_at`) VALUES
 ('系统升级', 'update', 1, 13, 'admin.php?action=update', 'refresh', 5, 1, UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
 

@@ -82,6 +82,9 @@ class Migrate
     /** @var array 待执行的种子数据 INSERT（仅 bk_config） */
     private static $pendingSeedInserts = [];
 
+    /** @var array 待补插的权限菜单行（仅 bk_permission，按 code 幂等，方案 B 2026-09-26） */
+    private static $pendingPermissionInserts = [];
+
     /** @var array 待执行的 ENUM 变更 DDL */
     private static $pendingEnumChanges = [];
 
@@ -101,6 +104,7 @@ class Migrate
         'new_indexes'      => [],
         'new_fk'           => [],
         'new_config_items' => [],
+        'new_permission_items' => [],
         'enum_changes'     => [],
         'drop_tables'      => [],
         'executed_sql'     => [],
@@ -153,6 +157,9 @@ class Migrate
         // 解析种子数据（bk_config INSERT）
         self::parseSeedInserts();
 
+        // 解析权限菜单数据（bk_permission INSERT，方案 B：菜单变更零手工 SQL）
+        self::parsePermissionInserts();
+
         // 逐一比对表结构差异
         self::compareSchemas();
 
@@ -166,6 +173,7 @@ class Migrate
         $hasChanges = !empty(self::$pendingSql)
                    || !empty(self::$pendingFkSql)
                    || !empty(self::$pendingSeedInserts)
+                   || !empty(self::$pendingPermissionInserts)
                    || !empty(self::$pendingEnumChanges);
 
         if (!$hasChanges) {
@@ -183,7 +191,8 @@ class Migrate
                 self::$pendingSql,
                 self::flattenFkSql(),
                 self::$pendingEnumChanges,
-                self::formatPendingSeeds()
+                self::formatPendingSeeds(),
+                self::formatPendingPermissions()
             );
             self::logMigration($currentVersion, $targetVersion, 'preview', true);
             return self::$report;
@@ -207,19 +216,23 @@ class Migrate
         // 4. 插入种子数据（DML）
         self::executeSeedInserts();
 
-        // 5. 检查是否有错误
+        // 5. 补插权限菜单行（DML，方案 B：按 code 幂等 + 角色 1 自动授权）
+        self::executePermissionInserts();
+
+        // 6. 检查是否有错误
         $hasErrors = count(self::$report['errors']) > 0;
 
-        // 6. 只在无错误时更新版本号（事务级保护）
+        // 7. 只在无错误时更新版本号（事务级保护）
         if (!$hasErrors) {
             self::updateVersion($targetVersion);
             self::$report['message'] = sprintf(
-                '迁移完成：新增 %d 张表, %d 个字段, %d 个索引, %d 个外键, %d 个配置项, %d 个 ENUM 变更。',
+                '迁移完成：新增 %d 张表, %d 个字段, %d 个索引, %d 个外键, %d 个配置项, %d 个菜单项, %d 个 ENUM 变更。',
                 count(self::$report['new_tables']),
                 count(self::$report['new_columns']),
                 count(self::$report['new_indexes']),
                 count(self::$report['new_fk']),
                 count(self::$report['new_config_items']),
+                count(self::$report['new_permission_items']),
                 count(self::$report['enum_changes'])
             );
         } else {
@@ -502,6 +515,134 @@ class Migrate
                 }
             }
         }
+    }
+
+    /**
+     * 解析权限菜单数据（bk_permission 表的 INSERT 语句，方案 B 2026-09-26）
+     *
+     * 兼容两种列清单形态：带 id 的全量形态（install.sql 主种子块）与
+     * 不带 id 的追加形态（后续版本新增菜单行）；以 code 为幂等键。
+     * `INSERT IGNORE INTO bk_role_permission ... SELECT ...` 授权语句因无 VALUES 块
+     * 不会被匹配（角色授权在执行阶段自动补）。
+     */
+    private static function parsePermissionInserts()
+    {
+        if (!file_exists(self::SQL_FILE)) {
+            return;
+        }
+
+        $sql = file_get_contents(self::SQL_FILE);
+
+        // 匹配 INSERT INTO `bk_permission` (`col`, ...) VALUES (...),(...)...;
+        //（多行 VALUES 支持；语句间可能有 -- 注释行，由逐元组解析自然忽略）
+        if (!preg_match_all(
+            "/INSERT\s+(?:IGNORE\s+)?INTO\s+`bk_permission`\s*\(([^)]+)\)\s*VALUES\s*(.*?);/is",
+            $sql,
+            $matches,
+            PREG_SET_ORDER
+        )) {
+            return;
+        }
+
+        foreach ($matches as $match) {
+            // 解析列清单（去反引号与空白），按列名映射取值，兼容列顺序差异
+            $cols = array_map('trim', explode(',', str_replace('`', '', $match[1])));
+            $valuesBlock = $match[2];
+
+            // 逐元组提取：\(((?:[^()]|\([^()]*\))*)\) 支持一层嵌套括号（如 UNIX_TIMESTAMP()）
+            if (!preg_match_all("/\(((?:[^()]|\([^()]*\))*)\)/", $valuesBlock, $tuples, PREG_SET_ORDER)) {
+                continue;
+            }
+
+            foreach ($tuples as $t) {
+                $raw = self::splitSqlTuple($t[1]);
+                if (count($raw) !== count($cols)) {
+                    continue; // 列数不匹配的元组直接跳过（防御性，不中断整个迁移）
+                }
+                $row = array_combine($cols, $raw);
+                $code = isset($row['code']) ? trim(trim($row['code']), "'") : '';
+                if ($code === '') {
+                    continue; // 无 code 的行不参与幂等比对
+                }
+
+                self::$pendingPermissionInserts[$code] = [
+                    'name'      => self::normalizeSqlValue(isset($row['name']) ? $row['name'] : $code),
+                    'code'      => $code,
+                    'type'      => (int)self::normalizeSqlValue(isset($row['type']) ? $row['type'] : '1'),
+                    'parent_id' => (int)self::normalizeSqlValue(isset($row['parent_id']) ? $row['parent_id'] : '0'),
+                    'path'      => self::normalizeSqlValue(isset($row['path']) ? $row['path'] : "''"),
+                    'icon'      => self::normalizeSqlValue(isset($row['icon']) ? $row['icon'] : "''"),
+                    'sort'      => (int)self::normalizeSqlValue(isset($row['sort']) ? $row['sort'] : '99'),
+                    'status'    => (int)self::normalizeSqlValue(isset($row['status']) ? $row['status'] : '1'),
+                ];
+            }
+        }
+    }
+
+    /**
+     * 按顶层逗号切分 SQL 值元组内容（不切分引号内与括号内的逗号）
+     * @param string $inner 去掉最外层括号后的值列表
+     * @return array 各值原文（含引号/函数调用形态）
+     */
+    private static function splitSqlTuple($inner)
+    {
+        $parts  = [];
+        $buf    = '';
+        $inStr  = false; // 是否处于单引号字符串内
+        $escape = false; // 上一个字符是否为反斜杠转义
+        $depth  = 0;     // 括号嵌套深度（UNIX_TIMESTAMP() 等）
+
+        $len = strlen($inner);
+        for ($i = 0; $i < $len; $i++) {
+            $ch = $inner[$i];
+            if ($inStr) {
+                $buf .= $ch;
+                if ($escape) {
+                    $escape = false; // 转义字符消费完毕，回到普通字符串态
+                } elseif ($ch === '\\') {
+                    $escape = true;
+                } elseif ($ch === "'") {
+                    $inStr = false;
+                }
+                continue;
+            }
+            if ($ch === "'") {
+                $inStr = true;
+                $buf .= $ch;
+            } elseif ($ch === '(') {
+                $depth++;
+                $buf .= $ch;
+            } elseif ($ch === ')') {
+                $depth--;
+                $buf .= $ch;
+            } elseif ($ch === ',' && $depth === 0) {
+                $parts[] = trim($buf);
+                $buf = '';
+            } else {
+                $buf .= $ch;
+            }
+        }
+        if (trim($buf) !== '') {
+            $parts[] = trim($buf);
+        }
+        return $parts;
+    }
+
+    /**
+     * 归一化 SQL 字面量：'字符串' → 去引号并反转义；UNIX_TIMESTAMP() → 当前时间戳字符串；其余原样返回
+     * @param string $raw 值原文（可能带引号或为函数调用）
+     * @return string
+     */
+    private static function normalizeSqlValue($raw)
+    {
+        $raw = trim($raw);
+        if (strcasecmp($raw, 'UNIX_TIMESTAMP()') === 0 || strcasecmp($raw, 'NOW()') === 0) {
+            return (string)time();
+        }
+        if (strlen($raw) >= 2 && $raw[0] === "'" && substr($raw, -1) === "'") {
+            return stripcslashes(substr($raw, 1, -1));
+        }
+        return $raw;
     }
 
     /**
@@ -925,6 +1066,116 @@ class Migrate
                 addslashes($item['value']),
                 addslashes($item['description']),
                 addslashes($item['type'])
+            );
+        }
+
+        return $lines;
+    }
+
+    /**
+     * 补插权限菜单行（仅 bk_permission 缺失的 code，方案 B 2026-09-26）
+     *
+     * 只增不减：已存在的 code 一律跳过，绝不 UPDATE/DELETE 既有菜单；
+     * 每补插一行即同步为角色 1（管理员）授权（INSERT IGNORE 防重复），
+     * 与 install.sql 的授权语句同口径，保证新菜单对管理员立即可见。
+     */
+    private static function executePermissionInserts()
+    {
+        if (empty(self::$pendingPermissionInserts)) {
+            return;
+        }
+
+        // install.sql 中的表名已经带前缀了，直接使用
+        $permTable = 'bk_permission';
+        $rolePermTable = 'bk_role_permission';
+
+        // 获取已存在的菜单 code（表不存在则整段跳过，交由建表流程处理）
+        $existingCodes = [];
+        try {
+            $stmt = self::$pdo->query("SELECT `code` FROM `$permTable`");
+            foreach ($stmt->fetchAll() as $row) {
+                $existingCodes[$row['code']] = true;
+            }
+        } catch (PDOException $e) {
+            return;
+        }
+
+        $inserted = 0;
+        $now = time();
+        foreach (self::$pendingPermissionInserts as $code => $item) {
+            if (isset($existingCodes[$code])) {
+                continue; // 已存在，跳过（幂等）
+            }
+
+            try {
+                $stmt = self::$pdo->prepare(
+                    "INSERT INTO `$permTable`
+                     (`name`, `code`, `type`, `parent_id`, `path`, `icon`, `sort`, `status`, `created_at`, `updated_at`)
+                     VALUES (:name, :code, :type, :parent_id, :path, :icon, :sort, :status, :now, :now)"
+                );
+                $stmt->execute([
+                    ':name'      => $item['name'],
+                    ':code'      => $item['code'],
+                    ':type'      => $item['type'],
+                    ':parent_id' => $item['parent_id'],
+                    ':path'      => $item['path'],
+                    ':icon'      => $item['icon'],
+                    ':sort'      => $item['sort'],
+                    ':status'    => $item['status'],
+                    ':now'       => $now,
+                ]);
+                self::$report['new_permission_items'][] = $code;
+                self::$report['executed_sql'][] = sprintf(
+                    "INSERT INTO `$permTable` code='%s'（新菜单项）",
+                    $code
+                );
+                $inserted++;
+
+                // 角色 1（管理员）自动授权新菜单（INSERT IGNORE：重复执行无副作用）
+                $grant = self::$pdo->prepare(
+                    "INSERT IGNORE INTO `$rolePermTable` (`role_id`, `permission_id`, `created_at`)
+                     SELECT 1, `id`, :now FROM `$permTable` WHERE `code` = :code"
+                );
+                $grant->execute([':now' => $now, ':code' => $code]);
+            } catch (PDOException $e) {
+                // 忽略重复键错误（并发/重复执行场景）
+                if ($e->getCode() != '1062' && $e->getCode() != '23000') {
+                    self::$report['errors'][] = [
+                        'sql'   => "INSERT INTO `$permTable` code='{$code}'",
+                        'error' => $e->getMessage(),
+                    ];
+                }
+            }
+        }
+
+        if ($inserted > 0) {
+            self::$report['message'] = ($inserted > 0 && empty(self::$report['message']))
+                ? "新增 {$inserted} 个菜单项。"
+                : (self::$report['message'] ?? '');
+        }
+    }
+
+    /**
+     * 将待补插的权限菜单行格式化为可读 SQL（预览用，方案 B 2026-09-26）
+     */
+    private static function formatPendingPermissions()
+    {
+        $lines = [];
+        // install.sql 中的表名已经带前缀了，直接使用
+        $permTable = 'bk_permission';
+
+        foreach (self::$pendingPermissionInserts as $code => $item) {
+            $lines[] = sprintf(
+                "INSERT INTO `%s` (`name`, `code`, `type`, `parent_id`, `path`, `icon`, `sort`, `status`) VALUES ('%s', '%s', %d, %d, '%s', '%s', %d, %d);",
+                $permTable,
+                addslashes($item['name']),
+                addslashes($item['code']),
+                (int)$item['type'],
+                (int)$item['parent_id'],
+                addslashes($item['path']),
+                addslashes($item['icon']),
+                (int)$item['sort'],
+                (int)$item['status']
             );
         }
 

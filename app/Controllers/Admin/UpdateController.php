@@ -33,8 +33,8 @@
  *             数据库：复用 BackupController::doBackup('database') 全量导出（gzip SQL，
  *             与备份管理页同格式，可在「数据备份」页直接恢复）
  *   ⑤ 覆盖    解压临时目录 → 白名单校验 → 逐条复制覆盖落盘（version.php 随包更新）
- *   ⑥ DB迁移  升级完成页比对 install.sql 目标版本与 bk_config.db_migration_version，
- *             有差异时给出「数据库迁移」页引导链接（迁移引擎 core/lib/Migrate.php）
+ *   ⑥ DB迁移  升级覆盖完成后自动执行 Migrate::run()（方案 B：结构差异 + bk_config/bk_permission
+ *             种子同步，菜单行按 code 幂等补插并授权角色 1）；失败时给出「数据库迁移」页兜底引导
  *   ⑦ 收尾    删临时文件；bk_config 记 last_update_info（from/to/时间）；清旧备份
  *
  * 安全设计（方案三）：
@@ -331,6 +331,21 @@ class UpdateController
         // 覆盖后复核：version.php 已随包落位为目标版本
         $afterVersion = $this->currentVersion();
 
+        // ---------- ⑥ DB 自动迁移（方案 B，2026-09-26）：覆盖完成后立即执行 Migrate ----------
+        // 迁移内容：install.sql 结构差异（表/列/索引/外键/ENUM）+ bk_config 与 bk_permission 种子
+        // （菜单行按 code 幂等补插并自动授权角色 1）；失败不阻断升级结果，走迁移页兜底
+        $migrateNote = '';
+        $migrateResult = '';
+        try {
+            $migReport = Migrate::run();
+            $migrateResult = isset($migReport['message']) ? (string)$migReport['message'] : '';
+            $migrateNote = '；数据库自动迁移：' . $migrateResult;
+        } catch (Exception $e) {
+            // 连接/执行异常：升级文件已生效，仅迁移未完成——给出迁移页兜底引导
+            $migrateNote = '；数据库自动迁移失败（' . $e->getMessage() . '），'
+                . '请前往「数据库迁移」页手工执行';
+        }
+
         // ---------- ⑦ 收尾：删临时文件 + 记录升级历史 ----------
         $this->cleanup($tmpZip, $tmpDir);
         $this->saveConfig('last_update_info', json_encode([
@@ -340,14 +355,16 @@ class UpdateController
             'files'   => $copied,
             'file_backup'   => basename($backupZip),
             'db_backup'     => $dbBackupName,
+            'migrate'       => $migrateResult,
             'result' => 1,
         ], JSON_UNESCAPED_UNICODE));
 
-        // 弹窗成功 → 回升级页（页面展示新版本状态 + 按需的迁移引导）
+        // 弹窗成功 → 回升级页（页面展示新版本状态 + 按需的迁移引导兜底）
         $this->showMessage('升级成功：' . $fromVersion . ' → ' . $afterVersion
             . '（文件备份 ' . basename($backupZip) . '，数据库备份 ' . $dbBackupName . '，共覆盖 ' . $copied . ' 个文件'
             // 双包回退提示：官网未上传升级差量包时本次实际下发的是完整安装包
             . ($packageType === 'full' ? '；官网未上传升级差量包，本次使用完整包升级' : '')
+            . $migrateNote
             . '）', $back);
     }
 
