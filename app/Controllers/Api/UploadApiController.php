@@ -67,7 +67,9 @@ class UploadApiController extends ApiController {
         
         if (move_uploaded_file($file['tmp_name'], $filepath)) {
             $url = '/uploads/images/' . date('Y/m/d') . '/' . $filename;
-            
+            // 触发上传完成钩子（绕过 Upload 类的上传点，云存储插件依赖此钩子做镜像同步）
+            Hook::trigger(Hook::FILE_UPLOAD_AFTER, array('name' => $filename, 'path' => $filepath, 'relative_path' => $url, 'type' => 'image'));
+
             $this->success([
                 'url' => $url,
                 'filename' => $filename,
@@ -117,7 +119,9 @@ class UploadApiController extends ApiController {
         
         if (move_uploaded_file($file['tmp_name'], $filepath)) {
             $url = '/uploads/files/' . date('Y/m/d') . '/' . $filename;
-            
+            // 触发上传完成钩子（绕过 Upload 类的上传点，云存储插件依赖此钩子做镜像同步）
+            Hook::trigger(Hook::FILE_UPLOAD_AFTER, array('name' => $filename, 'path' => $filepath, 'relative_path' => $url, 'type' => 'file'));
+
             $this->success([
                 'url' => $url,
                 'filename' => $filename,
@@ -167,7 +171,9 @@ class UploadApiController extends ApiController {
         
         if (move_uploaded_file($file['tmp_name'], $filepath)) {
             $url = '/uploads/avatars/' . $filename;
-            
+            // 触发上传完成钩子（绕过 Upload 类的上传点，云存储插件依赖此钩子做镜像同步）
+            Hook::trigger(Hook::FILE_UPLOAD_AFTER, array('name' => $filename, 'path' => $filepath, 'relative_path' => $url, 'type' => 'avatar'));
+
             $userModel = new UserModel();
             $result = $userModel->updateUser($this->currentUser['id'], [
                 'avatar' => $url

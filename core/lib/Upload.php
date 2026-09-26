@@ -254,7 +254,10 @@ class Upload {
             'file_size' => $file['size'],
             'file_path' => $this->fileInfo['path']
         ]);
-        
+
+        // 触发上传完成钩子（云存储类插件依赖此钩子做镜像同步；零插件监听时无开销）
+        Hook::trigger(Hook::FILE_UPLOAD_AFTER, $this->getFileInfo());
+
         return true;
     }
     

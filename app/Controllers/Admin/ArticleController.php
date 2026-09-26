@@ -218,6 +218,8 @@ class ArticleController {
                     $targetPath = $uploadDir . $fileName;
                     if (move_uploaded_file($_FILES['cover_image']['tmp_name'], $targetPath)) {
                         $coverImage = '/uploads/cover/' . $fileName;
+                        // 触发上传完成钩子（绕过 Upload 类的上传点，云存储插件依赖此钩子做镜像同步）
+                        Hook::trigger(Hook::FILE_UPLOAD_AFTER, array('name' => $fileName, 'path' => $targetPath, 'relative_path' => $coverImage, 'type' => 'cover'));
                     }
                 }
                 // 3) 否则如果有"从文章中选择的图片URL" → 使用该URL
@@ -348,6 +350,8 @@ class ArticleController {
                     $targetPath = $uploadDir . $fileName;
                     if (move_uploaded_file($_FILES['cover_image']['tmp_name'], $targetPath)) {
                         $coverImage = '/uploads/cover/' . $fileName;
+                        // 触发上传完成钩子（绕过 Upload 类的上传点，云存储插件依赖此钩子做镜像同步）
+                        Hook::trigger(Hook::FILE_UPLOAD_AFTER, array('name' => $fileName, 'path' => $targetPath, 'relative_path' => $coverImage, 'type' => 'cover'));
                     }
                 }
                 // 3) 否则如果有"从文章中选择的图片URL" → 使用该URL

@@ -22,9 +22,9 @@
  * BlogKit 版本号唯一真相来源
  */
 return [
-    'version' => '1.0.0',
-    'version_code' => 1000000,
-    'release_date' => '2026-06-03',
+    'version' => '1.0.1',
+    'version_code' => 1000001,
+    'release_date' => '2026-09-26',
     'name' => 'BlogKit',
     'codename' => 'Genesis',
     'official_site' => '//www.blogkit.cn',

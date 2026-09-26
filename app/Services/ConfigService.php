@@ -311,6 +311,8 @@ class ConfigService {
                 $targetPath = $uploadDir . '/' . $fileName;
                 if (move_uploaded_file($faviconFile['tmp_name'], $targetPath)) {
                     $configData['site_favicon'] = '/uploads/favicon/' . $fileName;
+                    // 触发上传完成钩子（绕过 Upload 类的上传点，云存储插件依赖此钩子做镜像同步）
+                    Hook::trigger(Hook::FILE_UPLOAD_AFTER, array('name' => $fileName, 'path' => $targetPath, 'relative_path' => $configData['site_favicon'], 'type' => 'favicon'));
                 } else {
                     $errors['site_favicon'] = 'Favicon 上传失败，请检查目录权限';
                 }
@@ -376,6 +378,8 @@ class ConfigService {
             $filePath = $uploadDir . $fileName;
             if (move_uploaded_file($file['tmp_name'], $filePath)) {
                 $configData['site_logo'] = '/uploads/logo/' . $fileName;
+                // 触发上传完成钩子（绕过 Upload 类的上传点，云存储插件依赖此钩子做镜像同步）
+                Hook::trigger(Hook::FILE_UPLOAD_AFTER, array('name' => $fileName, 'path' => $filePath, 'relative_path' => $configData['site_logo'], 'type' => 'logo'));
             } else {
                 $errors['site_logo'] = '图片上传失败';
             }

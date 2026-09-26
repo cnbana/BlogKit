@@ -228,6 +228,9 @@ class TemplateCondition
         
         // 7. 安全验证：在执行前进行严格的表达式白名单检查
         // 禁止任何函数调用、类方法调用、对象属性访问等危险操作
+        // ⚠️ 检测前须先剥离逻辑操作符：否则「AND (」「OR (」会被函数调用正则误判，
+        // 导致形如 (a && b) || (c && d) 的合法条件永远被拒绝求值（navbar LOGO 条件曾踩坑）
+        $checkSubject = preg_replace('/\b(AND|OR|XOR|NOT)\b/i', ' ', $condition);
         $unsafePatterns = [
             '/\([^)]*\)[a-zA-Z_]/',      // 禁止函数后紧跟变量名（如 functionName()$var）
             '/[a-zA-Z_][a-zA-Z0-9_]*\s*\(/', // 禁止函数调用
@@ -240,9 +243,9 @@ class TemplateCondition
             '/\b(goto|die|exit|throw)\b/i', // 禁止控制流语句
             '/;/',                         // 禁止多条语句
         ];
-        
+
         foreach ($unsafePatterns as $pattern) {
-            if (preg_match($pattern, $condition)) {
+            if (preg_match($pattern, $checkSubject)) {
                 error_log('TemplateCondition: 检测到不安全的条件表达式: ' . $condition);
                 return false;
             }
