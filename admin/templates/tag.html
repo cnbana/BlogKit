@@ -1,0 +1,157 @@
+<?php $currentAction = 'tag'; $pageTitle = '标签管理';  include 'components/page_wrapper.html'; ?>
+            
+    <!-- ==================== 工具栏（两段式：简单列表无筛选区，对齐列表页规范） ==================== -->
+    <div class="list-toolbar list-toolbar-flat">
+        <!-- 添加标签：在右侧抽屉内打开表单（common.js 通用 openEntityDrawer，保存成功后自动关抽屉并刷新列表），href 保留支持中键新窗口 -->
+        <a href="admin.php?action=tag&sub=add" class="btn btn-primary" onclick="openEntityDrawer(this.href, '添加标签'); return false;">
+            <?php echo admin_svg_icon('plus', ''); ?>添加标签
+        </a>
+
+        <!-- 批量操作下拉菜单：菜单项通过 data-batch 属性分发（见底部脚本） -->
+        <div class="btn-group">
+            <!-- 批量操作下拉触发按钮：文字与箭头垂直居中（原内联样式迁移至 components.css 的 .tx-batch-toggle） -->
+            <a href="javascript:void(0)" class="btn btn-default dropdown-toggle tx-batch-toggle">
+                批量操作<span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu batch-menu">
+                <li><a href="javascript:void(0)" data-batch="delete" class="menu-item-danger">批量删除</a></li>
+            </ul>
+        </div>
+
+        <!-- 批量选中计数提示：勾选行复选框后显示「已选 N 项」（common.js initBatchSelectedInfo 自动维护） -->
+        <span id="batch-selected-info" class="batch-selected-info"></span>
+    </div>
+
+    <div class="table-container">
+        <table class="table">
+            <?php
+            // 引入公共排序链接组件（sortLink 函数定义）
+            include ADMIN_PATH . '/templates/components/sort_link.html';
+            ?>
+            <thead>
+                <tr>
+                    <!-- 复选框列：表头为全选开关（id=select_all，见底部批量脚本） -->
+                    <th class="col-check"><input type="checkbox" id="select_all"></th>
+                    <th>ID</th>
+                    <th>标签名称</th>
+                    <th><?php echo sortLink('article_count', '文章数量', $sort, $order); ?></th>
+                    <th><?php echo sortLink('created_at', '创建时间', $sort, $order); ?></th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($pagedTags as $tag): ?>
+                <tr>
+                    <!-- 行复选框：name=ids[] 供批量操作收集 -->
+                    <td class="col-check"><input type="checkbox" name="ids[]" value="<?php echo $tag['id']; ?>" class="tag_checkbox"></td>
+                    <td><?php echo $tag['id']; ?></td>
+                    <td><?php echo $tag['name']; ?></td>
+                    <td><?php echo $tag['article_count']; ?></td>
+                    <td><?php echo $tag['created_at']; ?></td>
+                    <td>
+                        <!-- 操作列：文字链接式（对齐用户/文章列表页）；编辑走右侧抽屉 -->
+                        <a href="admin.php?action=tag&sub=edit&id=<?php echo $tag['id']; ?>" class="table-link" onclick="openEntityDrawer(this.href, '编辑标签'); return false;">编辑</a>
+                        <span class="table-action-divider"></span>
+                        <a href="admin.php?action=tag&sub=delete&id=<?php echo $tag['id']; ?>" class="table-link table-link-danger" onclick="return confirmLink(this, '确定要删除这个标签吗？', { type: 'danger', confirmText: '删除' });">删除</a>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 分页条：公共分页组件（页码导航 + 统计 + 每页条数 + 跳页），
+         紧贴表格时自动与上方各段拼合为一组（components.css 列表堆叠一体化规则） -->
+    <?php
+        $action = 'tag';
+        $filters = $paginationFilters;
+        include ADMIN_PATH . '/templates/components/pagination.html';
+    ?>
+
+<script>
+/**
+ * 批量操作脚本（对齐文章列表页交互）：
+ * 1. 表头全选/取消全选，并同步行选中高亮；
+ * 2. 行复选框变化时同步该行 .selected 高亮；
+ * 3. 批量菜单点击分发：批量删除为危险操作，先弹确认框，确认后以
+ *    POST + ids[] + csrf_token 提交到 batchDelete（后端逐条删除并清理文章关联）。
+ * 「已选 N 项」计数徽标由 common.js 的 initBatchSelectedInfo 全局自动维护，无需在此处理。
+ */
+(function () {
+    // 收集当前勾选的标签 ID 列表
+    var getSelectedIds = function () {
+        return Array.prototype.map.call(
+            document.querySelectorAll('.tag_checkbox:checked'),
+            function (cb) { return cb.value; }
+        );
+    };
+
+    // 统一构建 POST 表单并提交（ids[] + 额外参数 + CSRF 令牌）
+    var submitBatchForm = function (url, params) {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = url;
+        getSelectedIds().forEach(function (id) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'ids[]';
+            input.value = id;
+            form.appendChild(input);
+        });
+        Object.keys(params || {}).forEach(function (key) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = params[key];
+            form.appendChild(input);
+        });
+        // CSRF 令牌：由会话生成，后端 Security::validateCsrfToken 校验
+        var tokenInput = document.createElement('input');
+        tokenInput.type = 'hidden';
+        tokenInput.name = 'csrf_token';
+        tokenInput.value = '<?php echo $_SESSION['csrf_token']; ?>';
+        form.appendChild(tokenInput);
+        document.body.appendChild(form);
+        form.submit();
+    };
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // 全选/取消全选：表头复选框同步所有行复选框的选中状态与行高亮
+        var selectAll = document.getElementById('select_all');
+        if (selectAll) {
+            selectAll.addEventListener('change', function () {
+                document.querySelectorAll('.tag_checkbox').forEach(function (checkbox) {
+                    checkbox.checked = selectAll.checked;
+                    checkbox.closest('tr').classList.toggle('selected', selectAll.checked);
+                });
+            });
+        }
+
+        // 单个复选框变化时同步该行高亮
+        document.querySelectorAll('.tag_checkbox').forEach(function (cb) {
+            cb.addEventListener('change', function (e) {
+                e.target.closest('tr').classList.toggle('selected', e.target.checked);
+            });
+        });
+
+        // 批量菜单点击分发（下拉开合由 common.js initDropdowns 统一事件委托处理）
+        document.querySelectorAll('.batch-menu a[data-batch]').forEach(function (item) {
+            item.addEventListener('click', function (e) {
+                e.preventDefault();
+                if (getSelectedIds().length === 0) {
+                    showToast('请先选择标签', 'error');
+                    return;
+                }
+                // 批量删除：统一确认弹窗（危险操作红色样式），确认后提交
+                showConfirmDialog('确定要删除选中的标签吗？', { type: 'danger', confirmText: '删除' }).then(function (ok) {
+                    if (ok) {
+                        submitBatchForm('admin.php?action=tag&method=batchDelete', {});
+                    }
+                });
+            });
+        });
+    });
+})();
+</script>
+
+<?php include 'components/footer_wrapper.html'; ?>

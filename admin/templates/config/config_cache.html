@@ -1,0 +1,230 @@
+            <!-- 缓存设置内容
+                 布局：状态只读区（健康横幅 + 运行指标条）在上，标题行右侧内联
+                 「清理缓存」点击下拉面板（原右列独立清理卡片已收纳于此），
+                 下部为通栏设置表单（原双列布局已改单列）。
+                 样式全部引用 common.css 通用组件（.status-banner / .metrics-bar /
+                 .switch / .dropdown-menu），本页仅保留元素级间距与下拉定位 -->
+            <div class="form-container">
+                <!-- ============ 缓存状态（只读区） ============ -->
+                <div class="form-section">
+                    <!-- 标题行：左标题 + 右「清理缓存」下拉触发器
+                         （原右列清理面板收纳于此，点击开合见 common.js） -->
+                    <div class="cache-section-head">
+                        <h4>缓存状态</h4>
+                        <div class="cache-clear-menu">
+                            <button type="button" class="cache-clear-toggle" id="cacheClearToggle" aria-haspopup="true" aria-expanded="false" title="清理缓存">
+                                <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 6h18"></path>
+                                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+                                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                                </svg>
+                                <span>清理缓存</span>
+                                <svg class="svg-icon svg-icon-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                            <!-- 下拉面板：与全局头部清理缓存下拉同构（.header-dropdown 统一
+                                 定位与菜单项规格），纯菜单项无内嵌按钮——四类清理动作各自
+                                 独立小表单，点击菜单项经 confirmForm 弹确认框后直接提交
+                                 （POST method=clear 对应 CacheController::clear()），
+                                 完成后经 back 参数回跳本页 -->
+                            <div class="dropdown-menu header-dropdown" id="cacheClearDropdown">
+                                <?php
+                                // 四类清理动作共用一套表单结构：类型 => [显示文案, 确认弹窗文案]
+                                // （与 components/page_wrapper.html 头部清理下拉同一定义）
+                                $cacheTypes = [
+                                    'all'     => ['所有缓存', '确定要清理所有缓存吗？清理后首次访问会重新生成。'],
+                                    'page'    => ['页面缓存', '确定要清理页面缓存吗？'],
+                                    'data'    => ['数据缓存', '确定要清理数据缓存吗？'],
+                                    'expired' => ['过期缓存', '确定要清理已过期的缓存数据吗？'],
+                                ];
+                                foreach ($cacheTypes as $cacheType => $cacheInfo): ?>
+                                <form method="post" action="admin.php?action=<?php echo $currentAction; ?>&method=clear"
+                                      onsubmit="return confirmForm(this, '<?php echo $cacheInfo[1]; ?>', { type: 'warning', title: '清理缓存', confirmText: '清理' });">
+                                    <input type="hidden" name="cache_clean_type" value="<?php echo $cacheType; ?>">
+                                    <input type="hidden" name="back" value="<?php echo htmlspecialchars($_SERVER['REQUEST_URI'] ?? '', ENT_QUOTES); ?>">
+                                    <button type="submit" class="header-dropdown-item"><?php echo $cacheInfo[0]; ?></button>
+                                </form>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+                    <?php
+                    // 健康状态：Cache 类提供的目录权限/磁盘空间等整体检查结果
+                    $healthStatus = Cache::getCacheHealthStatus();
+                    $statusClass = $healthStatus['status'] == 'healthy' ? 'healthy' : ($healthStatus['status'] == 'warning' ? 'warning' : 'critical');
+                    // 缓存运行指标：命中率/命中/未命中/大小/操作数/运行时长
+                    $cache = Cache::getInstance();
+                    $stats = $cache->getStats();
+                    $cacheSize = $cache->getCacheSize();
+                    $total = $stats['hits'] + $stats['misses'];
+                    $hitRate = $total > 0 ? round(($stats['hits'] / $total) * 100, 2) : 0;
+                    // 健康明细中的磁盘/缓存占用百分比并入下方指标条（同为运行指标）
+                    $diskUsage = isset($healthStatus['details']['disk_usage']) ? $healthStatus['details']['disk_usage'] : null;
+                    $cacheUsage = isset($healthStatus['details']['cache_usage']) ? $healthStatus['details']['cache_usage'] : null;
+                    ?>
+                    <!-- 健康横幅：中性底 + 语义色圆点/文字（不用大色块）；
+                         与下方指标条的间距见 components.css .cache-banner-gap -->
+                    <div class="status-banner <?php echo $statusClass; ?> cache-banner-gap">
+                        <span class="dot-status"></span>
+                        <span class="status-text"><?php echo htmlspecialchars($healthStatus['message'], ENT_QUOTES); ?></span>
+                    </div>
+                    <!-- 指标条：复用 common.css 通用组件（与仪表盘数据行同规格），
+                         健康明细的磁盘/缓存占用百分比一并展示 -->
+                    <div class="metrics-bar">
+                        <div class="metric metric-static" title="越高越好，理想值大于 80%">
+                            <span class="metric-num"><?php echo $hitRate; ?>%</span>
+                            <span class="metric-label">命中率</span>
+                        </div>
+                        <div class="metric metric-static" title="从缓存中获取数据的次数">
+                            <span class="metric-num"><?php echo number_format($stats['hits']); ?></span>
+                            <span class="metric-label">命中数</span>
+                        </div>
+                        <div class="metric metric-static" title="缓存中未找到数据的次数">
+                            <span class="metric-num"><?php echo number_format($stats['misses']); ?></span>
+                            <span class="metric-label">未命中数</span>
+                        </div>
+                        <div class="metric metric-static" title="当前缓存占用的存储空间">
+                            <span class="metric-num"><?php echo round($cacheSize / (1024 * 1024), 2); ?></span>
+                            <span class="metric-label">大小 (MB)</span>
+                        </div>
+                        <?php if ($diskUsage !== null): ?>
+                        <div class="metric metric-static" title="服务器磁盘空间使用率">
+                            <span class="metric-num"><?php echo htmlspecialchars($diskUsage, ENT_QUOTES); ?></span>
+                            <span class="metric-label">磁盘占用</span>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ($cacheUsage !== null): ?>
+                        <div class="metric metric-static" title="缓存空间使用率（相对大小限制）">
+                            <span class="metric-num"><?php echo htmlspecialchars($cacheUsage, ENT_QUOTES); ?></span>
+                            <span class="metric-label">缓存占用</span>
+                        </div>
+                        <?php endif; ?>
+                        <div class="metric metric-static" title="缓存的写入和删除操作总数">
+                            <span class="metric-num"><?php echo number_format($stats['sets'] + $stats['deletes']); ?></span>
+                            <span class="metric-label">操作数</span>
+                        </div>
+                        <div class="metric metric-static" title="缓存系统连续运行的时间">
+                            <span class="metric-num"><?php echo number_format((int)$stats['uptime']); ?></span>
+                            <span class="metric-label">运行 (秒)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============ 下部通栏：缓存设置表单
+                 （原「左表单 7 | 右清理 5」双列已改单列通栏，清理入口见上方标题右侧下拉）。
+                 开关类选项使用滑动开关（checkbox）：未勾选时不提交字段，
+                 ConfigService 按「未提交即关闭」兜底保存 -->
+            <div class="form-container cache-settings-gap">
+                <form method="post" action="admin.php?action=<?php echo $currentAction; ?>&method=save">
+                    <input type="hidden" name="sub_page" value="<?php echo $sub; ?>">
+
+                    <!-- 基本设置 -->
+                    <div class="form-section">
+                        <h4>基本设置</h4>
+                        <div class="form-group">
+                            <div class="switch-row">
+                                <div class="switch-row-text">
+                                    <label for="cache_enabled">缓存功能</label>
+                                    <p class="help-text">开启后可显著提高网站访问速度，建议开启</p>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="cache_enabled" name="cache_enabled" value="1" <?php echo $config['cache_enabled'] == '1' ? 'checked' : ''; ?>>
+                                    <span class="switch-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="cache_type">缓存类型</label>
+                            <select id="cache_type" name="cache_type">
+                                <option value="file" <?php echo $config['cache_type'] == 'file' ? 'selected' : ''; ?>>文件缓存（简单易用，适合小型网站）</option>
+                                <option value="redis" <?php echo $config['cache_type'] == 'redis' ? 'selected' : ''; ?>>Redis 缓存（性能更好，需安装 Redis 服务）</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="cache_expire">缓存过期时间（秒）</label>
+                            <input type="number" id="cache_expire" name="cache_expire" value="<?php echo $config['cache_expire']; ?>" placeholder="请输入缓存过期时间（秒）">
+                            <p class="help-text">缓存数据的有效期，过期后自动刷新，建议 3600 秒（1 小时）</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="cache_size_limit">缓存大小限制（MB）</label>
+                            <input type="number" id="cache_size_limit" name="cache_size_limit" value="<?php echo $config['cache_size_limit']; ?>" placeholder="请输入缓存大小限制（MB）">
+                            <p class="help-text">超过限制后自动清理旧缓存，建议 50-200MB</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="cache_path">缓存存储路径</label>
+                            <input type="text" id="cache_path" name="cache_path" value="<?php echo $config['cache_path']; ?>" placeholder="请输入缓存存储路径">
+                            <p class="help-text">缓存文件的存储位置，建议使用默认路径</p>
+                        </div>
+                    </div>
+
+                    <!-- 策略与其他（原「缓存高级设置」重复标题已修正） -->
+                    <div class="form-section">
+                        <h4>策略与其他</h4>
+                        <div class="form-group">
+                            <label>缓存清理策略</label>
+                            <div class="static-value">LRU（最近最少使用）</div>
+                            <p class="help-text">按文件最后修改时间清理最旧缓存；LFU 策略暂未实现</p>
+                        </div>
+                        <div class="form-group">
+                            <div class="switch-row">
+                                <div class="switch-row-text">
+                                    <label for="cache_compression">缓存压缩</label>
+                                    <p class="help-text">减少存储空间但增加 CPU 占用，适合磁盘有限的服务器</p>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="cache_compression" name="cache_compression" value="1" <?php echo $config['cache_compression'] == '1' ? 'checked' : ''; ?>>
+                                    <span class="switch-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="cache_key_prefix">缓存键前缀</label>
+                            <input type="text" id="cache_key_prefix" name="cache_key_prefix" value="<?php echo $config['cache_key_prefix']; ?>" placeholder="请输入缓存键前缀">
+                            <p class="help-text">避免不同系统间的缓存冲突，建议使用网站标识</p>
+                        </div>
+                        <div class="form-group">
+                            <div class="switch-row">
+                                <div class="switch-row-text">
+                                    <label for="cache_batch_operation">批量操作</label>
+                                    <p class="help-text">支持批量设置、获取和删除缓存，建议开启</p>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="cache_batch_operation" name="cache_batch_operation" value="1" <?php echo $config['cache_batch_operation'] == '1' ? 'checked' : ''; ?>>
+                                    <span class="switch-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 缓存监控 -->
+                    <div class="form-section">
+                        <h4>缓存监控</h4>
+                        <div class="form-group">
+                            <div class="switch-row">
+                                <div class="switch-row-text">
+                                    <label for="cache_monitoring_enabled">启用缓存监控</label>
+                                    <p class="help-text">记录缓存使用情况和性能数据，便于分析优化</p>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="cache_monitoring_enabled" name="cache_monitoring_enabled" value="1" <?php echo $config['cache_monitoring_enabled'] == '1' ? 'checked' : ''; ?>>
+                                    <span class="switch-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="cache_history_days">历史数据保留天数</label>
+                            <input type="number" id="cache_history_days" name="cache_history_days" value="<?php echo $config['cache_history_days']; ?>" placeholder="请输入缓存历史数据保留天数">
+                            <p class="help-text">控制监控数据的保留时间，避免数据库过度增长</p>
+                        </div>
+                    </div>
+
+                    <!-- 提交按钮 -->
+                    <div class="buttons">
+                        <button type="submit" class="btn btn-primary">保存设置</button>
+                    </div>
+                </form>
+            </div>

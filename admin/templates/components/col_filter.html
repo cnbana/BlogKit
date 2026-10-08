@@ -1,0 +1,79 @@
+<?php
+/**
+ * 表头列筛选面板生成函数（公共组件）
+ *
+ * 使用方法：在列表模板的 <thead> 之前 include 本组件一次，然后在需要筛选的表头调用：
+ *   <?php include ADMIN_PATH . '/templates/components/col_filter.html'; ?>
+ *   <th class="th-filterable"><?php echo columnFilter('top_type', '置顶状态', [
+ *       ['value' => 0, 'label' => '正常'],
+ *       ['value' => 1, 'label' => '全局置顶'],
+ *   ]); ?></th>
+ *
+ * 面板结构（与主流组件库表格列筛选一致）：
+ *   搜索框（可选，$searchable = true 时渲染，按选项文字实时过滤）
+ *   → 全选行 + 复选选项列表（当前 URL 参数中已选值自动勾选）
+ *   → 底部「重置 / 确定」：确定提交所选值（URL 参数，逗号分隔），重置清空该筛选
+ *
+ * 约定：
+ *   - 多选值以逗号分隔拼入 URL 参数（如 top_type=1,2），模型侧需支持逗号分隔
+ *     的 IN 查询（已支持：ArticleModel top_type / CommentModel article_id）
+ *   - 全选或全不选视为「不筛选」，确定时移除 URL 参数
+ *   - 面板开合/搜索/全选/提交逻辑见 common.js 的 initColumnFilter()，
+ *     样式见 components.css「表头排序与列筛选」区块
+ *
+ * @param string $param      URL 筛选参数名（如 top_type / article_id）
+ * @param string $label      表头显示文字
+ * @param array  $options    选项列表 [['value' => mixed, 'label' => string], ...]
+ * @param bool   $searchable 是否渲染顶部搜索框（选项较多时开启）
+ * @return string 表头筛选按钮 + 下拉筛选面板 HTML
+ */
+if (!function_exists('columnFilter')) {
+    function columnFilter($param, $label, $options, $searchable = false) {
+        // 解析当前 URL 参数中的已选值（多选逗号分隔），渲染时据此勾选对应选项
+        $current = isset($_GET[$param]) ? (string)$_GET[$param] : '';
+        $selected = $current !== '' ? array_map('strval', explode(',', $current)) : [];
+
+        // 渲染复选选项列表
+        $optionHtml = '';
+        foreach ($options as $option) {
+            $value = (string)$option['value'];
+            $checked = in_array($value, $selected, true) ? ' checked' : '';
+            $optionHtml .= '<label class="cfp-option">'
+                . '<input type="checkbox" class="cfp-check" value="' . htmlspecialchars($value) . '"' . $checked . '>'
+                . '<span class="cfp-option-label">' . htmlspecialchars((string)$option['label']) . '</span>'
+                . '</label>';
+        }
+
+        // 搜索框仅在有足够多选项时才有意义，由调用方按需开启
+        $searchHtml = $searchable
+            ? '<input type="text" class="cfp-search" placeholder="搜索" aria-label="搜索筛选选项">'
+            : '';
+
+        // 当前参数已有选中值时，漏斗按钮呈激活态（主题色 + 底部圆点提示）
+        $activeClass = !empty($selected) ? ' active' : '';
+
+        // 组装面板：data-param 记录参数名，供 JS 提交时回写 URL；
+        // 表头仍显示列标题文字，漏斗按钮跟随其后
+        $html = '<span class="th-filter-wrap">'
+            . '<span class="th-filter-label">' . htmlspecialchars($label) . '</span>'
+            . '<span class="th-filter-btn has-tooltip' . $activeClass . '" data-tip="筛选" role="button" tabindex="0" aria-label="筛选' . htmlspecialchars($label) . '">'
+            . admin_svg_icon('filter', '')
+            . '</span>'
+            . '<div class="col-filter-panel" data-param="' . htmlspecialchars($param) . '">'
+            . $searchHtml
+            . '<div class="cfp-list">'
+            . '<label class="cfp-option cfp-option-all"><input type="checkbox" class="cfp-select-all"><span class="cfp-option-label">全选</span></label>'
+            . $optionHtml
+            . '</div>'
+            // 空态提示：搜索无匹配结果时由 JS 显示（common.js filterOptions）
+            . '<div class="cfp-empty">暂无匹配数据</div>'
+            . '<div class="cfp-footer">'
+            . '<button type="button" class="cfp-reset">重置</button>'
+            . '<button type="button" class="cfp-ok">确定</button>'
+            . '</div>'
+            . '</div>'
+            . '</span>';
+        return $html;
+    }
+}
+?>

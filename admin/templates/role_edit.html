@@ -1,0 +1,77 @@
+<?php  $currentAction = 'role'; $pageTitle = '编辑角色'; include 'components/page_wrapper.html'; ?>
+
+    <div class="form-container">
+        <form method="post" action="admin.php?action=role&sub=edit&id=<?php echo $role['id']; ?>">
+            <?php if (isset($error)): ?>
+            <!-- rb-error-alert：danger 红色浅底错误提示框（components.css，角色/权限表单页共用） -->
+            <div class="error-message rb-error-alert">
+                <?php echo $error; ?>
+            </div>
+            <?php endif; ?>
+            
+            <div class="form-group">
+                <label for="name">角色名称</label>
+                <input type="text" id="name" name="name" value="<?php echo $role['name']; ?>" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="description">角色描述</label>
+                <textarea id="description" name="description" rows="3"><?php echo $role['description']; ?></textarea>
+            </div>
+            
+            <?php if (!in_array($role['id'], [1, 2, 3])): ?>
+            <div class="form-group">
+                <label for="parent_id">父角色</label>
+                <select id="parent_id" name="parent_id">
+                    <option value="0">顶级角色</option>
+                    <?php foreach ($roles as $parentRole): ?>
+                    <option value="<?php echo $parentRole['id']; ?>" <?php echo $parentRole['id'] == $role['parent_id'] ? 'selected' : ''; ?>>
+                        <?php echo $parentRole['name']; ?>
+                    </option>
+                    <?php endforeach; ?>
+                </select>
+                <small>选择父角色后，将继承父角色的所有权限</small>
+            </div>
+            
+            <div class="form-group">
+                <!-- 二值开关统一使用滑动开关（与系统设置页一致），提交行为与原复选框相同 -->
+                <div class="switch-row">
+                    <div class="switch-row-text">
+                        <label for="status">状态</label>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="status" name="status" <?php echo $role['status'] == 1 ? 'checked' : ''; ?>>
+                        <span class="switch-slider"></span>
+                    </label>
+                </div>
+            </div>
+            <?php else: ?>
+            <div class="form-group">
+                <label>父角色</label>
+                <!-- rb-readonly-field：内置角色只读字段展示框（components.css，本页两处共用） -->
+                <div class="rb-readonly-field">
+                    <?php echo $role['name']; ?>角色
+                </div>
+                <!-- rb-readonly-hint：只读字段补充说明（components.css） -->
+                <small class="rb-readonly-hint"><?php echo $role['name']; ?>角色没有父角色</small>
+            </div>
+            
+            <div class="form-group">
+                <label>状态</label>
+                <!-- rb-readonly-field：内置角色只读字段展示框（components.css，本页两处共用） -->
+                <div class="rb-readonly-field">
+                    启用
+                </div>
+                <!-- rb-readonly-hint：只读字段补充说明（components.css） -->
+                <small class="rb-readonly-hint"><?php echo $role['name']; ?>角色状态无法更改</small>
+            </div>
+            <?php endif; ?>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">保存</button>
+                <a href="admin.php?action=role" class="btn btn-default drawer-cancel">取消</a>
+            </div>
+        </form>
+    </div>
+
+<?php include 'components/footer_wrapper.html'; ?>

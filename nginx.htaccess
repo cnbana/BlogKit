@@ -1,0 +1,6 @@
+# ============================================
+# BlogKit 主系统 Nginx 伪静态（被 vhost 的 location / include）
+# ============================================
+location ^~ / {
+    try_files $uri $uri/ /index.php$uri?$args;
+}

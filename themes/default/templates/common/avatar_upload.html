@@ -1,0 +1,272 @@
+<!-- 头像上传组件 -->
+<!-- 引入Cropper.js CSS -->
+<link rel="stylesheet" href="{site.url}/themes/default/assets/css/cropper.min.css">
+<style>
+    /* 头像上传样式 */
+    .avatar-upload {
+        position: relative;
+        display: inline-block;
+        width: 80px;
+        height: 80px;
+    }
+    
+    .avatar-upload .avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        transition: opacity 0.3s ease;
+    }
+    
+    .avatar-upload:hover .avatar {
+        opacity: 0.7;
+    }
+    
+    .avatar-upload-overlay {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        color: white;
+        text-align: center;
+        line-height: 100%;
+        border-radius: 50%;
+        cursor: pointer;
+        align-items: center;
+        justify-content: center;
+        font-size: var(--font-size-sm);     /* 14px */
+    }
+    
+    .avatar-upload:hover .avatar-upload-overlay {
+        display: flex;
+    }
+    
+    #avatar-file {
+        display: none;
+    }
+    
+    /* 裁剪模态框样式 */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.8);
+    }
+    
+    .modal-content {
+        background-color: var(--bg-white);
+        margin: 5% auto;
+        padding: 20px;
+        border: 1px solid var(--border-color);
+        width: 80%;
+        max-width: 800px;
+        border-radius: 8px;
+    }
+    
+    .close {
+        color: var(--text-muted);
+        float: right;
+        font-size: var(--font-size-3xl);    /* 30px（原28px）*/
+        font-weight: bold;
+    }
+    
+    .close:hover,
+    .close:focus {
+        color: var(--text-primary);
+        text-decoration: none;
+        cursor: pointer;
+    }
+    
+    #crop-container {
+        margin: 20px 0;
+        border: 1px solid var(--border-color);
+    }
+    
+    #crop-image {
+        max-width: 100%;
+        height: auto;
+    }
+    
+    .crop-actions {
+        text-align: center;
+        margin-top: 20px;
+    }
+    
+    .crop-actions button {
+        margin: 0 10px;
+        padding: 8px 15px;
+        background-color: var(--success-color);
+        color: var(--text-invert);
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    
+    .crop-actions button:hover {
+        opacity: 0.85;
+    }
+    
+    #cancel-crop {
+        background-color: var(--danger-color);
+    }
+    
+    #cancel-crop:hover {
+        opacity: 0.85;
+    }
+</style>
+
+<div class="avatar-upload">
+    <img id="current-avatar" src="{if isset="user.avatar"}{user.avatar}{else}/themes/default/assets/images/avatar.png{endif}" alt="头像" class="avatar">
+    {if config.profile_avatar_enabled}
+    <div class="avatar-upload-overlay" onclick="document.getElementById('avatar-file').click()">
+        更换头像
+    </div>
+    {endif}
+</div>
+{if config.profile_avatar_enabled}
+<input type="file" id="avatar-file" accept="image/*">
+{endif}
+
+{if config.profile_avatar_enabled}
+<!-- 头像裁剪模态框 -->
+<div id="crop-modal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>裁剪头像</h3>
+        <div id="crop-container">
+            <img id="crop-image" src="" alt="裁剪图片">
+        </div>
+        <div class="crop-actions">
+            <button id="crop-btn">确认裁剪</button>
+            <button id="cancel-crop">取消</button>
+        </div>
+    </div>
+</div>
+
+<!-- 引入Cropper.js JavaScript -->
+<script src="{site.url}/themes/default/assets/js/cropper.min.js"></script>
+
+<script>
+    // 头像上传和裁剪功能
+    document.addEventListener('DOMContentLoaded', function() {
+        const avatarFile = document.getElementById('avatar-file');
+        if (!avatarFile) return; // 头像上传未启用时，直接退出
+        const cropModal = document.getElementById('crop-modal');
+        const closeModal = document.querySelector('.close');
+        const cropImage = document.getElementById('crop-image');
+        const cropBtn = document.getElementById('crop-btn');
+        const cancelCrop = document.getElementById('cancel-crop');
+        let cropper;
+
+        // 监听文件选择
+        avatarFile.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    cropImage.src = e.target.result;
+                    cropModal.style.display = 'block';
+
+                    // 初始化Cropper
+                    if (cropper) {
+                        cropper.destroy();
+                    }
+                    cropper = new Cropper(cropImage, {
+                        aspectRatio: 1, // 1:1比例
+                        viewMode: 1,
+                        dragMode: 'move',
+                        cropBoxMovable: true,
+                        cropBoxResizable: true,
+                        minContainerWidth: 300,
+                        minContainerHeight: 300,
+                        maxContainerWidth: 600,
+                        maxContainerHeight: 600
+                    });
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 关闭模态框
+        closeModal.addEventListener('click', function() {
+            cropModal.style.display = 'none';
+            if (cropper) {
+                cropper.destroy();
+            }
+            avatarFile.value = '';
+        });
+
+        // 取消裁剪
+        cancelCrop.addEventListener('click', function() {
+            cropModal.style.display = 'none';
+            if (cropper) {
+                cropper.destroy();
+            }
+            avatarFile.value = '';
+        });
+
+        // 点击模态框外部关闭
+        window.addEventListener('click', function(e) {
+            if (e.target == cropModal) {
+                cropModal.style.display = 'none';
+                if (cropper) {
+                    cropper.destroy();
+                }
+                avatarFile.value = '';
+            }
+        });
+
+        // 确认裁剪
+        cropBtn.addEventListener('click', function() {
+            if (cropper) {
+                // 获取裁剪后的图片数据
+                cropper.getCroppedCanvas({
+                    width: 200,
+                    height: 200,
+                    fillColor: '#fff'
+                }).toBlob(function(blob) {
+                    const formData = new FormData();
+                    formData.append('avatar', blob, 'avatar.jpg');
+                    formData.append('action', 'update_avatar');
+
+                    // 发送到服务器
+                    fetch('{url:profile}', {
+                        method: 'POST',
+                        body: formData
+                    }).then(response => response.json())
+                      .then(data => {
+                          if (data.success) {
+                              // 更新头像显示
+                              document.getElementById('current-avatar').src = data.avatar_url;
+
+                              // 关闭模态框
+                              cropModal.style.display = 'none';
+                              if (cropper) {
+                                  cropper.destroy();
+                              }
+                              avatarFile.value = '';
+
+                              // 显示成功消息
+                              alert('头像更新成功！');
+                          } else {
+                              alert('头像更新失败：' + data.message);
+                          }
+                      })
+                      .catch(error => {
+                          console.error('Error:', error);
+                          alert('头像更新失败，请重试！');
+                      });
+                });
+            }
+        });
+    });
+</script>
+{endif}

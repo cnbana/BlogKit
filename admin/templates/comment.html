@@ -1,0 +1,365 @@
+<?php $currentAction = 'comment'; $pageTitle = '评论管理';  include 'components/page_wrapper.html'; ?>
+    
+    <!-- ==================== 筛选区（对齐用户/文章列表页三段式结构） ==================== -->
+    <!-- filter-section-flat：白底变体 + 底部分割线（components.css） -->
+    <div class="filter-section filter-section-flat">
+        <form method="get" action="admin.php" class="filter-form">
+            <input type="hidden" name="action" value="comment">
+
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="status_filter">状态</label>
+                    <select name="status" id="status_filter" class="filter-select">
+                        <option value="" <?php echo empty($_GET['status']) ? 'selected' : ''; ?>>全部</option>
+                        <option value="1" <?php echo isset($_GET['status']) && $_GET['status'] == 1 ? 'selected' : ''; ?>>已审核</option>
+                        <option value="0" <?php echo isset($_GET['status']) && $_GET['status'] == 0 ? 'selected' : ''; ?>>待审核</option>
+                    </select>
+                </div>
+
+                <div class="filter-group filter-group-wide">
+                    <label for="search_filter">搜索</label>
+                    <input type="text" name="search" id="search_filter" class="filter-input" placeholder="评论内容" value="<?php echo isset($_GET['search']) ? $_GET['search'] : ''; ?>">
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary" id="filter-btn">
+                        <?php echo admin_svg_icon('search', ''); ?>搜索
+                    </button>
+                    <button type="button" class="btn btn-default" id="reset-btn">
+                        <?php echo admin_svg_icon('refresh', ''); ?>重置
+                    </button>
+                </div>
+            </div>
+        </form>
+        
+        <script>
+            // 评论页面特定的JavaScript
+            // 获取筛选表单元素
+            const statusFilter = document.getElementById('status_filter');
+            const searchFilter = document.getElementById('search_filter');
+            const filterBtn = document.getElementById('filter-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            
+            // 重置按钮点击事件
+            resetBtn.addEventListener('click', function() {
+                // 跳转到指定URL重置筛选
+                window.location.href = '/admin.php?action=comment';
+            });
+            
+            // 表单提交时处理空参数
+            document.querySelector('form').addEventListener('submit', function(e) {
+                if (statusFilter.value === '') {
+                    statusFilter.removeAttribute('name');
+                }
+                if (searchFilter.value.trim() === '') {
+                    searchFilter.removeAttribute('name');
+                }
+            });
+            
+            // 操作按钮点击事件
+            document.addEventListener('click', function(e) {
+                const target = e.target;
+                const action = target.getAttribute('data-action');
+                const id = target.getAttribute('data-id');
+
+                if (action && id) {
+                    let message = '';
+                    let confirmText = '';
+                    let url = '';
+
+                    switch(action) {
+                        case 'approve':
+                            message = '确定要通过审核吗？';
+                            confirmText = '通过';
+                            url = 'admin.php?action=comment&sub=toggleStatus&id=' + id + '&status=1';
+                            break;
+                        case 'reject':
+                            message = '确定要设为待审核吗？';
+                            confirmText = '设为待审';
+                            url = 'admin.php?action=comment&sub=toggleStatus&id=' + id + '&status=0';
+                            break;
+                        case 'delete':
+                            message = '确定要删除这条评论吗？';
+                            confirmText = '删除';
+                            url = 'admin.php?action=comment&sub=delete&id=' + id;
+                            break;
+                        case 'toggleTop':
+                            const isTop = target.getAttribute('data-is-top') === '1';
+                            message = isTop ? '确定要取消置顶吗？' : '确定要置顶吗？';
+                            confirmText = isTop ? '取消置顶' : '置顶';
+                            url = 'admin.php?action=comment&sub=toggleTop&id=' + id;
+                            break;
+                        case 'edit':
+                            // 编辑评论：在右侧抽屉内打开编辑表单（common.js 通用 openEntityDrawer，保留列表上下文）
+                            openEntityDrawer('admin.php?action=comment&sub=edit&id=' + id, '编辑评论');
+                            return;
+                    }
+
+                    if (message && url) {
+                        e.preventDefault();
+                        // 统一确认弹窗（common.js 的 showConfirmDialog，按钮文案 = 具体动作）
+                        showConfirmDialog(message, { confirmText: confirmText }).then(function(confirmed) {
+                            if (confirmed) {
+                                window.location.href = url;
+                            }
+                        });
+                    }
+                }
+            });
+        </script>
+    </div>
+
+    <!-- ==================== 工具栏（对齐用户/文章列表页） ==================== -->
+    <!-- 评论无「添加」类主操作；回收站为左侧红色按钮（与其他列表页工具栏样式统一），
+         右侧为批量操作下拉 + 选中计数提示（结构与文章列表页工具栏一致） -->
+    <div class="list-toolbar list-toolbar-flat">
+        <a href="admin.php?action=comment&sub=recycle" class="btn btn-danger-ghost">
+            <?php echo admin_svg_icon('trash', ''); ?>回收站
+        </a>
+
+        <!-- 批量操作下拉：菜单项通过 data-batch 属性分发（见页面底部批量脚本），
+             审核通过/设为待审提交到 batchUpdateStatus，删除提交到 batchDelete -->
+        <div class="btn-group">
+            <!-- 批量操作下拉触发按钮：文字与箭头垂直居中（原内联样式迁移至 components.css 的 .cm-batch-toggle） -->
+            <a href="javascript:void(0)" class="btn btn-default dropdown-toggle cm-batch-toggle">
+                批量操作<span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu batch-menu">
+                <li><a href="javascript:void(0)" data-batch="approve">批量审核通过</a></li>
+                <li><a href="javascript:void(0)" data-batch="pending">批量设为待审</a></li>
+                <li><a href="javascript:void(0)" data-batch="delete" class="menu-item-danger">批量删除</a></li>
+            </ul>
+        </div>
+
+        <!-- 批量选中计数提示：勾选行复选框后显示「已选 N 项」（common.js initBatchSelectedInfo 自动维护） -->
+        <span id="batch-selected-info" class="batch-selected-info"></span>
+    </div>
+
+    <div class="table-container">
+        <table class="table">
+            <?php
+            // 引入公共排序链接组件（sortLink 函数定义）
+            include ADMIN_PATH . '/templates/components/sort_link.html';
+            // 引入公共列筛选组件（columnFilter 函数定义）
+            include ADMIN_PATH . '/templates/components/col_filter.html';
+            ?>
+            <thead>
+                <tr>
+                    <!-- 表头列宽：原内联 width 逐列迁移至 components.css（.cm-col-* 系列） -->
+                    <th class="cm-col-check"><input type="checkbox" id="select_all"></th>
+                    <th class="cm-col-id"><?php echo sortLink('id', 'ID', $sort, $order); ?></th>
+                    <th class="cm-col-level">层级</th>
+                    <!-- 文章：表头列筛选（漏斗面板带搜索框，多选值逗号分隔经 article_id 参数提交，
+                         模型侧支持 IN 查询；选项 = 当前有评论的文章） -->
+                    <th class="th-filterable"><?php echo columnFilter('article_id', '文章', $filterArticles, true); ?></th>
+                    <th>用户</th>
+                    <th>评论内容</th>
+                    <th class="cm-col-replies">回复数</th>
+                    <th class="cm-col-status">状态</th>
+                    <th class="cm-col-time"><?php echo sortLink('created_at', '评论时间', $sort, $order); ?></th>
+                    <th class="cm-col-actions">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($comments)): ?>
+                <tr>
+                    <td colspan="10">
+                        <?php $emptyTitle = '暂无评论数据'; $emptyIcon = 'message'; $emptyDesc = '当有用户提交评论时，将显示在这里'; include 'components/empty_state.html'; ?>
+                    </td>
+                </tr>
+                <?php else: ?>
+                
+                <?php
+                /**
+                 * 递归显示嵌套评论
+                 * @param array $comments 评论列表
+                 * @param int $level 当前层级
+                 */
+                function displayNestedComments($comments, $level = 0) {
+                    foreach ($comments as $comment):
+                        // 计算缩进宽度
+                        $indentPx = $level * 30;
+                        // 层级样式
+                        $levelClass = $level == 0 ? 'level-root' : 'level-reply-' . min($level, 5);
+                /* 层级视觉收敛：缩进 + 中性浅分割线表达层级（原多彩边框已按设计纲领移除） */
+                        $nestBorderStyle = 'border-left: 3px solid var(--border-split);';
+                ?>
+                <tr class="comment-row <?php echo $levelClass; ?>" data-level="<?php echo $level; ?>" data-parent="<?php echo $comment['parent_id']; ?>">
+                    <!-- 批量选择复选框：name="ids[]"（控制器读取 $_POST['ids'] 数组），class 供全选脚本定位 -->
+                    <td><input type="checkbox" name="ids[]" value="<?php echo $comment['id']; ?>" class="comment_checkbox"></td>
+                    <td><?php echo $comment['id']; ?></td>
+                    <td>
+                        <?php if ($level > 0): ?>
+                        <span class="level-badge"><?php echo $level; ?>楼</span>
+                        <?php else: ?>
+                        <span class="level-badge level-root-badge">主</span>
+                        <?php endif; ?>
+                    </td>
+                    <td><?php echo htmlspecialchars($comment['article_title']); ?></td>
+                    <td>
+                        <?php echo $comment['nickname'] ? htmlspecialchars($comment['nickname']) : htmlspecialchars($comment['username']); ?>
+                        <?php if ($level > 0 && !empty($comment['parent_username'])): ?>
+                        <span class="reply-to"> → 回复 <?php echo $comment['parent_nickname'] ? htmlspecialchars($comment['parent_nickname']) : htmlspecialchars($comment['parent_username']); ?></span>
+                        <?php endif; ?>
+                    </td>
+                    <!-- 注意：此处 style 为 PHP 动态输出，必须保留内联形式——
+                         padding-left 由评论层级 $indentPx 动态计算（每层缩进 30px），
+                         border-left 由 $nestBorderStyle 变量输出，无法静态化为 CSS 类 -->
+                    <td style="text-align: left; padding-left: <?php echo $indentPx + 10; ?>px; <?php echo $nestBorderStyle; ?>">
+                        <div class="comment-content<?php echo $level > 0 ? '-nested' : ''; ?>">
+                            <?php echo htmlspecialchars(mb_substr($comment['content'], 0, 50)) . (mb_strlen($comment['content']) > 50 ? '...' : ''); ?>
+                        </div>
+                    </td>
+                    <td>
+                        <?php 
+                        $replyCount = isset($comment['reply_count']) ? $comment['reply_count'] : 0;
+                        if ($replyCount > 0): ?>
+                        <span class="reply-count"><?php echo $replyCount; ?></span>
+                        <?php else: ?>
+                        <span class="reply-empty">-</span>
+                        <?php endif; ?>
+                    </td>
+                    <td><?php echo $comment['status'] == 1 ? '<span class="badge badge-success">已审核</span>' : '<span class="badge badge-warning">待审核</span>'; ?></td>
+                    <td><?php echo $comment['created_at']; ?></td>
+                    <td>
+                        <!-- 操作列：文字链接式（对齐用户/文章列表页）。
+                             编辑直显；审核（通过/屏蔽）、置顶与删除统一收入「操作」下拉，
+                             保持列内简洁；事件仍走页面委托的 data-action 逻辑 -->
+                        <a href="javascript:void(0)" class="table-link" data-action="edit" data-id="<?php echo $comment['id']; ?>">编辑</a>
+                        <span class="table-action-divider"></span>
+                        <!-- 下拉容器：行内块布局（原内联 display:inline-block 迁移至 components.css 的 .cm-actions-inline） -->
+                        <div class="btn-group cm-actions-inline">
+                            <!-- 开合逻辑由 common.js initDropdowns() 统一事件委托处理 -->
+                            <a href="javascript:void(0)" class="table-link dropdown-toggle">
+                                操作<span class="caret"></span>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <!-- 审核动作随当前状态切换：待审核显示「通过审核」，已审核显示「屏蔽」 -->
+                                    <?php if ($comment['status'] == 0): ?>
+                                    <a href="javascript:void(0)" data-action="approve" data-id="<?php echo $comment['id']; ?>">通过审核</a>
+                                    <?php else: ?>
+                                    <a href="javascript:void(0)" data-action="reject" data-id="<?php echo $comment['id']; ?>">屏蔽</a>
+                                    <?php endif; ?>
+                                </li>
+                                <li>
+                                    <!-- 置顶动作随当前状态切换文案 -->
+                                    <a href="javascript:void(0)" data-action="toggleTop" data-id="<?php echo $comment['id']; ?>" data-is-top="<?php echo $comment['is_top']; ?>">
+                                        <?php echo $comment['is_top'] == 1 ? '取消置顶' : '置顶'; ?>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="javascript:void(0)" data-action="delete" data-id="<?php echo $comment['id']; ?>" class="menu-item-danger">删除</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+                <?php 
+                        // 递归显示子评论
+                        if (!empty($comment['replies'])) {
+                            displayNestedComments($comment['replies'], $level + 1);
+                        }
+                    endforeach;
+                }
+                
+                displayNestedComments($comments);
+                ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 分页：放在表格容器之外，避免贴着表格边框显得拥挤 -->
+    <?php if (!empty($comments)): ?>
+    <?php
+    // 引入公共分页组件
+    $action = 'comment';
+    $total = $totalCount;
+    $limit = Config::get('admin_pagination_count', 20);
+    $filters = [];
+    if (isset($_GET['status']) && !empty($_GET['status'])) $filters['status'] = $_GET['status'];
+    if (isset($_GET['article_id']) && !empty($_GET['article_id'])) $filters['article_id'] = $_GET['article_id'];
+    if (isset($_GET['search']) && !empty($_GET['search'])) $filters['search'] = $_GET['search'];
+    // 排序参数并入分页链接，翻页时不丢失当前排序状态
+    if (!empty($sort)) { $filters['sort'] = $sort; $filters['order'] = $order; }
+    include ADMIN_PATH . '/templates/components/pagination.html';
+    ?>
+    <?php endif; ?>
+
+    <script>
+    // ==================== 评论批量操作（对齐文章列表页交互） ====================
+    // 说明：评论控制器的批量端点（batchUpdateStatus/batchDelete）返回 JSON 响应，
+    // 因此这里用 fetch 提交并根据响应弹出 toast 后刷新列表，
+    // 避免表单整页提交导致浏览器直接渲染裸 JSON 文本。
+    document.addEventListener('DOMContentLoaded', function() {
+        // 收集当前勾选的评论 ID 列表（行复选框统一命名 ids[]）
+        const getBatchSelectedIds = () =>
+            Array.from(document.querySelectorAll('input[name="ids[]"]:checked')).map((cb) => cb.value);
+
+        // 统一 POST 提交（ids[] + 额外参数 + CSRF 令牌），成功后延迟刷新让用户看到提示
+        const submitBatchJson = (url, params) => {
+            const body = new URLSearchParams();
+            getBatchSelectedIds().forEach((id) => body.append('ids[]', id));
+            Object.keys(params).forEach((key) => body.append(key, params[key]));
+            body.append('csrf_token', '<?php echo $_SESSION['csrf_token']; ?>');
+            fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                body: body.toString()
+            })
+                .then((res) => res.json())
+                .then((res) => {
+                    showToast(res.msg || (res.code === 200 ? '操作成功' : '操作失败'), res.code === 200 ? 'success' : 'error');
+                    if (res.code === 200) {
+                        setTimeout(() => window.location.reload(), 800);
+                    }
+                })
+                .catch(() => showToast('请求失败，请重试', 'error'));
+        };
+
+        // 全选/取消全选：与行内复选框状态联动，并同步行高亮
+        const batchSelectAll = document.getElementById('select_all');
+        if (batchSelectAll) {
+            batchSelectAll.addEventListener('change', function() {
+                document.querySelectorAll('input[name="ids[]"]').forEach(function(cb) {
+                    cb.checked = batchSelectAll.checked;
+                    cb.closest('tr').classList.toggle('selected', cb.checked);
+                });
+            });
+        }
+
+        // 单选时高亮行（tables.css 的 tr.selected 样式）
+        document.querySelectorAll('input[name="ids[]"]').forEach(function(cb) {
+            cb.addEventListener('change', function() {
+                cb.closest('tr').classList.toggle('selected', cb.checked);
+            });
+        });
+
+        // 批量菜单点击分发：审核通过/设为待审走 batchUpdateStatus（status=1/0），删除走 batchDelete
+        document.querySelectorAll('.batch-menu a[data-batch]').forEach(function(item) {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                const action = this.getAttribute('data-batch');
+                if (getBatchSelectedIds().length === 0) {
+                    showToast('请先选择评论', 'error');
+                    return;
+                }
+                if (action === 'approve') {
+                    // 批量审核通过（status=1，控制器内部会触发审核通过通知）
+                    submitBatchJson('admin.php?action=comment&sub=batchUpdateStatus', { status: 1 });
+                } else if (action === 'pending') {
+                    // 批量设为待审核（status=0）
+                    submitBatchJson('admin.php?action=comment&sub=batchUpdateStatus', { status: 0 });
+                } else if (action === 'delete') {
+                    // 批量删除：危险操作强确认（红色样式确认弹窗）
+                    showConfirmDialog('确定要删除选中的评论吗？', { type: 'danger', confirmText: '删除' }).then(function(ok) {
+                        if (ok) submitBatchJson('admin.php?action=comment&sub=batchDelete', {});
+                    });
+                }
+            });
+        });
+    });
+    </script>
+
+<?php include 'components/footer_wrapper.html'; ?>

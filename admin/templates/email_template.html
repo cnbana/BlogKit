@@ -1,0 +1,230 @@
+<?php
+/**
+ * 邮件模板管理列表页（列表化改造）
+ *
+ * 结构与文章/评论列表页一致的三段式布局：
+ *   1. 工具栏（添加模板主按钮 + 批量操作下拉 + 选中计数提示）
+ *   2. 表格（复选框批量选择列 + 数据列 + 操作列）
+ *   3. 公共分页组件
+ *
+ * 说明：
+ * - 本页由 EmailTemplateController::index() 在「列表视图」下渲染，
+ *   新增/编辑表单仍由 email_template_full.html 承担（编辑入口跳转方式保持不变）。
+ * - 批量删除提交到 EmailTemplateController::batchDelete()（POST + ids[] + CSRF），
+ *   该方法执行后重定向回本页，与文章列表批量删除的交互一致。
+ */
+
+// 页面包装器所需变量：currentAction 决定侧边栏高亮分组，sub 决定「系统设置」下的二级高亮
+$currentAction = 'config';
+$sub = 'email';
+$pageTitle = '邮件模板管理';
+include 'components/page_wrapper.html';
+?>
+
+    <!-- ==================== 工具栏（对齐文章/评论列表页） ==================== -->
+    <!-- 左侧：添加模板主按钮 + 批量操作下拉 + 返回邮箱配置；右侧：批量选中计数提示 -->
+    <div class="list-toolbar list-toolbar-flat">
+        <a href="admin.php?action=email_template&method=add" class="btn btn-primary">
+            <?php echo admin_svg_icon('plus', ''); ?>添加模板
+        </a>
+
+        <!-- 返回上级配置页：邮件模板是邮箱配置的子功能，提供上下文返回入口 -->
+        <a href="admin.php?action=config&sub=email" class="btn btn-secondary">返回邮箱配置</a>
+
+        <!-- 批量操作下拉：菜单项通过 data-batch 属性分发（见页面底部批量脚本），
+             批量删除提交到 batchDelete（POST + ids[]），危险操作红色样式 -->
+        <div class="btn-group">
+            <a href="javascript:void(0)" class="btn btn-default dropdown-toggle et-toggle-flex">
+                批量操作<span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu batch-menu">
+                <li><a href="javascript:void(0)" data-batch="delete" class="menu-item-danger">批量删除</a></li>
+            </ul>
+        </div>
+
+        <!-- 批量选中计数提示：勾选行复选框后显示「已选 N 项」（common.js initBatchSelectedInfo 自动维护） -->
+        <span id="batch-selected-info" class="batch-selected-info"></span>
+    </div>
+
+    <div class="table-container">
+        <table class="table">
+            <?php
+            // 引入公共排序链接组件（sortLink 函数定义）
+            include ADMIN_PATH . '/templates/components/sort_link.html';
+            // 引入公共列筛选组件（columnFilter 函数定义）
+            include ADMIN_PATH . '/templates/components/col_filter.html';
+            ?>
+            <thead>
+                <tr>
+                    <!-- 复选框列：表头为全选开关（批量脚本联动），行内复选框统一命名 ids[] 供批量提交 -->
+                    <th class="et-th-check"><input type="checkbox" id="select_all"></th>
+                    <th class="et-th-id"><?php echo sortLink('id', 'ID', $sort, $order); ?></th>
+                    <th>模板标识</th>
+                    <!-- 模板类型：表头列筛选（漏斗面板，单值经 type 参数提交，
+                         选项集合与控制器 $templateTypes 映射共用，替代独立筛选区） -->
+                    <th class="et-th-type th-filterable"><?php
+                        // 将 key=>label 映射转为列筛选组件的选项格式
+                        $typeOptions = [];
+                        foreach ($templateTypes as $typeKey => $typeLabel) {
+                            $typeOptions[] = ['value' => $typeKey, 'label' => $typeLabel];
+                        }
+                        echo columnFilter('type', '模板类型', $typeOptions);
+                    ?></th>
+                    <th>邮件主题</th>
+                    <th class="et-th-sm">默认</th>
+                    <th class="et-th-sm">状态</th>
+                    <th class="et-th-lg"><?php echo sortLink('updated_at', '更新时间', $sort, $order); ?></th>
+                    <th class="et-th-lg">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($templates)): ?>
+                <tr>
+                    <td colspan="9">
+                        <?php
+                        // 空状态：区分「一条都没有」与「筛选无结果」两种场景文案
+                        if ($typeFilter !== '') {
+                            $emptyTitle = '没有符合条件的模板';
+                            $emptyIcon = 'search';
+                            $emptyDesc = '尝试调整筛选条件后重新查询';
+                        } else {
+                            $emptyTitle = '暂无模板数据';
+                            $emptyIcon = 'file';
+                            $emptyDesc = '创建邮件模板后将显示在这里';
+                        }
+                        include 'components/empty_state.html'; ?>
+                    </td>
+                </tr>
+                <?php else: ?>
+                <?php foreach ($templates as $template): ?>
+                <tr>
+                    <!-- 批量选择复选框：name="ids[]"（控制器读取 $_POST['ids'] 数组），class 供全选脚本定位 -->
+                    <td><input type="checkbox" name="ids[]" value="<?php echo $template['id']; ?>" class="template_checkbox"></td>
+                    <td><?php echo $template['id']; ?></td>
+                    <td><?php echo htmlspecialchars($template['name']); ?></td>
+                    <td><?php echo isset($templateTypes[$template['type']]) ? $templateTypes[$template['type']] : htmlspecialchars($template['type']); ?></td>
+                    <td><?php echo htmlspecialchars($template['subject']); ?></td>
+                    <td><?php echo $template['is_default'] ? '<span class="badge badge-success">是</span>' : '否'; ?></td>
+                    <td><?php echo $template['status'] ? '<span class="badge badge-primary">启用</span>' : '<span class="badge badge-secondary">禁用</span>'; ?></td>
+                    <td><?php echo date('Y-m-d H:i:s', $template['updated_at'] ?: $template['created_at']); ?></td>
+                    <td>
+                        <!-- 操作列：文字链接式（对齐文章/评论列表页）。
+                             编辑为主操作直显；设为默认/删除收入「操作」下拉，保持列面整洁。
+                             编辑/删除跳转方式与原列表页保持一致（编辑整页跳转、删除 confirmLink 确认） -->
+                        <a href="admin.php?action=email_template&method=edit&id=<?php echo $template['id']; ?>" class="table-link">编辑</a>
+                        <span class="table-action-divider"></span>
+                        <div class="btn-group et-inline-group">
+                            <!-- 开合逻辑由 common.js initDropdowns() 统一事件委托处理 -->
+                            <a href="javascript:void(0)" class="table-link dropdown-toggle">
+                                操作<span class="caret"></span>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <?php if (!$template['is_default']): ?>
+                                <li>
+                                    <a href="admin.php?action=email_template&method=setDefault&id=<?php echo $template['id']; ?>">设为默认</a>
+                                </li>
+                                <?php endif; ?>
+                                <li>
+                                    <a href="admin.php?action=email_template&method=delete&id=<?php echo $template['id']; ?>" onclick="return confirmLink(this, '确定要删除这个模板吗？', { type: 'danger', confirmText: '删除' });" class="menu-item-danger">
+                                        删除
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 分页导航：公共分页组件（method 分页透传由分页组件自动处理 action 参数） -->
+    <?php
+        // 引入公共分页组件（$page/$totalPages/$total/$limit/$pageSizes 由控制器计算后传入）
+        $action = 'email_template';
+        // 类型筛选 + 非默认排序参数随分页链接透传（组件会跳过空值）
+        $filters = $paginationFilters;
+        // 控制器侧变量名（pageSize/allowedPageSizes）映射为分页组件约定的 limit/pageSizes，
+        // 保证每页条数切换后翻页不重置
+        $limit = $pageSize;
+        $pageSizes = $allowedPageSizes;
+        include ADMIN_PATH . '/templates/components/pagination.html';
+    ?>
+
+    <script>
+    // ==================== 邮件模板批量操作（对齐文章列表页交互） ====================
+    // 说明：批量删除端点（batchDelete）执行后重定向回列表页，
+    // 因此这里采用与文章列表页相同的「构建隐藏表单整页 POST」方式提交。
+    document.addEventListener('DOMContentLoaded', function() {
+        // 收集当前勾选的模板 ID 列表（行复选框统一命名 ids[]）
+        const getBatchSelectedIds = () =>
+            Array.from(document.querySelectorAll('input[name="ids[]"]:checked')).map((cb) => cb.value);
+
+        // 统一构建 POST 表单并提交（ids[] + 额外参数 + CSRF 令牌），与文章列表页 submitBatchForm 一致
+        const submitBatchForm = (url, params) => {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = url;
+            getBatchSelectedIds().forEach((id) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'ids[]';
+                input.value = id;
+                form.appendChild(input);
+            });
+            Object.keys(params).forEach((key) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = params[key];
+                form.appendChild(input);
+            });
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = 'csrf_token';
+            tokenInput.value = '<?php echo $_SESSION['csrf_token']; ?>';
+            form.appendChild(tokenInput);
+            document.body.appendChild(form);
+            form.submit();
+        };
+
+        // 全选/取消全选：与行内复选框状态联动，并同步行高亮
+        const batchSelectAll = document.getElementById('select_all');
+        if (batchSelectAll) {
+            batchSelectAll.addEventListener('change', function() {
+                document.querySelectorAll('input[name="ids[]"]').forEach(function(cb) {
+                    cb.checked = batchSelectAll.checked;
+                    cb.closest('tr').classList.toggle('selected', cb.checked);
+                });
+            });
+        }
+
+        // 单选时高亮行（tables.css 的 tr.selected 样式）
+        document.querySelectorAll('input[name="ids[]"]').forEach(function(cb) {
+            cb.addEventListener('change', function() {
+                cb.closest('tr').classList.toggle('selected', cb.checked);
+            });
+        });
+
+        // 批量菜单点击分发：仅「批量删除」一项（危险操作红色样式 + 强确认）
+        document.querySelectorAll('.batch-menu a[data-batch]').forEach(function(item) {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                const action = this.getAttribute('data-batch');
+                if (getBatchSelectedIds().length === 0) {
+                    showToast('请先选择模板', 'error');
+                    return;
+                }
+                if (action === 'delete') {
+                    // 批量删除：危险操作强确认（红色样式确认弹窗）
+                    showConfirmDialog('确定要删除选中的邮件模板吗？', { type: 'danger', confirmText: '删除' }).then(function(ok) {
+                        if (ok) submitBatchForm('admin.php?action=email_template&method=batchDelete', {});
+                    });
+                }
+            });
+        });
+    });
+    </script>
+
+<?php include 'components/footer_wrapper.html'; ?>

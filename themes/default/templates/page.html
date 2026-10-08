@@ -1,0 +1,20 @@
+{assign var="page_title" value="{field name='title'}"}
+{include file="header"}
+{if theme_show_breadcrumb}{breadcrumb}{/if}
+    <main>
+        <div class="container">
+            <div class="content-area">
+                <div class="content">
+                    <article class="single-page">
+                        
+                        
+                        <div class="page-content">
+                            {field name="content" escape="false"}
+                        </div>
+                    </article>
+                </div>
+                {include file="sidebar"}
+            </div>
+        </div>
+    </main>
+{include file="footer"}

@@ -1,0 +1,35 @@
+<!-- 默认显示基本设置 -->
+            <div class="form-container">
+                <form method="post" action="admin.php?action=<?php echo $currentAction; ?>&method=save">
+                    <input type="hidden" name="sub_page" value="<?php echo $sub; ?>">
+                    <!-- 站点基本信息 -->
+                    <div class="form-section">
+                        <h4>站点基本信息</h4>
+                        <div class="form-group">
+                            <label for="site_name">站点名称</label>
+                            <input type="text" id="site_name" name="site_name" value="<?php echo $config['site_name']; ?>" placeholder="请输入站点名称">
+                        </div>
+                        <div class="form-group">
+                            <label for="site_description">站点描述</label>
+                            <textarea id="site_description" name="site_description" rows="3" placeholder="请输入站点描述"><?php echo $config['site_description']; ?></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="site_url">站点URL</label>
+                            <input type="url" id="site_url" name="site_url" value="<?php echo $config['site_url']; ?>" placeholder="请输入站点URL">
+                        </div>
+                        <div class="form-group">
+                            <label for="default_theme">默认主题</label>
+                            <input type="text" id="default_theme" name="default_theme" value="<?php echo $config['default_theme']; ?>" placeholder="请输入默认主题名称">
+                        </div>
+                        <div class="form-group">
+                            <label for="pagination_count">分页数量</label>
+                            <input type="number" id="pagination_count" name="pagination_count" value="<?php echo $config['pagination_count']; ?>" placeholder="请输入每页显示数量">
+                        </div>
+                    </div>
+                    
+                    <!-- 提交按钮 -->
+                    <div class="buttons">
+                        <button type="submit" class="btn btn-primary">保存设置</button>
+                    </div>
+                </form>
+            </div>

@@ -1,0 +1,251 @@
+<?php $currentAction = 'plugin'; $pageTitle = '插件管理'; include 'components/page_wrapper.html'; ?>
+
+    <!--
+        插件管理页
+        1. 出于安全考虑，已移除上传插件功能入口，插件仅可通过 FTP 等方式部署到 plugins 目录
+        2. 单表布局：已安装（启用/禁用）+ 未安装 合并为统一列表，state 状态标记驱动
+           状态徽章与操作列；Tab（status）筛选、搜索（kw）与分页（page/limit）
+           均由 PluginController::index() 服务端处理
+        3. 安全说明：启用/禁用/安装/卸载为 POST 表单提交并携带 CSRF 令牌，
+           不再使用 GET 链接（防跨站请求伪造）
+    -->
+
+    <!-- 操作栏：左「插件市场」入口（跳应用市场并自动筛选插件类型，与主题管理
+         页顶部操作栏同构）+ 右搜索框（应用市场同款组合框 .mk-search-form，
+         GET 提交 kw）。布局复用主题页 .theme-toolbar / .theme-toolbar-controls 样式 -->
+    <div class="action-section theme-toolbar">
+        <a href="admin.php?action=market&type=plugin" class="btn btn-info">插件市场</a>
+        <div class="theme-toolbar-controls">
+            <form method="get" action="admin.php" class="mk-search-form">
+                <!-- 隐藏域保持路由与当前 Tab 状态（搜索时沿用状态筛选） -->
+                <input type="hidden" name="action" value="plugin">
+                <input type="hidden" name="status" value="<?php echo htmlspecialchars($statusFilter, ENT_QUOTES); ?>">
+                <input type="text" name="kw" id="plugin-kw-input" value="<?php echo htmlspecialchars($kw, ENT_QUOTES); ?>"
+                       placeholder="搜索插件名称 / 描述 / 作者"
+                       class="mk-search-input" autocomplete="off">
+                <!-- 清空图标：输入非空时显示（JS 维护 hidden 属性），点击就地清空文本 -->
+                <button type="button" id="plugin-kw-clear" class="mk-search-clear" title="清空关键词" aria-label="清空关键词" hidden>
+                    <?php echo admin_svg_icon('x-circle', ''); ?>
+                </button>
+                <!-- 搜索图标按钮：内嵌输入框右侧（与市场搜索组合框同结构） -->
+                <button type="submit" class="mk-search-btn" title="搜索" aria-label="搜索">
+                    <?php echo admin_svg_icon('search', ''); ?>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 统计信息条：始终按全量统计，不随 Tab/搜索变化 -->
+    <div class="stats-section plugin-stats">
+        <div class="plugin-stats-info">
+            <div class="stat-item">
+                <strong>插件总数：</strong><?php echo $pluginStats['total']; ?>
+            </div>
+            <div class="stat-item">
+                <strong>已启用：</strong><?php echo $pluginStats['enabled']; ?>
+            </div>
+            <div class="stat-item">
+                <strong>已禁用：</strong><?php echo $pluginStats['disabled']; ?>
+            </div>
+            <div class="stat-item">
+                <strong>未安装：</strong><?php echo $pluginStats['uninstalled']; ?>
+            </div>
+        </div>
+    </div>
+
+    <!-- 状态 Tab：全部 / 已启用 / 已禁用 / 未安装（链接保持当前关键词） -->
+    <div class="mk-tabs plugin-tabs">
+        <?php
+        // Tab 链接与高亮在模板层拼装（当前 status 标量比较）
+        $pluginTabs = [
+            ['status' => '',           'label' => '全部'],
+            ['status' => 'enabled',    'label' => '已启用'],
+            ['status' => 'disabled',   'label' => '已禁用'],
+            ['status' => 'uninstalled','label' => '未安装'],
+        ];
+        foreach ($pluginTabs as $tab):
+            $tabUrl = 'admin.php?action=plugin&status=' . urlencode($tab['status']);
+            if ($kw !== '') {
+                $tabUrl .= '&kw=' . urlencode($kw);
+            }
+            $tabClass = ($statusFilter === $tab['status']) ? 'mk-tab mk-tab-active' : 'mk-tab';
+        ?>
+        <a href="<?php echo $tabUrl; ?>" class="<?php echo $tabClass; ?>">
+            <?php echo $tab['label']; ?>
+        </a>
+        <?php endforeach; ?>
+    </div>
+
+    <?php if (count($pagedPlugins) > 0): ?>
+    <!-- 统一插件表格（与用户/文章列表同款 .table 规格）：当前页数据切片（$pagedPlugins），
+         操作列按 state 只显示对应动作，全部状态变更为 POST 表单 + CSRF 令牌（危险动作带二次确认） -->
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>插件名称</th>
+                    <th>标识</th>
+                    <th>状态</th>
+                    <th>作者</th>
+                    <th>版本</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($pagedPlugins as $plugin): ?>
+                <tr>
+                    <td><?php echo $plugin['name']; ?></td>
+                    <!-- 标识（slug）：插件唯一目录标识，独立成列展示 -->
+                    <td><?php echo $plugin['slug']; ?></td>
+                    <td>
+                        <?php if ($plugin['state'] === 'enabled'): ?>
+                            <span class="plugin-badge plugin-badge-enabled">已启用</span>
+                        <?php elseif ($plugin['state'] === 'disabled'): ?>
+                            <span class="plugin-badge plugin-badge-disabled">已禁用</span>
+                        <?php else: ?>
+                            <span class="plugin-badge plugin-badge-uninstalled">未安装</span>
+                        <?php endif; ?>
+                    </td>
+                    <td><?php echo $plugin['author'] ?? '未知'; ?></td>
+                    <td><?php echo $plugin['version'] ?? '—'; ?></td>
+                    <td>
+                        <div class="plugin-actions">
+                            <?php if ($plugin['state'] === 'enabled'): ?>
+                                <?php if (isset($plugin['has_settings']) && $plugin['has_settings']): ?>
+                                <a href="admin.php?action=plugin&sub=config&slug=<?php echo $plugin['slug']; ?>" class="btn btn-info btn-sm">配置</a>
+                                <?php endif; ?>
+                                <a href="admin.php?action=plugin&sub=detail&slug=<?php echo $plugin['slug']; ?>" class="btn btn-default btn-sm">详情</a>
+                                <!-- 禁用：POST + CSRF + 二次确认 -->
+                                <form method="post" action="admin.php?action=plugin&sub=disable" class="plugin-action-form"
+                                      onsubmit="return confirmForm(this, '确定要禁用该插件吗？禁用后插件功能将不可用。', { type: 'warning', title: '禁用插件', confirmText: '禁用' });">
+                                    <input type="hidden" name="slug" value="<?php echo $plugin['slug']; ?>">
+                                    <?php echo Security::getCsrfField(); ?>
+                                    <button type="submit" class="btn btn-danger btn-sm">禁用</button>
+                                </form>
+                            <?php elseif ($plugin['state'] === 'disabled'): ?>
+                                <!-- 启用：POST + CSRF -->
+                                <form method="post" action="admin.php?action=plugin&sub=enable" class="plugin-action-form">
+                                    <input type="hidden" name="slug" value="<?php echo $plugin['slug']; ?>">
+                                    <?php echo Security::getCsrfField(); ?>
+                                    <button type="submit" class="btn btn-primary btn-sm">启用</button>
+                                </form>
+                                <a href="admin.php?action=plugin&sub=detail&slug=<?php echo $plugin['slug']; ?>" class="btn btn-default btn-sm">详情</a>
+                                <!-- 卸载：两步确认（意向 + 数据处理方式），由 JS 填充隐藏表单后 POST 提交 -->
+                                <a href="javascript:;" onclick="uninstallPlugin('<?php echo $plugin['slug']; ?>')" class="btn btn-danger btn-sm">卸载</a>
+                            <?php else: ?>
+                                <!-- 安装：POST + CSRF + 二次确认 -->
+                                <form method="post" action="admin.php?action=plugin&sub=install" class="plugin-action-form"
+                                      onsubmit="return confirmForm(this, '确定要安装该插件吗？', { type: 'info', title: '安装插件', confirmText: '安装' });">
+                                    <input type="hidden" name="slug" value="<?php echo $plugin['slug']; ?>">
+                                    <?php echo Security::getCsrfField(); ?>
+                                    <button type="submit" class="btn btn-primary btn-sm">安装</button>
+                                </form>
+                                <!-- 详情：未安装插件同样可查看（详情数据来自 plugin.json） -->
+                                <a href="admin.php?action=plugin&sub=detail&slug=<?php echo $plugin['slug']; ?>" class="btn btn-default btn-sm">详情</a>
+                                <!-- 删除：从服务器移除插件目录（危险操作，POST + CSRF + 二次确认；
+                                     仅未安装状态可删，已安装插件需先卸载） -->
+                                <form method="post" action="admin.php?action=plugin&sub=delete" class="plugin-action-form"
+                                      onsubmit="return confirmForm(this, '确定要从服务器删除该插件目录吗？插件文件将被永久移除，此操作不可恢复。', { type: 'danger', title: '删除插件', confirmText: '删除' });">
+                                    <input type="hidden" name="slug" value="<?php echo $plugin['slug']; ?>">
+                                    <?php echo Security::getCsrfField(); ?>
+                                    <button type="submit" class="btn btn-danger btn-sm">删除</button>
+                                </form>
+                            <?php endif; ?>
+                            <!-- 插件操作按钮钩子 -->
+                            <?php echo Plugin::getInstance()->doHook('plugin_admin_actions', $plugin); ?>
+                        </div>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+    <?php else: ?>
+        <?php $emptyTitle = '没有找到匹配的插件'; $emptyIcon = 'plugin'; $emptyDesc = $kw !== '' ? '换个关键词试试，或切换状态 Tab 查看。' : '将插件目录上传至 plugins/ 目录后，可在此安装'; include 'components/empty_state.html'; ?>
+    <?php endif; ?>
+
+    <?php if (!empty($pagedPlugins)): ?>
+    <!-- 分页导航：公共分页组件（页码连体导航 + 统计/每页条数/跳页），
+         kw 搜索与 status Tab 参数随分页链接透传 -->
+    <div class="plugin-pagination">
+        <?php
+            // 引入公共分页组件
+            $action = 'plugin';
+            $filters = $paginationFilters;
+            include ADMIN_PATH . '/templates/components/pagination.html';
+        ?>
+    </div>
+    <?php endif; ?>
+
+    <!-- 卸载隐藏表单：卸载为两步确认（意向 + 数据处理方式），确认完成后
+         由 JS 填充 slug / keep_data 并 POST 提交（uninstall() 要求 POST+CSRF） -->
+    <form id="plugin-uninstall-form" method="post" action="admin.php?action=plugin&sub=uninstall" hidden>
+        <?php echo Security::getCsrfField(); ?>
+        <input type="hidden" name="slug" id="plugin-uninstall-slug" value="">
+        <input type="hidden" name="keep_data" id="plugin-uninstall-keep" value="1">
+    </form>
+
+        <script>
+        /**
+         * 卸载插件（两步确认）
+         * 第一步：确认卸载意向；第二步：选择数据处理方式：
+         *   - 确定 = 保留数据（默认推荐）：插件数据表与配置键原样保留，重装后存量数据自动认领
+         *   - 取消 = 连同数据一起删除：由各插件 uninstall(keepData=false) 自行清理
+         * 数据处理方式经 keep_data 参数写入隐藏表单后 POST 提交（原 GET 跳转已废弃，
+         * 卸载与启用/禁用/安装统一要求 POST+CSRF）
+         */
+        function uninstallPlugin(slug) {
+            // 第一步：确认卸载意向（danger 删除类弹窗）
+            showConfirmDialog('确定要卸载该插件吗？此操作不可撤销。', { type: 'danger', title: '卸载插件', confirmText: '卸载' }).then(function(ok) {
+                if (!ok) {
+                    return;
+                }
+                // 第二步：选择数据处理方式（确定 = 保留数据 / 取消 = 一并删除）
+                showConfirmDialog('是否保留该插件产生的数据（数据表与配置项）？\n\n【保留数据】为推荐做法，重装插件后存量数据自动恢复；选择删除则数据表与配置项一并清除，不可恢复。', {
+                    type: 'warning',
+                    title: '数据处理方式',
+                    confirmText: '保留数据',
+                    cancelText: '删除数据'
+                }).then(function(keepData) {
+                    // 填充隐藏表单并 POST 提交
+                    var form = document.getElementById('plugin-uninstall-form');
+                    if (!form) {
+                        return;
+                    }
+                    document.getElementById('plugin-uninstall-slug').value = slug;
+                    document.getElementById('plugin-uninstall-keep').value = keepData ? '1' : '0';
+                    form.submit();
+                });
+            });
+        }
+        </script>
+
+<!-- 搜索组合框的清空图标逻辑：与市场页同款（输入非空时显示圆形叉号，
+     点击清空关键词；搜索由回车或搜索按钮触发，无 JS 时图标保持 hidden） -->
+<script>
+    (function () {
+        var input = document.getElementById('plugin-kw-input');
+        var clearBtn = document.getElementById('plugin-kw-clear');
+        if (!input || !clearBtn) return;
+
+        // 按输入框是否有值同步清空图标显隐
+        function sync() {
+            clearBtn.hidden = (input.value === '');
+        }
+
+        // 输入过程实时同步显隐
+        input.addEventListener('input', sync);
+
+        // 点击清空：就地清值 + 同步显隐 + 焦点回到输入框（不提交表单、不刷新页面）
+        clearBtn.addEventListener('click', function () {
+            input.value = '';
+            sync();
+            input.focus();
+        });
+
+        // 页面载入时（关键词回填场景）初始化一次显隐
+        sync();
+    })();
+</script>
+
+<?php include 'components/footer_wrapper.html'; ?>

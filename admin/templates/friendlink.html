@@ -1,0 +1,113 @@
+<?php $currentAction = 'friendlink'; $pageTitle = '友情链接管理';  include 'components/page_wrapper.html'; ?>
+    
+    <!-- ==================== 工具栏（两段式：简单列表无筛选区，对齐列表页规范） ==================== -->
+    <div class="list-toolbar list-toolbar-flat">
+        <!-- 添加友情链接：在右侧抽屉内打开表单（common.js 通用 openEntityDrawer，保存成功后自动关抽屉并刷新列表），href 保留支持中键新窗口 -->
+        <a href="admin.php?action=friendlink&sub=add" class="btn btn-primary" onclick="openEntityDrawer(this.href, '添加友情链接'); return false;">
+            <?php echo admin_svg_icon('plus', ''); ?>添加友情链接
+        </a>
+        <!-- 批量操作下拉菜单：紧跟左侧主按钮（对齐其他列表页布局），友链仅批量删除一个动作，经确认弹窗后提交表格内嵌表单 -->
+        <div class="btn-group">
+            <!-- 批量操作下拉触发按钮：文字与箭头垂直居中（原内联样式迁移至 components.css 的 .fl-batch-toggle） -->
+            <a href="javascript:void(0)" class="btn btn-default dropdown-toggle fl-batch-toggle">
+                批量操作<span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu">
+                <li><a href="javascript:void(0)" id="batch-delete-btn" class="menu-item-danger">批量删除</a></li>
+            </ul>
+        </div>
+
+        <!-- 批量选中计数提示：勾选行复选框后显示「已选 N 项」（common.js initBatchSelectedInfo 自动维护） -->
+        <span id="batch-selected-info" class="batch-selected-info"></span>
+    </div>
+
+    <!-- 友情链接列表 -->
+    <div class="table-container">
+        <form id="friendlink-form" method="post" action="admin.php?action=friendlink&sub=batch_delete">
+            <table class="table">
+                        <thead>
+                            <tr>
+                                <!-- 复选框列：表头为全选开关；列宽 50px（原内联样式迁移至 components.css 的 .fl-col-check） -->
+                                <th class="fl-col-check">
+                                    <input type="checkbox" id="select-all">
+                                </th>
+                                <th>链接名称</th>
+                                <th>链接地址</th>
+                                <th>描述</th>
+                                <th>状态</th>
+                                <th>排序</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($friendlinks)): ?>
+                                <?php foreach ($friendlinks as $friendlink): ?>
+                    <tr>
+                        <td>
+                                            <!-- 行选择框：class 供全选与批量删除脚本收集勾选项 -->
+                                            <input type="checkbox" name="ids[]" class="friendlink_checkbox" value="<?php echo $friendlink['id']; ?>">
+                        </td>
+                                        <td><?php echo htmlspecialchars($friendlink['name']); ?></td>
+                                        <td>
+                                            <a href="<?php echo htmlspecialchars($friendlink['url']); ?>" target="_blank">
+                                                <?php echo htmlspecialchars($friendlink['url']); ?>
+                                            </a>
+                                        </td>
+                                        <td><?php echo htmlspecialchars($friendlink['description']); ?></td>
+                                        <td>
+                                            <!-- 状态徽标：复用全局 status-badge（active/inactive），对齐其他列表页 -->
+                                            <span class="status-badge <?php echo $friendlink['status'] == 1 ? 'active' : 'inactive'; ?>"><?php echo $friendlink['status'] == 1 ? '启用' : '禁用'; ?></span>
+                                        </td>
+                                        <td><?php echo $friendlink['sort']; ?></td>
+                                        <td>
+                                            <!-- 操作列：文字链接式（对齐用户/文章列表页规范）；编辑走右侧抽屉 -->
+                                            <a href="admin.php?action=friendlink&sub=edit&id=<?php echo $friendlink['id']; ?>" class="table-link" onclick="openEntityDrawer(this.href, '编辑友链'); return false;">编辑</a>
+                                            <span class="table-action-divider"></span>
+                                            <a href="admin.php?action=friendlink&sub=delete&id=<?php echo $friendlink['id']; ?>" class="table-link table-link-danger" onclick="return confirmLink(this, '确定要删除这个友情链接吗？', { type: 'danger', confirmText: '删除' });">删除</a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="7">
+                                        <?php $emptyTitle = '暂无友情链接'; $emptyIcon = 'inbox'; $emptyActionUrl = 'admin.php?action=friendlink&sub=add'; $emptyActionText = '添加友链'; include 'components/empty_state.html'; ?>
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+        </form>
+    </div>
+
+    <!-- 分页：放在表格容器之外，避免贴着表格边框显得拥挤 -->
+    <?php
+        // 引入公共分页组件
+        $action = 'friendlink';
+        $filters = []; // 友情链接管理暂时没有过滤参数
+        include ADMIN_PATH . '/templates/components/pagination.html';
+    ?>
+
+    <script>
+        // ==================== 友链列表批量交互 ====================
+        // 表头全选框：勾选/取消同步全部行选择框
+        document.getElementById('select-all').addEventListener('change', function () {
+            document.querySelectorAll('.friendlink_checkbox').forEach(function (cb) {
+                cb.checked = document.getElementById('select-all').checked;
+            });
+        });
+
+        // 批量删除：校验勾选 -> 确认弹窗 -> 提交表格内嵌表单（后端接收 ids[]）
+        document.getElementById('batch-delete-btn').addEventListener('click', function (e) {
+            e.preventDefault();
+            var checked = document.querySelectorAll('.friendlink_checkbox:checked');
+            if (checked.length === 0) {
+                showToast('请先选择友情链接', 'error');
+                return;
+            }
+            showConfirmDialog('确定要删除选中的 ' + checked.length + ' 条友情链接吗？', { type: 'danger', confirmText: '删除' }).then(function (ok) {
+                if (ok) document.getElementById('friendlink-form').submit();
+            });
+        });
+    </script>
+
+<?php include 'components/footer_wrapper.html'; ?>

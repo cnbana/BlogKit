@@ -1,0 +1,282 @@
+<?php $currentAction = 'plugin'; $pageTitle = '插件详情';  include 'components/page_wrapper.html'; ?>
+    <!-- 页面专属样式已并入 assets/css/components.css -->
+    <div class="form-container">
+        <!-- 插件基本信息卡片 -->
+        <div class="plugin-card">
+            <div class="plugin-header">
+                <div class="plugin-title-with-icon">
+                    <div class="plugin-icon">
+                        <?php if (isset($pluginInfo['icon'])): ?>
+                            <img src="../plugins/<?php echo $pluginInfo['slug']; ?>/<?php echo $pluginInfo['icon']; ?>" alt="插件图标" class="icon-image">
+                        <?php else: ?>
+                            <img src="../plugins/default_assets/icon.png" alt="默认插件图标" class="icon-image">
+                        <?php endif; ?>
+                    </div>
+                    <div class="plugin-title">
+                        <h3><?php echo $pluginInfo['name']; ?> <span class="plugin-version">v<?php echo $pluginInfo['version']; ?></span></h3>
+                    </div>
+                </div>
+                <div class="plugin-status">
+                    <?php if ($plugin['status'] == 1): ?>
+                        <span class="status-badge enabled">已启用</span>
+                    <?php else: ?>
+                        <span class="status-badge disabled">已禁用</span>
+                    <?php endif; ?>
+                </div>
+            </div>
+            
+            <div class="plugin-content">
+                <div class="plugin-meta">
+                    <div class="plugin-info-section">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">应用标识：</span>
+                                <?php echo $pluginInfo['slug']; ?>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">安装日期：</span>
+                                <?php if (isset($plugin['installed_at']) && $plugin['installed_at'] > 0): ?>
+                                    <?php echo date('Y-m-d H:i:s', $plugin['installed_at']); ?>
+                                <?php elseif (isset($plugin['created_at']) && $plugin['created_at'] > 0): ?>
+                                    <?php echo date('Y-m-d H:i:s', $plugin['created_at']); ?>
+                                <?php else: ?>
+                                    未知
+                                <?php endif; ?>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">兼容版本：</span>
+                                <?php echo isset($pluginInfo['compatible_version']) ? $pluginInfo['compatible_version'] : '未知'; ?>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">应用定价：</span>
+                                <?php if (!isset($pluginInfo['price']) || $pluginInfo['price'] == 0): ?>
+                                    <span class="price-free">0元（免费）</span>
+                                <?php else: ?>
+                                    <span class="price-paid"><?php echo $pluginInfo['price'] . ' 元'; ?></span>
+                                <?php endif; ?>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">作者：</span>
+                                <?php if (isset($pluginInfo['author_url'])): ?>
+                                    <a href="<?php echo $pluginInfo['author_url']; ?>" target="_blank" class="info-link"><?php echo $pluginInfo['author']; ?></a>
+                                <?php else: ?>
+                                    <?php echo $pluginInfo['author']; ?>
+                                <?php endif; ?>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">插件地址：</span>
+                                <div class="url-container">
+                                    <?php if (isset($pluginInfo['plugin_url'])): ?>
+                                        <a href="<?php echo $pluginInfo['plugin_url']; ?>" target="_blank" class="info-link"><?php echo $pluginInfo['plugin_url']; ?></a>
+                                    <?php else: ?>
+                                        未知
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="plugin-description">
+                    <h4>插件描述</h4>
+                    <p><?php echo $pluginInfo['description']; ?></p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 依赖项部分 -->
+        <?php if (isset($pluginInfo['dependencies_list']) && !empty($pluginInfo['dependencies_list'])): ?>
+        <div class="section-card">
+            <h3>依赖应用列表</h3>
+            <div class="dependencies-list">
+                <?php foreach ($pluginInfo['dependencies_list'] as $dependency): ?>
+                <div class="dependency-card">
+                    <div class="dependency-name"><?php echo $dependency['slug']; ?></div>
+                    <div class="dependency-meta">
+                        <span class="dependency-version">版本要求：<?php echo $dependency['version']; ?></span>
+                        <span class="dependency-optional <?php echo isset($dependency['optional']) && $dependency['optional'] ? 'optional' : 'required'; ?>">
+                            <?php echo isset($dependency['optional']) && $dependency['optional'] ? '可选' : '必需'; ?>
+                        </span>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+        
+        <?php if (isset($pluginInfo['dependencies']) && !empty($pluginInfo['dependencies'])): ?>
+        <div class="section-card">
+            <h3>依赖项</h3>
+            <div class="dependencies-list">
+                <?php foreach ($pluginInfo['dependencies'] as $dependencySlug => $dependencyVersion): ?>
+                <div class="dependency-card">
+                    <div class="dependency-name"><?php echo $dependencySlug; ?></div>
+                    <div class="dependency-meta">
+                        <span class="dependency-version">版本要求：<?php echo $dependencyVersion; ?></span>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+        
+        <?php if (isset($pluginInfo['requirements']['dependencies']) && !empty($pluginInfo['requirements']['dependencies'])): ?>
+        <div class="section-card">
+            <h3>依赖项（旧格式）</h3>
+            <div class="dependencies-list">
+                <?php foreach ($pluginInfo['requirements']['dependencies'] as $dependency): ?>
+                <div class="dependency-card">
+                    <div class="dependency-name"><?php echo $dependency['slug']; ?></div>
+                    <div class="dependency-meta">
+                        <span class="dependency-version">版本要求：<?php echo $dependency['version']; ?></span>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+        
+        <?php if (isset($pluginInfo['conflicts_list']) && !empty($pluginInfo['conflicts_list'])): ?>
+        <div class="section-card">
+            <h3>冲突应用列表</h3>
+            <div class="dependencies-list">
+                <?php foreach ($pluginInfo['conflicts_list'] as $conflict): ?>
+                <div class="dependency-card conflict">
+                    <div class="dependency-name"><?php echo $conflict['slug']; ?></div>
+                    <div class="dependency-meta">
+                        <span class="dependency-version">版本要求：<?php echo $conflict['version']; ?></span>
+                        <span class="conflict-badge">冲突</span>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+        
+        <!-- 版本历史部分 -->
+        <?php if (isset($pluginInfo['changelog']) && !empty($pluginInfo['changelog'])): ?>
+        <div class="section-card">
+            <h3>版本历史</h3>
+            <div class="changelog">
+                <?php foreach ($pluginInfo['changelog'] as $version): ?>
+                <div class="version-card">
+                    <div class="version-header">
+                        <div class="version-info">
+                            <span class="version-number">版本 <?php echo $version['version']; ?></span>
+                            <span class="version-date"><?php echo $version['date']; ?></span>
+                        </div>
+                    </div>
+                    <div class="version-changes">
+                        <ul>
+                            <?php foreach ($version['changes'] as $change): ?>
+                            <li><?php echo $change; ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+        
+        <!-- 版本兼容性部分 -->
+        <div class="section-card">
+            <h3>版本兼容性</h3>
+            <div class="compatibility-info">
+                <div class="compatibility-item">
+                    <span class="compatibility-label">当前版本：</span>
+                    <span class="compatibility-value"><?php echo $pluginInfo['version']; ?></span>
+                </div>
+                <div class="compatibility-item">
+                    <span class="compatibility-label">兼容系统版本：</span>
+                    <span class="compatibility-value"><?php echo isset($pluginInfo['compatible_version']) ? $pluginInfo['compatible_version'] : '未知'; ?></span>
+                </div>
+                <div class="compatibility-item">
+                    <span class="compatibility-label">状态：</span>
+                    <span class="compatibility-value">
+                        <?php
+                        $compatible = true;
+                        // 这里可以添加实际的版本兼容性检查逻辑
+                        ?>
+                        <span class="compatibility-status <?php echo $compatible ? 'compatible' : 'incompatible'; ?>">
+                            <?php echo $compatible ? '兼容' : '不兼容'; ?>
+                        </span>
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 访问授权区块（ACL）
+             仅「已安装 + 注册了后台路由」的插件展示（$show_acl 由控制器计算）；
+             语义：未保存过名单时全部角色默认勾选（缺省放行，与未配置行为一致），
+             保存后仅勾选角色可访问该插件的后台页面；全部不勾选提交 = 恢复缺省放行。
+             超级管理员（角色 1）不受名单约束，因此不在可配置列表中出现 -->
+        <?php if (!empty($show_acl)): ?>
+        <div class="section-card">
+            <h3>访问授权</h3>
+            <p style="margin: 0 0 12px; color: var(--text-secondary); font-size: 13px;">
+                控制哪些后台角色可以访问「<?php echo $pluginInfo['name']; ?>」的管理页面。
+                <?php if ($aclRoleIds === null): ?>当前未配置授权名单：所有可登录后台的角色均可访问。<?php else: ?>当前仅勾选的角色可访问。<?php endif; ?>
+            </p>
+            <form method="post" action="admin.php?action=plugin&sub=saveAcl">
+                <input type="hidden" name="slug" value="<?php echo $plugin['slug']; ?>">
+                <?php echo Security::getCsrfField(); ?>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px 24px; margin-bottom: 16px;">
+                    <?php if (empty($aclRoles)): ?>
+                        <span style="color: var(--text-tertiary); font-size: 13px;">暂无其他角色，请在「角色管理」中创建后再配置授权。</span>
+                    <?php else: ?>
+                        <?php foreach ($aclRoles as $aclRole): ?>
+                        <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px;">
+                            <input type="checkbox" name="roles[]" value="<?php echo (int)$aclRole['id']; ?>"
+                                <?php echo ($aclRoleIds === null || in_array((int)$aclRole['id'], $aclRoleIds, true)) ? 'checked' : ''; ?>>
+                            <?php echo $aclRole['name']; ?>
+                        </label>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+                <button type="submit" class="btn btn-primary">保存授权</button>
+            </form>
+        </div>
+        <?php endif; ?>
+
+        <!-- 操作按钮部分
+             禁用/启用已从 GET 链接改为 POST 表单 + CSRF 令牌
+             （启用/禁用为状态变更动作，与列表页安全要求一致） -->
+        <div class="form-actions">
+            <?php if ($plugin['status'] == 1 && isset($plugin['has_settings']) && $plugin['has_settings']): ?>
+            <a href="admin.php?action=plugin&sub=config&slug=<?php echo $plugin['slug']; ?>" class="btn btn-info">配置插件</a>
+            <?php endif; ?>
+            <?php if ($plugin['status'] == 1): ?>
+            <form method="post" action="admin.php?action=plugin&sub=disable" class="plugin-action-form"
+                  onsubmit="return confirmForm(this, '确定要禁用该插件吗？禁用后插件功能将不可用。', { type: 'warning', title: '禁用插件', confirmText: '禁用' });">
+                <input type="hidden" name="slug" value="<?php echo $plugin['slug']; ?>">
+                <?php echo Security::getCsrfField(); ?>
+                <button type="submit" class="btn btn-warning">禁用插件</button>
+            </form>
+            <?php elseif ($plugin['status'] == 0): ?>
+            <!-- 已禁用（已安装）：提供重新启用入口 -->
+            <form method="post" action="admin.php?action=plugin&sub=enable" class="plugin-action-form">
+                <input type="hidden" name="slug" value="<?php echo $plugin['slug']; ?>">
+                <?php echo Security::getCsrfField(); ?>
+                <button type="submit" class="btn btn-success">启用插件</button>
+            </form>
+            <?php else: ?>
+            <!-- 未安装（status = -1）：提供安装与删除入口（与列表页一致的安全要求） -->
+            <form method="post" action="admin.php?action=plugin&sub=install" class="plugin-action-form"
+                  onsubmit="return confirmForm(this, '确定要安装该插件吗？', { type: 'info', title: '安装插件', confirmText: '安装' });">
+                <input type="hidden" name="slug" value="<?php echo $plugin['slug']; ?>">
+                <?php echo Security::getCsrfField(); ?>
+                <button type="submit" class="btn btn-primary">安装插件</button>
+            </form>
+            <form method="post" action="admin.php?action=plugin&sub=delete" class="plugin-action-form"
+                  onsubmit="return confirmForm(this, '确定要从服务器删除该插件目录吗？插件文件将被永久移除，此操作不可恢复。', { type: 'danger', title: '删除插件', confirmText: '删除' });">
+                <input type="hidden" name="slug" value="<?php echo $plugin['slug']; ?>">
+                <?php echo Security::getCsrfField(); ?>
+                <button type="submit" class="btn btn-danger">删除插件</button>
+            </form>
+            <?php endif; ?>
+            <a href="admin.php?action=plugin" class="btn btn-secondary drawer-cancel">返回插件列表</a>
+        </div>
+    </div>
+
+<?php include 'components/footer_wrapper.html'; ?>

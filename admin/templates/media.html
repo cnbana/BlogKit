@@ -1,0 +1,604 @@
+<?php $currentAction = 'media'; $pageTitle = '媒体管理';  include 'components/page_wrapper.html'; ?>
+    <!-- 页面专属样式已并入 assets/css/components.css -->
+
+    
+    <!-- 文件统计信息：单行紧凑统计条（SVG 线条图标 + 数字 + 标签），样式见 components.css -->
+    <div class="media-stats-bar">
+        <div class="media-stat-item">
+            <span class="media-stat-icon mi-total">
+                    <?php echo admin_svg_icon('folder', ''); ?>
+                </span>
+            <span class="media-stat-num"><?php echo $fileStats['total_files']; ?></span>
+            <span class="media-stat-label">总文件数</span>
+        </div>
+        <div class="media-stat-item">
+            <span class="media-stat-icon mi-image">
+                    <?php echo admin_svg_icon('image', ''); ?>
+                </span>
+            <span class="media-stat-num"><?php echo $fileStats['type_counts']['image']; ?></span>
+            <span class="media-stat-label">图片</span>
+        </div>
+        <div class="media-stat-item">
+            <span class="media-stat-icon mi-doc">
+                    <?php echo admin_svg_icon('file-text', ''); ?>
+                </span>
+            <span class="media-stat-num"><?php echo $fileStats['type_counts']['document']; ?></span>
+            <span class="media-stat-label">文档</span>
+        </div>
+        <div class="media-stat-item">
+            <span class="media-stat-icon mi-archive">
+                    <?php echo admin_svg_icon('archive', ''); ?>
+                </span>
+            <span class="media-stat-num"><?php echo $fileStats['type_counts']['archive']; ?></span>
+            <span class="media-stat-label">压缩包</span>
+        </div>
+        <div class="media-stat-item">
+            <span class="media-stat-icon mi-other">
+                    <?php echo admin_svg_icon('file', ''); ?>
+                </span>
+            <span class="media-stat-num"><?php echo $fileStats['type_counts']['other']; ?></span>
+            <span class="media-stat-label">其他</span>
+        </div>
+        <div class="media-stat-item">
+            <span class="media-stat-icon mi-storage">
+                    <?php echo admin_svg_icon('database', ''); ?>
+                </span>
+            <span class="media-stat-num"><?php echo $fileStats['total_size_formatted']; ?></span>
+            <span class="media-stat-label">总存储空间</span>
+        </div>
+    </div>
+
+    <!-- 筛选和排序功能（flat 变体：白底 + 底部分割线，对齐其他列表页） -->
+    <div class="filter-section filter-section-flat">
+        <form method="get" action="admin.php" class="filter-form">
+            <input type="hidden" name="action" value="media">
+
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="type_filter">类型</label>
+                    <select name="type" id="type_filter" class="filter-select">
+                        <option value="all" <?php echo (isset($type) && $type == 'all') ? 'selected' : ''; ?>>所有类型</option>
+                        <option value="image" <?php echo (isset($type) && $type == 'image') ? 'selected' : ''; ?>>图片</option>
+                        <option value="file" <?php echo (isset($type) && $type == 'file') ? 'selected' : ''; ?>>文件</option>
+                        <option value="avatar" <?php echo (isset($type) && $type == 'avatar') ? 'selected' : ''; ?>>头像</option>
+                        <option value="logo" <?php echo (isset($type) && $type == 'logo') ? 'selected' : ''; ?>>LOGO</option>
+                        <option value="cover" <?php echo (isset($type) && $type == 'cover') ? 'selected' : ''; ?>>封面</option>
+                        <option value="attachment" <?php echo (isset($type) && $type == 'attachment') ? 'selected' : ''; ?>>附件</option>
+                        <option value="article" <?php echo (isset($type) && $type == 'article') ? 'selected' : ''; ?>>文章图片</option>
+                    </select>
+                </div>
+
+                <!-- 月份筛选：选项由控制器根据文件修改时间动态生成（YYYY-MM，倒序） -->
+                <div class="filter-group">
+                    <label for="month_filter">月份</label>
+                    <select name="month" id="month_filter" class="filter-select">
+                        <option value="">全部月份</option>
+                        <?php foreach ((isset($availableMonths) ? $availableMonths : []) as $availableMonth): ?>
+                            <option value="<?php echo htmlspecialchars($availableMonth); ?>" <?php echo (isset($month) && $month === $availableMonth) ? 'selected' : ''; ?>><?php echo htmlspecialchars($availableMonth); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="sort_filter">排序</label>
+                    <select name="sort" id="sort_filter" class="filter-select">
+                        <option value="" <?php echo empty($sort) ? 'selected' : ''; ?>>默认</option>
+                        <option value="name_asc" <?php echo (isset($sort) && $sort == 'name_asc') ? 'selected' : ''; ?>>名称升序</option>
+                        <option value="name_desc" <?php echo (isset($sort) && $sort == 'name_desc') ? 'selected' : ''; ?>>名称降序</option>
+                        <option value="size_asc" <?php echo (isset($sort) && $sort == 'size_asc') ? 'selected' : ''; ?>>大小升序</option>
+                        <option value="size_desc" <?php echo (isset($sort) && $sort == 'size_desc') ? 'selected' : ''; ?>>大小降序</option>
+                        <option value="date_asc" <?php echo (isset($sort) && $sort == 'date_asc') ? 'selected' : ''; ?>>日期升序</option>
+                        <option value="date_desc" <?php echo (isset($sort) && $sort == 'date_desc') ? 'selected' : ''; ?>>日期降序</option>
+                        <option value="type_asc" <?php echo (isset($sort) && $sort == 'type_asc') ? 'selected' : ''; ?>>类型升序</option>
+                    </select>
+                </div>
+
+                <div class="filter-group filter-group-wide">
+                    <label for="search_filter">搜索</label>
+                    <input type="text" name="search" id="search_filter" class="filter-input" placeholder="文件名" value="<?php echo isset($search) ? $search : ''; ?>">
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary" id="filter-btn">
+                        <?php echo admin_svg_icon('search', ''); ?>搜索
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="reset-btn">
+                        <?php echo admin_svg_icon('refresh', ''); ?>重置
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <!-- 批量操作：统一工具栏结构（flat 变体 + 底部分割线，对齐其他列表页） -->
+    <div class="list-toolbar list-toolbar-flat">
+        <!-- 全选开关：复选框与文字同行居中（原内联样式迁移至 components.css 的 .md-select-all-label） -->
+        <label class="md-select-all-label">
+            <input type="checkbox" id="select_all" onchange="toggleSelectAll()"> 全选
+        </label>
+        <!-- 上传文件：描边按钮式上传触发器，
+             支持一次多选；AJAX 提交（JSON 返回），进度条实时反馈，结果以 Toast 提示 -->
+        <form method="post" action="admin.php?action=media.upload" enctype="multipart/form-data" id="media-upload-form">
+            <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+            <input type="hidden" name="back_type" value="<?php echo htmlspecialchars(isset($type) ? $type : 'all'); ?>">
+            <input type="file" name="files[]" id="media-upload-input" multiple class="upload-hidden-input">
+            <button type="button" class="upload-btn" id="media-upload-btn" onclick="document.getElementById('media-upload-input').click();">
+                <?php echo admin_svg_icon('upload', ''); ?>
+                上传文件
+            </button>
+        </form>
+
+        <!-- 上传进度条：默认隐藏，XHR 上传期间显示（细条 + 百分比文字） -->
+        <div class="media-upload-progress" id="media-upload-progress" style="display: none;">
+            <span class="media-upload-progress-text" id="media-upload-progress-text">正在上传…</span>
+            <div class="media-upload-progress-track">
+                <div class="media-upload-progress-fill" id="media-upload-progress-fill"></div>
+            </div>
+        </div>
+
+        <!-- 批量操作下拉菜单：媒体库仅删除一个批量动作，经确认弹窗后执行 -->
+        <div class="btn-group">
+            <a href="javascript:void(0)" class="btn btn-default dropdown-toggle">
+                批量操作<span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu">
+                <li><a href="javascript:void(0)" onclick="executeBatchAction('delete')" class="menu-item-danger">批量删除</a></li>
+            </ul>
+        </div>
+
+        <!-- 批量选中计数提示：勾选行复选框后显示「已选 N 项」（common.js initBatchSelectedInfo 自动维护） -->
+        <span id="batch-selected-info" class="batch-selected-info"></span>
+
+        <!-- 视图切换：Segmented 分段控制器（common.css 的 .seg 组件），图文列表 / 图片卡片
+             两段互斥；选中块 seg-active 由 JS 维护，偏好存 localStorage，
+             与应用市场页的视图切换同一套交互。
+             md-view-toggle 仅保留推到行尾的定位职责（components.css） -->
+        <div class="md-view-toggle seg" role="group" aria-label="视图切换">
+            <button type="button" id="md-view-list" class="seg-item" title="图文列表">
+                <?php echo admin_svg_icon('list', ''); ?>
+            </button>
+            <button type="button" id="md-view-card" class="seg-item" title="图片卡片">
+                <?php echo admin_svg_icon('grid', ''); ?>
+            </button>
+        </div>
+    </div>
+
+    <!-- 媒体文件视图容器：卡片网格 / 图文列表两种布局同源渲染（同一份 $mediaFiles），
+         .md-as-list 类由 JS 切换 + localStorage 记忆，默认图片卡片视图 -->
+    <div id="md-view-wrap">
+    <!-- 图片卡片视图（默认） -->
+    <div class="media-grid">
+        <?php if (empty($mediaFiles)): ?>
+        <div class="col-12">
+            <?php $emptyTitle = '暂无媒体文件'; $emptyIcon = 'image'; $emptyDesc = '上传图片、视频等文件后将显示在这里'; include 'components/empty_state.html'; ?>
+        </div>
+        <?php else: ?>
+        <?php foreach ($mediaFiles as $file): ?>
+        <div class="media-item">
+            <div class="media-checkbox">
+                <input type="checkbox" class="file_checkbox" value="<?php echo $file['path']; ?>" data-url="<?php echo $file['url']; ?>">
+            </div>
+            <div class="media-preview">
+                <?php if ($file['type'] == 'image'): ?>
+                <img src="<?php echo $file['url']; ?>" alt="<?php echo $file['name']; ?>" onclick="previewFile('<?php echo $file['url']; ?>', '<?php echo $file['name']; ?>', '<?php echo $file['type']; ?>')">
+                <?php elseif ($file['type'] == 'document'): ?>
+                <!-- 非图片文件用文字标识替代 emoji 图标：视觉更克制，含义也更明确 -->
+                <div class="file-icon">
+                    文档
+                </div>
+                <?php elseif ($file['type'] == 'archive'): ?>
+                <div class="file-icon">
+                    压缩包
+                </div>
+                <?php else: ?>
+                <div class="file-icon">
+                    文件
+                </div>
+                <?php endif; ?>
+            </div>
+            <div class="media-info">
+                <h6 title="<?php echo $file['name']; ?>"><?php echo $file['name']; ?></h6>
+                <div class="media-meta">
+                    <span><?php echo $file['size_formatted']; ?></span>
+                    <span class="mx-2">•</span>
+                    <span><?php echo $file['modified_formatted']; ?></span>
+                </div>
+                <div class="media-actions">
+                    <button class="btn btn-sm btn-outline-info" onclick="previewFile('<?php echo $file['url']; ?>', '<?php echo $file['name']; ?>', '<?php echo $file['type']; ?>')" title="预览">
+                        预览
+                    </button>
+                    <button class="btn btn-sm btn-outline-warning" onclick="renameFile('<?php echo $file['path']; ?>', '<?php echo $file['name']; ?>')" title="重命名">
+                        重命名
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="fileDetails('<?php echo $file['path']; ?>', '<?php echo $file['name']; ?>', '<?php echo $file['size_formatted']; ?>', '<?php echo $file['type']; ?>', '<?php echo $file['modified_formatted']; ?>')" title="详情">
+                        详情
+                    </button>
+                    <!-- 行内表单：使删除按钮与前序按钮同排（原内联 display:inline 迁移至 components.css 的 .md-delete-form） -->
+                    <form action="admin.php?action=media.delete" method="post" class="md-delete-form">
+                        <input type="hidden" name="path" value="<?php echo $file['path']; ?>">
+                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirmSubmit(this, '确定要删除这个文件吗？', { type: 'danger', confirmText: '删除' })" title="删除">
+                            删除
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
+
+    <!-- 图文列表视图（横向条目：缩略图 + 名称/元信息 + 操作区，操作按钮与卡片视图共用同一套 JS） -->
+    <div class="media-list">
+        <?php foreach ($mediaFiles as $file): ?>
+        <div class="media-list-row">
+            <div class="media-list-check">
+                <input type="checkbox" class="file_checkbox" value="<?php echo $file['path']; ?>" data-url="<?php echo $file['url']; ?>">
+            </div>
+            <div class="media-list-preview">
+                <?php if ($file['type'] == 'image'): ?>
+                <img src="<?php echo $file['url']; ?>" alt="<?php echo $file['name']; ?>" onclick="previewFile('<?php echo $file['url']; ?>', '<?php echo $file['name']; ?>', '<?php echo $file['type']; ?>')">
+                <?php else: ?>
+                <!-- 非图片文件用文字标识（与卡片视图同款规格） -->
+                <div class="file-icon">
+                    <?php echo $file['type'] == 'document' ? '文档' : ($file['type'] == 'archive' ? '压缩包' : '文件'); ?>
+                </div>
+                <?php endif; ?>
+            </div>
+            <div class="media-list-main">
+                <h6 title="<?php echo $file['name']; ?>"><?php echo $file['name']; ?></h6>
+                <div class="media-meta">
+                    <span><?php echo $file['size_formatted']; ?></span>
+                    <span class="mx-2">•</span>
+                    <span><?php echo $file['modified_formatted']; ?></span>
+                </div>
+            </div>
+            <div class="media-list-actions">
+                <button class="btn btn-sm btn-outline-info" onclick="previewFile('<?php echo $file['url']; ?>', '<?php echo $file['name']; ?>', '<?php echo $file['type']; ?>')" title="预览">
+                    预览
+                </button>
+                <button class="btn btn-sm btn-outline-warning" onclick="renameFile('<?php echo $file['path']; ?>', '<?php echo $file['name']; ?>')" title="重命名">
+                    重命名
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="fileDetails('<?php echo $file['path']; ?>', '<?php echo $file['name']; ?>', '<?php echo $file['size_formatted']; ?>', '<?php echo $file['type']; ?>', '<?php echo $file['modified_formatted']; ?>')" title="详情">
+                    详情
+                </button>
+                <!-- 行内表单：使删除按钮与前序按钮同排（复用卡片视图的 .md-delete-form） -->
+                <form action="admin.php?action=media.delete" method="post" class="md-delete-form">
+                    <input type="hidden" name="path" value="<?php echo $file['path']; ?>">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirmSubmit(this, '确定要删除这个文件吗？', { type: 'danger', confirmText: '删除' })" title="删除">
+                        删除
+                    </button>
+                </form>
+            </div>
+        </div>
+        <?php endforeach; ?>
+    </div>
+    </div><!-- /#md-view-wrap -->
+
+    <!-- 分页导航：放在网格容器之后（media-grid 是 grid 布局，分页不能作为其子元素，
+         否则会变成网格单元被压缩错位；此处用 pagination-container 包裹保持与内容一体，
+         与网格的间距由 components.css 的 .md-pagination-gap 提供，替代原内联 margin-top） -->
+    <div class="pagination-container md-pagination-gap">
+        <?php
+            // 引入公共分页组件
+            $action = 'media';
+            $total = $pagination['total_items'];
+            $limit = $perPage;
+            $filters = [];
+            if (isset($type) && $type != 'all') $filters['type'] = $type;
+            if (isset($search) && $search != '') $filters['search'] = $search;
+            // 月份/排序筛选并入分页链接：仅非默认值时透传，翻页后保持当前筛选状态
+            if (isset($month) && $month != '') $filters['month'] = $month;
+            if (isset($sort) && $sort != '') $filters['sort'] = $sort;
+            // 每页条数并入分页链接，翻页时不丢失
+            $filters['limit'] = $perPage;
+            // 每页条数可选项（供分页组件渲染下拉框）
+            $pageSizes = $allowedPageSizes;
+            include ADMIN_PATH . '/templates/components/pagination.html';
+        ?>
+    </div>
+
+    <!-- 文件详情模态框：统一使用 components.css 的 .modal-overlay > .modal 体系（加 .show 显示），
+         点击遮罩空白处也可关闭（仅当点击目标是遮罩本身时才触发，点击弹窗本体不关闭） -->
+    <div id="file-details-modal" class="modal-overlay" onclick="if (event.target === this) this.classList.remove('show');">
+        <div class="modal modal-md" role="dialog" aria-modal="true">
+            <div class="modal-header">
+                <h3 class="modal-title">文件详情</h3>
+                <button type="button" class="modal-close" onclick="document.getElementById('file-details-modal').classList.remove('show');">&times;</button>
+            </div>
+            <div class="modal-body">
+                <table class="table">
+                    <tr>
+                        <th>文件名</th>
+                        <td id="detail-name"></td>
+                    </tr>
+                    <tr>
+                        <th>文件大小</th>
+                        <td id="detail-size"></td>
+                    </tr>
+                    <tr>
+                        <th>文件类型</th>
+                        <td id="detail-type"></td>
+                    </tr>
+                    <tr>
+                        <th>修改时间</th>
+                        <td id="detail-modified"></td>
+                    </tr>
+                    <tr>
+                        <th>文件路径</th>
+                        <!-- 长路径任意字符处断行（原内联样式迁移至 components.css 的 .md-break-all） -->
+                        <td id="detail-path" class="md-break-all"></td>
+                    </tr>
+                    <tr>
+                        <th>访问链接</th>
+                        <td>
+                            <!-- 主题色 + 下划线 + 长链接断行（原内联样式迁移至 components.css 的 .md-detail-link） -->
+                            <a id="detail-url" href="" target="_blank" class="md-detail-link">链接</a>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="document.getElementById('file-details-modal').classList.remove('show');">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 重命名模态框：结构与文件详情弹窗一致（.modal-overlay > .modal 体系） -->
+    <div id="rename-modal" class="modal-overlay" onclick="if (event.target === this) this.classList.remove('show');">
+        <div class="modal modal-md" role="dialog" aria-modal="true">
+            <div class="modal-header">
+                <h3 class="modal-title">重命名文件</h3>
+                <button type="button" class="modal-close" onclick="document.getElementById('rename-modal').classList.remove('show');">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="rename-form" action="admin.php?action=media.rename" method="post">
+                    <input type="hidden" id="rename-path" name="path">
+                    <div class="form-group">
+                        <label for="new-name">新文件名</label>
+                        <input type="text" id="new-name" name="new_name" class="form-control" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('rename-modal').classList.remove('show');">取消</button>
+                <button type="button" class="btn btn-primary" onclick="document.getElementById('rename-form').submit();">重命名</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 分页已并入媒体网格容器（见上方），此处不再重复输出 -->
+
+    <script>
+        // 全选/取消全选
+        window.toggleSelectAll = function() {
+            var selectAllCheckbox = document.getElementById('select_all');
+            var checkboxes = document.querySelectorAll('.file_checkbox');
+            checkboxes.forEach(function(checkbox) {
+                checkbox.checked = selectAllCheckbox.checked;
+            });
+        };
+        
+        // 执行批量操作（action 参数由批量下拉菜单项传入，旧下拉框已改为统一下拉菜单）
+        window.executeBatchAction = function(action) {
+            if (!action) {
+                showToast('请选择批量操作', 'warning');
+                return;
+            }
+
+            var checkedBoxes = document.querySelectorAll('.file_checkbox:checked');
+            if (checkedBoxes.length === 0) {
+                showToast('请选择要操作的文件', 'warning');
+                return;
+            }
+            
+            // 统一确认弹窗（danger 删除类）：确认后收集选中路径并提交批量删除
+            if (action === 'delete') {
+                showConfirmDialog('确定要删除选中的文件吗？', { type: 'danger', confirmText: '删除' }).then(function(ok) {
+                    if (!ok) return;
+                    var paths = [];
+                    checkedBoxes.forEach(function(checkbox) {
+                        paths.push(checkbox.value);
+                    });
+                    // 两个视图（卡片/列表）各渲染一份复选框且随全选同步勾选，
+                    // 此处按路径去重，避免同一文件被重复提交删除
+                    paths = Array.from(new Set(paths));
+
+                    // 创建表单并提交
+                    var form = document.createElement('form');
+                    form.action = 'admin.php?action=media.batch_delete';
+                    form.method = 'post';
+
+                    paths.forEach(function(path) {
+                        var input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'paths[]';
+                        input.value = path;
+                        form.appendChild(input);
+                    });
+
+                    document.body.appendChild(form);
+                    form.submit();
+                });
+            }
+        };
+        
+        // 预览文件
+        window.previewFile = function(url, name, type) {
+            if (type === 'image') {
+                window.open(url, '_blank');
+            } else {
+                showToast('非图片文件无法预览', 'info');
+            }
+        };
+        
+        // 重命名文件
+        window.renameFile = function(path, name) {
+            document.getElementById('rename-path').value = path;
+            document.getElementById('new-name').value = name;
+            document.getElementById('rename-modal').classList.add('show');
+        };
+        
+        // 显示文件详情 - 从 checkbox 的 data-url 获取 url
+        window.fileDetails = function(path, name, size, type, modified) {
+            document.getElementById('detail-name').textContent = name;
+            document.getElementById('detail-size').textContent = size;
+            document.getElementById('detail-type').textContent = type;
+            document.getElementById('detail-modified').textContent = modified;
+            document.getElementById('detail-path').textContent = path;
+            
+            // 找到对应的 checkbox 来获取 url
+            var checkbox = document.querySelector('.file_checkbox[value="' + path + '"]');
+            var url = checkbox ? checkbox.getAttribute('data-url') : '';
+            document.getElementById('detail-url').href = url;
+            document.getElementById('detail-url').textContent = url;
+            
+            document.getElementById('file-details-modal').classList.add('show');
+        };
+        
+        // 媒体管理页面特定的JavaScript
+        document.addEventListener('DOMContentLoaded', function() {
+            // 重置按钮点击事件
+            const resetBtn = document.getElementById('reset-btn');
+            if (resetBtn) {
+                resetBtn.addEventListener('click', function() {
+                    // 跳转到指定URL重置筛选
+                    window.location.href = 'admin.php?action=media';
+                });
+            }
+            
+            // 关闭所有模态框
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('modal')) {
+                    e.target.classList.remove('show');
+                }
+            });
+            
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    document.querySelectorAll('.modal.show').forEach(function(modal) {
+                        modal.classList.remove('show');
+                    });
+                }
+            });
+
+            // 上传文件：AJAX 提交（JSON 返回），上传期间显示进度条，
+            // 完成后按结果 Toast 提示并刷新列表（部分失败时列出失败明细）
+            var mediaUploadInput = document.getElementById('media-upload-input');
+            if (mediaUploadInput) {
+                mediaUploadInput.addEventListener('change', function() {
+                    if (!this.files || this.files.length === 0) return;
+
+                    var form = document.getElementById('media-upload-form');
+                    var btn = document.getElementById('media-upload-btn');
+                    var box = document.getElementById('media-upload-progress');
+                    var fill = document.getElementById('media-upload-progress-fill');
+                    var text = document.getElementById('media-upload-progress-text');
+
+                    // 组装表单数据（含 CSRF 令牌），ajax=1 让后端以 JSON 返回
+                    var fd = new FormData(form);
+                    fd.append('ajax', '1');
+
+                    // 上传期间锁定触发按钮，避免并发上传
+                    btn.disabled = true;
+                    box.style.display = '';
+                    fill.style.width = '0%';
+                    fill.classList.remove('is-error', 'is-done');
+                    text.textContent = '正在上传 0%…';
+
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('POST', form.action);
+
+                    // 上传进度：按已传输字节计算百分比
+                    xhr.upload.addEventListener('progress', function(e) {
+                        if (e.lengthComputable) {
+                            var pct = Math.round((e.loaded / e.total) * 100);
+                            fill.style.width = pct + '%';
+                            text.textContent = '正在上传 ' + pct + '%…';
+                        }
+                    });
+
+                    xhr.addEventListener('load', function() {
+                        var res = null;
+                        try { res = JSON.parse(xhr.responseText); } catch (err) { res = null; }
+
+                        if (!res) {
+                            // 非 JSON 响应（会话过期/服务器错误等）
+                            fill.classList.add('is-error');
+                            text.textContent = '上传失败';
+                            showToast('上传失败，请刷新页面后重试', 'error');
+                            btn.disabled = false;
+                            return;
+                        }
+
+                        if (res.uploaded > 0) {
+                            fill.style.width = '100%';
+                            fill.classList.add('is-done');
+                            text.textContent = '成功上传 ' + res.uploaded + ' 个文件' + (res.failed > 0 ? '，' + res.failed + ' 个失败' : '');
+                            // 部分失败时列出失败明细（逐行 Toast，最多提示 3 条避免刷屏）
+                            if (res.failed > 0 && res.errors && res.errors.length) {
+                                res.errors.slice(0, 3).forEach(function(msg) { showToast(msg, 'warning'); });
+                            }
+                            // 稍作停留让用户看到完成态，再刷新列表展示新文件
+                            setTimeout(function() { window.location.reload(); }, 800);
+                        } else {
+                            fill.classList.add('is-error');
+                            text.textContent = '上传失败';
+                            var msg = (res.errors && res.errors.length) ? res.errors.join('；') : '文件上传失败';
+                            showToast(msg, 'error');
+                            btn.disabled = false;
+                            setTimeout(function() { box.style.display = 'none'; }, 1500);
+                        }
+                    });
+
+                    xhr.addEventListener('error', function() {
+                        fill.classList.add('is-error');
+                        text.textContent = '上传失败';
+                        showToast('网络错误，上传中断', 'error');
+                        btn.disabled = false;
+                    });
+
+                    xhr.send(fd);
+                    // 已选择文件交由 FormData 持有，清空 input 允许再次选择同名文件
+                    this.value = '';
+                });
+            }
+        });
+    </script>
+
+    <!-- 视图切换逻辑：读写 localStorage（bk_admin_media_view），
+         在容器上切换 .md-as-list 类实现卡片/列表布局显隐（CSS 控制），默认图片卡片 -->
+    <script>
+        (function () {
+            var KEY = 'bk_admin_media_view';
+            var wrap = document.getElementById('md-view-wrap');
+            var btnList = document.getElementById('md-view-list');
+            var btnCard = document.getElementById('md-view-card');
+            if (!wrap || !btnList || !btnCard) return;
+
+            // 读取本地视图偏好（隐私模式等 localStorage 不可用时静默回退默认卡片）
+            var saved = 'card';
+            try { saved = localStorage.getItem(KEY) || 'card'; } catch (e) {}
+
+            function apply(view) {
+                var isList = view === 'list';
+                wrap.classList.toggle('md-as-list', isList);
+                // 选中态类为 .seg 组件的通用选中类（common.css 定义浮起样式）
+                btnList.classList.toggle('seg-active', isList);
+                btnCard.classList.toggle('seg-active', !isList);
+            }
+
+            btnList.addEventListener('click', function () {
+                apply('list');
+                try { localStorage.setItem(KEY, 'list'); } catch (e) {}
+            });
+            btnCard.addEventListener('click', function () {
+                apply('card');
+                try { localStorage.setItem(KEY, 'card'); } catch (e) {}
+            });
+
+            apply(saved);
+        })();
+    </script>
+
+<?php include 'components/footer_wrapper.html'; ?>

@@ -1,0 +1,195 @@
+<?php
+/**
+ * 后台共享页面包装器
+ * 
+ * 统一后台页面布局，减少重复代码。每个页面只需：
+ * 1. 设置 $currentAction, $pageTitle
+ * 2. 包含此文件
+ * 3. 在主内容区写入页面内容
+ * 
+ * 使用方式：
+ *   <?php $currentAction = 'article'; $pageTitle = '文章管理'; include 'page_wrapper.html'; ?>
+ *   <!-- 页面内容 -->
+ *   <?php include 'components/footer_wrapper.html'; ?>
+ */
+
+/*
+ * 设备类型判断（全后台页面共用）
+ * 通过 User-Agent 在服务端区分桌面/移动设备，供各页面输出不同的布局结构
+ * （桌面端：横向紧凑筛选栏；移动端：筛选折叠面板），
+ * 避免使用 CSS 媒体查询做布局切换时的折行断点问题。
+ * 注意：基于 UA 判断，与前台主题 {if is_mobile} 行为一致——
+ * PC 上缩窄浏览器窗口不会切换为移动布局，真机访问才生效。
+ */
+$isAdminMobile = false;
+if (isset($_SERVER['HTTP_USER_AGENT'])) {
+    $adminMobileAgents = ['Android', 'iPhone', 'iPod', 'BlackBerry', 'Windows Phone'];
+    foreach ($adminMobileAgents as $adminAgent) {
+        if (strpos($_SERVER['HTTP_USER_AGENT'], $adminAgent) !== false) {
+            // iPad 内含 'Android' 判断兜底逻辑与前台一致：iPad 不算手机
+            $isAdminMobile = strpos($_SERVER['HTTP_USER_AGENT'], 'iPad') === false;
+            break;
+        }
+    }
+}
+
+/*
+ * 消息通知插件启用判断（全后台页面共用）
+ * 后台导航栏的通知铃铛、通知中心弹窗以及 header.js 的未读数轮询，
+ * 都依赖消息通知中心插件（plugins/notification）提供的
+ * admin.php?action=plugin.notification.* 接口。
+ * Plugin 单例只加载 status=1 的插件，getPlugin() 返回 null 即未安装或未启用，
+ * 此时上述 UI 一并隐藏、JS 轮询一并跳过，避免控制台接口报错。
+ */
+$adminNotificationEnabled = Plugin::getInstance()->getPlugin('notification') !== null;
+
+// 公共头部
+include __DIR__ . '/header.html';
+
+// 侧边栏
+include __DIR__ . '/sidebar.html';
+?>
+
+<!-- 主内容区 -->
+<main class="main-content">
+    <!-- 统一消息提示区（v3.0 兼容所有旧 key）- 放置在最顶部，优先显示 -->
+    <?php include __DIR__ . '/flash_messages.html'; echo flash_render(); ?>
+
+    <div class="header">
+        <h2><?php echo htmlspecialchars(isset($pageTitle) ? $pageTitle : '管理'); ?></h2>
+        
+        <!-- 用户信息区域 -->
+        <div class="header-actions">
+            <!-- 全局命令面板搜索框 -->
+            <div class="command-palette-wrapper">
+                <div class="command-palette" id="commandPalette">
+                    <div class="command-palette-input-wrap">
+                        <svg class="svg-icon svg-icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input type="text" id="commandInput" placeholder="搜索文章/用户/评论/设置... (Ctrl+K)" autocomplete="off">
+                        <span class="command-palette-hint">Ctrl+K</span>
+                    </div>
+                    <div class="command-palette-results" id="commandResults"></div>
+                </div>
+                <button class="command-palette-toggle" id="commandPaletteToggle" title="打开命令面板 (Ctrl+K)">
+                    <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- 主题切换按钮 -->
+            <!-- #themeIcon 预置三套主题图标（auto/light/dark），首帧由 CSS 按
+                 header.html 顶部阻塞脚本打上的 theme-*-init 类直接选中显示，
+                 避免等待 sidebar.js 在 DOMContentLoaded 才填充导致的
+                 「空按钮 → 图标后补」闪烁；sidebar.js 初始化后会用单一图标
+                 覆盖 innerHTML，视觉与 CSS 选中态一致，无跳变 -->
+            <button class="theme-btn" id="themeToggleBtn" title="切换主题">
+                <span id="themeIcon"><span class="ti ti-auto"><svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line><circle cx="12" cy="10" r="2"></circle><path d="M12 7v6"></path><path d="M9 10h6"></path></svg></span><span class="ti ti-light"><svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg></span><span class="ti ti-dark"><svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg></span></span>
+            </button>
+            
+            <!-- 通知徽章 -->
+            <?php if ($adminNotificationEnabled): ?>
+            <!-- 通知铃铛（仅消息通知插件启用时渲染，接口由插件提供） -->
+            <button class="notification-btn" id="notificationBtn" title="通知">
+                <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6.002 6.002 0 0 0-4-5.659V5a2 2 0 1 0-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9"></path>
+                </svg>
+                <!-- 未读数徽章保留内联 display:none：初始隐藏，由 header.js 轮询未读数后
+                     经 jQuery .show()/.hide()（即直接改写元素内联 display）控制显隐，
+                     抽成 CSS 类会使 JS 的显隐切换失效，故不做样式外迁 -->
+                <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+            </button>
+            <?php endif; ?>
+            
+            <!-- 缓存清理按钮（仅缓存功能开启时渲染；前台首页入口已移至侧边栏标题，
+                 新窗口打开）：下拉面板复用统一下拉菜单（.dropdown-menu）浮层视觉，
+                 四类清理动作各自独立小表单（POST + confirmForm 二次确认），
+                 完成后经 back 参数回跳当前页（CacheController 校验仅允许 admin.php 路径） -->
+            <?php if (Config::get('cache_enabled') == 1): ?>
+            <div class="cache-menu">
+                <button type="button" class="home-btn cache-menu-toggle" id="cacheMenuToggle" title="清理缓存">
+                    <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 6h18"></path>
+                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                </button>
+                <div class="dropdown-menu header-dropdown" id="cacheMenuDropdown">
+                    <?php
+                    // 四类清理动作共用一套表单结构：类型 => [显示文案, 确认弹窗文案]
+                    $cacheTypes = [
+                        'all'     => ['所有缓存', '确定要清理所有缓存吗？清理后首次访问会重新生成。'],
+                        'page'    => ['页面缓存', '确定要清理页面缓存吗？'],
+                        'data'    => ['数据缓存', '确定要清理数据缓存吗？'],
+                        'expired' => ['过期缓存', '确定要清理已过期的缓存数据吗？'],
+                    ];
+                    foreach ($cacheTypes as $cacheType => $cacheInfo): ?>
+                    <form method="post" action="admin.php?action=cache&method=clear"
+                          onsubmit="return confirmForm(this, '<?php echo $cacheInfo[1]; ?>', { type: 'warning', title: '清理缓存', confirmText: '清理' });">
+                        <input type="hidden" name="cache_clean_type" value="<?php echo $cacheType; ?>">
+                        <input type="hidden" name="back" value="<?php echo htmlspecialchars($_SERVER['REQUEST_URI'] ?? '', ENT_QUOTES); ?>">
+                        <button type="submit" class="header-dropdown-item"><?php echo $cacheInfo[0]; ?></button>
+                    </form>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+            
+            <!-- 用户下拉菜单 -->
+            <div class="user-menu">
+                <button class="user-menu-toggle" id="userMenuToggle">
+                    <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    <span class="user-name"><?php echo htmlspecialchars($_SESSION['admin']['nickname'] ?? '管理员'); ?></span>
+                    <svg class="svg-icon svg-icon-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </button>
+                <!-- 用户下拉菜单：面板复用统一下拉菜单组件（.dropdown-menu）浮层视觉，
+                     .user-menu-dropdown 仅补右对齐定位 -->
+                <div class="user-menu-dropdown dropdown-menu" id="userMenuDropdown">
+                    <a href="admin.php?action=user&sub=edit&id=<?php echo $_SESSION['admin']['id'] ?? 0; ?>" class="user-menu-item">
+                        <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        <span>个人设置</span>
+                    </a>
+                    <a href="admin.php?action=user&sub=edit&id=<?php echo $_SESSION['admin']['id'] ?? 0; ?>&tab=password" class="user-menu-item">
+                        <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+                        </svg>
+                        <span>修改密码</span>
+                    </a>
+                    <div class="user-menu-divider"></div>
+                    <a href="admin.php?action=logout" class="user-menu-item danger">
+                        <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                        <span>退出登录</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    
+    <?php if ($adminNotificationEnabled): ?>
+    <!-- 通知中心弹窗（仅消息通知插件启用时渲染） -->
+    <?php include __DIR__ . '/notification_center.html'; ?>
+    <?php endif; ?>

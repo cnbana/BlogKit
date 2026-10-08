@@ -1,0 +1,11 @@
+{assign var="page_title" value="个人中心头部公共文件"}
+<div class="profile-header">
+    {include file="common/avatar_upload.html"}
+    <div class="user-info">
+        <h3>{profile_user.nickname}{if empty="profile_user.nickname"}{profile_user.username}{endif}</h3>
+        <div class="profile-stats">
+            <span>关注：{following_count}</span>
+            <span>粉丝：{followers_count}</span>
+        </div>
+    </div>
+</div>

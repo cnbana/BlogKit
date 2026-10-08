@@ -1,0 +1,77 @@
+{assign var="page_title" value="阅读历史"}
+{include file="header"}
+
+<main class="main-content">
+    <div class="container">
+        <div class="profile-container">
+                {include file="common/profile_nav.html"}
+                
+                <div class="profile-content">
+                    
+                    <!-- 阅读历史区域 -->
+                    <div class="profile-section">
+                <div class="profile-section-header">
+                    <h3 class="section-title">阅读历史</h3>
+                    {if history}
+                    <form method="POST" action="?" onsubmit="return confirm('确定要清空所有阅读历史吗？')">
+                        <input type="hidden" name="c" value="Auth">
+                        <input type="hidden" name="m" value="profile">
+                        <input type="hidden" name="action" value="clear">
+                        <button type="submit" class="btn btn-danger btn-sm">清空历史</button>
+                    </form>
+                    {endif}
+                </div>
+                
+                {if history}
+                    <!-- 阅读历史列表 -->
+                    <div class="history-list">
+                        {loop name="history"}
+                        <div class="history-item">
+                            <div class="history-info">
+                                <h4>
+                                    <a href="{url:article:article_id}">{field name="title"}</a>
+                                </h4>
+                                <div class="history-item-meta">
+                                    <span>作者：{field name="author"}</span>
+                                    <span>·</span>
+                                    <span>分类：<a href="{url:category:category_id}">{field name="category_name"}</a></span>
+                                    <span>·</span>
+                                    <span>阅读量：{field name="view_count" filter="cn_number"}</span>
+                                </div>
+                                <div class="history-item-time">
+                                    阅读时间：{field name="read_at_formatted"}
+                                    <span>·</span>
+                                    发布时间：{field name="article_created_at_formatted"}
+                                </div>
+                            </div>
+                            <div class="history-item-actions">
+                                <form method="POST" action="?" onsubmit="return confirm('确定要删除这条阅读记录吗？')">
+                                    <input type="hidden" name="c" value="Auth">
+                                    <input type="hidden" name="m" value="profile">
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="id" value="{field name='id'}">
+                                    <button type="submit" class="btn btn-link btn-sm btn-danger-link">删除</button>
+                                </form>
+                            </div>
+                        </div>
+                        {/loop}
+                    </div>
+                    
+                    <!-- 分页导航 -->
+                    {include file="common/pagination.html"}
+                {else}
+                        <!-- 空状态 -->
+                        <div class="empty-state">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="opacity: 0.5; margin-bottom: 20px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                            </svg>
+                            <p>暂无阅读历史</p>
+                        </div>
+                    {endif}
+                    </div>
+                </div>
+            </div>
+    </div>
+</main>
+
+{include file="footer"}

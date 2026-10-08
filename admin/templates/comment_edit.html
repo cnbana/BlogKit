@@ -1,0 +1,75 @@
+<?php $currentAction = 'comment'; $pageTitle = '编辑评论';  include 'components/page_wrapper.html'; ?>
+    
+    <div class="form-container">
+        <!-- 本页在评论列表右侧抽屉（openEntityDrawer）内打开，关闭抽屉即返回列表，
+             故不再放置「返回评论列表」按钮（避免与抽屉关闭功能重复） -->
+
+        <div class="comment-info">
+            <h3>评论基本信息</h3>
+            <p><strong>评论ID:</strong> <?php echo $comment['id']; ?></p>
+            <p><strong>文章:</strong> <a href="admin.php?action=article&sub=edit&id=<?php echo $comment['article_id']; ?>" target="_blank"><?php echo htmlspecialchars($comment['article_title']); ?></a></p>
+            <p><strong>用户:</strong> <?php echo htmlspecialchars($comment['nickname'] ?: $comment['username']); ?></p>
+            <!-- 评论时间为 Unix 时间戳，与下方「更新时间」统一格式化为 Y-m-d H:i:s -->
+            <p><strong>评论时间:</strong> <?php echo date('Y-m-d H:i:s', $comment['created_at']); ?></p>
+            <?php if (!empty($comment['updated_at'])): ?>
+            <p><strong>更新时间:</strong> <?php echo date('Y-m-d H:i:s', $comment['updated_at']); ?></p>
+            <?php endif; ?>
+            <p><strong>状态:</strong> <?php echo $comment['status'] == 1 ? '<span class="badge badge-success">已审核</span>' : '<span class="badge badge-warning">待审核</span>'; ?></p>
+            <p><strong>置顶:</strong> <?php echo $comment['is_top'] == 1 ? '<span class="badge badge-info">已置顶</span>' : '<span class="badge badge-secondary">未置顶</span>'; ?></p>
+        </div>
+        
+        <form method="POST" id="comment-form">
+            <input type="hidden" name="id" value="<?php echo $comment['id']; ?>">
+            
+            <div class="form-group">
+                <label for="content">评论内容</label>
+                <!-- cm-content-editor：加宽行距与内边距的舒适编辑样式（components.css） -->
+                <textarea id="content" name="content" rows="12" class="cm-content-editor" required><?php echo htmlspecialchars($comment['content']); ?></textarea>
+            </div>
+            
+            <div class="form-group">
+                <button type="button" class="btn btn-success" onclick="saveComment()">保存修改</button>
+                <a href="admin.php?action=comment" class="btn btn-secondary drawer-cancel">取消</a>
+            </div>
+        </form>
+    </div>
+
+<!-- 页面专属样式已并入 assets/css/components.css -->
+
+<script>
+function saveComment() {
+    var form = document.getElementById('comment-form');
+    var content = document.getElementById('content').value.trim();
+
+    if (!content) {
+        // 统一提示气泡（common.js 的 showToast），替代原生 alert
+        showToast('评论内容不能为空', 'warning');
+        return;
+    }
+
+    // 使用 AJAX 提交
+    var formData = new FormData(form);
+
+    fetch('admin.php?action=comment&sub=update', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.code === 200) {
+            showToast(data.msg || '保存成功', 'success');
+            // 保存成功后跳回评论列表（若在编辑抽屉 iframe 内，common.js 会检测到
+            // 跳回列表并自动关闭抽屉、刷新父页面列表）
+            window.location.href = 'admin.php?action=comment';
+        } else {
+            showToast(data.msg || '保存失败', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('请求失败，请检查网络后重试', 'error');
+    });
+}
+</script>
+
+<?php include 'components/footer_wrapper.html'; ?>

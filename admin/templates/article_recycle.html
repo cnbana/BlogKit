@@ -1,0 +1,219 @@
+<?php $currentAction = 'article'; $pageTitle = '文章回收站';  include 'components/page_wrapper.html'; ?>
+
+    <!-- ==================== 筛选区（对齐列表页三段式结构） ==================== -->
+    <!-- filter-section-flat：白底变体 + 底部分割线（components.css） -->
+    <div class="filter-section filter-section-flat">
+        <form method="get" action="admin.php" class="filter-form">
+            <input type="hidden" name="action" value="article">
+            <input type="hidden" name="method" value="recycle">
+
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="category_filter">分类</label>
+                    <select name="category" id="category_filter" class="filter-select">
+                        <option value="">全部分类</option>
+                        <?php foreach ($categories as $category): ?>
+                        <option value="<?php echo $category['id']; ?>"
+                                <?php echo isset($_GET['category']) && $_GET['category'] == $category['id'] ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($category['name']); ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="filter-group filter-group-wide">
+                    <label for="search_filter">搜索</label>
+                    <input type="text" name="search" id="search_filter" class="filter-input" placeholder="标题或内容"
+                           value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <?php echo admin_svg_icon('search', ''); ?>搜索
+                    </button>
+                    <a href="admin.php?action=article&method=recycle" class="btn btn-default">
+                        <?php echo admin_svg_icon('refresh', ''); ?>重置
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- ==================== 工具栏（对齐列表页） ==================== -->
+    <!-- 左侧：返回文章列表入口；右侧：批量操作下拉（批量还原/批量彻底删除）+ 选中计数提示 -->
+    <div class="list-toolbar list-toolbar-flat">
+        <a href="admin.php?action=article" class="btn btn-default">
+            <?php echo admin_svg_icon('arrow-left', ''); ?>返回文章列表
+        </a>
+
+        <!-- 批量操作下拉：菜单项通过 data-batch 属性分发（见页面底部批量脚本），
+             还原提交到 batchRestore，彻底删除提交到 batchForceDelete（危险操作红色样式） -->
+        <div class="btn-group">
+            <!-- 批量操作下拉触发按钮：文字与箭头垂直居中（原内联样式迁移至 components.css 的 .art-batch-toggle） -->
+            <a href="javascript:void(0)" class="btn btn-default dropdown-toggle art-batch-toggle">
+                批量操作<span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu batch-menu">
+                <li><a href="javascript:void(0)" data-batch="restore">批量还原</a></li>
+                <li><a href="javascript:void(0)" data-batch="force-delete" class="menu-item-danger">批量彻底删除</a></li>
+            </ul>
+        </div>
+
+        <!-- 批量选中计数提示：勾选行复选框后显示「已选 N 项」（common.js initBatchSelectedInfo 自动维护） -->
+        <span id="batch-selected-info" class="batch-selected-info"></span>
+    </div>
+
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <!-- 复选框列：表头为全选开关（批量脚本联动），行内复选框统一命名 ids[] 供批量提交；
+                         列宽 40px（原内联样式迁移至 components.css 的 .art-col-check） -->
+                    <th class="art-col-check"><input type="checkbox" id="select_all"></th>
+                    <th>ID</th>
+                    <th>标题</th>
+                    <th>分类</th>
+                    <th>作者</th>
+                    <th>删除时间</th>
+                    <th>阅读量</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($articles)): ?>
+                <tr>
+                    <td colspan="8">
+                        <?php
+                        // 空状态：区分「回收站为空」与「筛选无结果」两种场景文案
+                        $hasFilter = (isset($_GET['category']) && $_GET['category'] !== '') || (isset($_GET['search']) && $_GET['search'] !== '');
+                        if ($hasFilter) {
+                            $emptyTitle = '没有符合条件的文章';
+                            $emptyIcon = 'search';
+                            $emptyDesc = '尝试调整筛选条件后重新查询';
+                        } else {
+                            $emptyTitle = '回收站中没有文章';
+                            $emptyIcon = 'file';
+                            $emptyDesc = '删除的文章会在回收站保留 30 天';
+                        }
+                        include 'components/empty_state.html';
+                        ?>
+                    </td>
+                </tr>
+                <?php else: ?>
+                <?php foreach ($articles as $article): ?>
+                <tr>
+                    <!-- 批量选择复选框：name="ids[]"（控制器读取 $_POST['ids'] 数组），class 供全选脚本定位 -->
+                    <td><input type="checkbox" name="ids[]" value="<?php echo $article['id']; ?>" class="article_recycle_checkbox"></td>
+                    <td><?php echo $article['id']; ?></td>
+                    <td><?php echo htmlspecialchars($article['title']); ?></td>
+                    <td><?php echo htmlspecialchars($article['category_name']); ?></td>
+                    <td><?php echo htmlspecialchars($article['author']); ?></td>
+                    <td><?php echo $article['deleted_at_formatted']; ?></td>
+                    <td><?php echo $article['view_count']; ?></td>
+                    <td>
+                        <!-- 操作列：文字链接式（对齐评论/用户回收站页）；
+                             恢复为普通确认，永久删除为危险确认（不可恢复） -->
+                        <a href="admin.php?action=article&method=restore&id=<?php echo $article['id']; ?>" class="table-link" onclick="return confirmLink(this, '确定要恢复这篇文章吗？', { type: 'info', title: '恢复确认', confirmText: '恢复' });">恢复</a>
+                        <span class="table-action-divider"></span>
+                        <a href="admin.php?action=article&method=permanentlyDelete&id=<?php echo $article['id']; ?>" class="table-link table-link-danger" onclick="return confirmLink(this, '确定要永久删除这篇文章吗？此操作不可恢复。', { type: 'danger', confirmText: '永久删除' });">永久删除</a>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 分页导航：公共分页组件（method=recycle 与筛选条件随分页透传） -->
+    <?php
+        $action = 'article';
+        $total = $total_articles;
+        $limit = $pageSize;
+        $filters = [];
+        if (isset($_GET['category']) && $_GET['category'] !== '') $filters['category'] = $_GET['category'];
+        if (isset($_GET['search']) && $_GET['search'] !== '') $filters['search'] = $_GET['search'];
+        $filters['method'] = 'recycle'; // 保持回收站子路由
+        include ADMIN_PATH . '/templates/components/pagination.html';
+    ?>
+
+    <script>
+    // ==================== 回收站批量操作（对齐文章列表页交互） ====================
+    // 说明：批量还原/批量彻底删除端点（batchRestore/batchForceDelete）执行后
+    // 重定向回回收站页，因此这里采用与文章列表页相同的「构建隐藏表单整页 POST」方式提交。
+    document.addEventListener('DOMContentLoaded', function() {
+        // 收集当前勾选的文章 ID 列表（行复选框统一命名 ids[]）
+        const getRecycleSelectedIds = () =>
+            Array.from(document.querySelectorAll('input[name="ids[]"]:checked')).map((cb) => cb.value);
+
+        // 统一构建 POST 表单并提交（ids[] + 额外参数 + CSRF 令牌），与文章列表页 submitBatchForm 一致
+        const submitRecycleBatchForm = (url, params) => {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = url;
+            getRecycleSelectedIds().forEach((id) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'ids[]';
+                input.value = id;
+                form.appendChild(input);
+            });
+            Object.keys(params).forEach((key) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = params[key];
+                form.appendChild(input);
+            });
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = 'csrf_token';
+            tokenInput.value = '<?php echo $_SESSION['csrf_token']; ?>';
+            form.appendChild(tokenInput);
+            document.body.appendChild(form);
+            form.submit();
+        };
+
+        // 全选/取消全选：与行内复选框状态联动，并同步行高亮
+        const recycleSelectAll = document.getElementById('select_all');
+        if (recycleSelectAll) {
+            recycleSelectAll.addEventListener('change', function() {
+                document.querySelectorAll('input[name="ids[]"]').forEach(function(cb) {
+                    cb.checked = recycleSelectAll.checked;
+                    cb.closest('tr').classList.toggle('selected', cb.checked);
+                });
+            });
+        }
+
+        // 单选时高亮行（tables.css 的 tr.selected 样式）
+        document.querySelectorAll('input[name="ids[]"]').forEach(function(cb) {
+            cb.addEventListener('change', function() {
+                cb.closest('tr').classList.toggle('selected', cb.checked);
+            });
+        });
+
+        // 批量菜单点击分发：还原走 batchRestore；彻底删除为不可恢复的危险操作，强确认后提交
+        document.querySelectorAll('.batch-menu a[data-batch]').forEach(function(item) {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                const action = this.getAttribute('data-batch');
+                if (getRecycleSelectedIds().length === 0) {
+                    showToast('请先选择文章', 'error');
+                    return;
+                }
+                if (action === 'restore') {
+                    // 批量还原：普通确认即可
+                    showConfirmDialog('确定要还原选中的文章吗？', { type: 'info', title: '批量操作', confirmText: '还原' }).then(function(ok) {
+                        if (ok) submitRecycleBatchForm('admin.php?action=article&method=batchRestore', {});
+                    });
+                } else if (action === 'force-delete') {
+                    // 批量彻底删除：危险操作强确认（红色样式确认弹窗，物理删除不可恢复）
+                    showConfirmDialog('确定要彻底删除选中的文章吗？此操作不可恢复。', { type: 'danger', confirmText: '彻底删除' }).then(function(ok) {
+                        if (ok) submitRecycleBatchForm('admin.php?action=article&method=batchForceDelete', {});
+                    });
+                }
+            });
+        });
+    });
+    </script>
+
+<?php include 'components/footer_wrapper.html'; ?>

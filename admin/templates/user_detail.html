@@ -1,0 +1,147 @@
+<?php $currentAction = 'user'; $pageTitle = '用户详情'; include 'components/page_wrapper.html'; ?>
+
+    <!-- ============================================================
+         身份卡页头（common.css 通用组件 .detail-header）：
+         左侧头像（无头像回退人形图标）+ 用户名/徽章/次要信息，
+         右侧返回与编辑按钮
+         ============================================================ -->
+    <div class="detail-header">
+        <?php if (!empty($user['avatar'])): ?>
+        <!-- 有头像：直接展示（object-fit 裁切防变形） -->
+        <img src="<?php echo htmlspecialchars($user['avatar']); ?>" alt="<?php echo htmlspecialchars($user['username']); ?>" class="detail-avatar">
+        <?php else: ?>
+        <!-- 无头像：人形图标（与页头用户菜单图标同款 SVG，中性灰底圆形） -->
+        <div class="detail-avatar-icon">
+            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+        </div>
+        <?php endif; ?>
+
+        <div class="detail-header-main">
+            <!-- 主行：用户名 + 角色/状态徽章（徽章复用全局 role-tag / status-tag 体系） -->
+            <div class="detail-title-row">
+                <h1 class="detail-title"><?php echo htmlspecialchars($user['username']); ?></h1>
+                <span class="role-tag <?php echo $user['role_class']; ?>"><?php echo $user['role_name']; ?></span>
+                <span class="status-tag status-<?php echo $user['status'] == 1 ? 'active' : 'inactive'; ?>"><?php echo $user['status_name']; ?></span>
+            </div>
+            <!-- 副行：ID（等宽）· 昵称 · 邮箱，弱化灰字 -->
+            <div class="detail-sub-row">
+                <span class="mono">#<?php echo $user['id']; ?></span>
+                <?php if (!empty($user['nickname']) && $user['nickname'] !== $user['username']): ?>
+                <span class="detail-sub-sep">·</span>
+                <span><?php echo htmlspecialchars($user['nickname']); ?></span>
+                <?php endif; ?>
+                <?php if (!empty($user['email'])): ?>
+                <span class="detail-sub-sep">·</span>
+                <span><?php echo htmlspecialchars($user['email']); ?></span>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- 右侧操作区：返回列表（次要）+ 编辑（主操作） -->
+        <div class="detail-header-actions">
+            <a href="admin.php?action=user" class="btn btn-secondary drawer-cancel">返回用户列表</a>
+            <a href="admin.php?action=user&sub=edit&id=<?php echo $user['id']; ?>" class="btn btn-primary">编辑用户</a>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         基本信息：描述列表（common.css 通用组件 .desc-grid，
+         与仪表盘「系统状态」同款：灰底标签 + 白底值 + 表格线分组）。
+         ID/时间使用等宽字体保证纵向对齐
+         ============================================================ -->
+    <div class="detail-section">
+        <h3 class="section-title">基本信息</h3>
+        <div class="desc-grid">
+            <div class="desc-grid-item">
+                <span class="desc-grid-label">用户ID</span>
+                <span class="desc-grid-value"><span class="mono"><?php echo $user['id']; ?></span></span>
+            </div>
+            <div class="desc-grid-item">
+                <span class="desc-grid-label">用户名</span>
+                <span class="desc-grid-value"><?php echo htmlspecialchars($user['username']); ?></span>
+            </div>
+            <div class="desc-grid-item">
+                <span class="desc-grid-label">昵称</span>
+                <span class="desc-grid-value"><?php echo htmlspecialchars($user['nickname'] ?: '未设置'); ?></span>
+            </div>
+            <div class="desc-grid-item">
+                <span class="desc-grid-label">邮箱</span>
+                <span class="desc-grid-value"><?php echo htmlspecialchars($user['email'] ?: '未设置'); ?></span>
+            </div>
+            <div class="desc-grid-item">
+                <span class="desc-grid-label">角色</span>
+                <span class="desc-grid-value">
+                    <span class="role-tag <?php echo $user['role_class']; ?>"><?php echo $user['role_name']; ?></span>
+                </span>
+            </div>
+            <div class="desc-grid-item">
+                <span class="desc-grid-label">状态</span>
+                <span class="desc-grid-value">
+                    <span class="status-tag status-<?php echo $user['status'] == 1 ? 'active' : 'inactive'; ?>"><?php echo $user['status_name']; ?></span>
+                </span>
+            </div>
+            <div class="desc-grid-item">
+                <span class="desc-grid-label">创建时间</span>
+                <span class="desc-grid-value"><span class="mono"><?php echo $user['created_at']; ?></span></span>
+            </div>
+            <div class="desc-grid-item">
+                <span class="desc-grid-label">更新时间</span>
+                <span class="desc-grid-value"><span class="mono"><?php echo $user['updated_at']; ?></span></span>
+            </div>
+            <div class="desc-grid-item">
+                <span class="desc-grid-label">最后登录</span>
+                <!-- 占位文案「从未登录」不包 mono：等宽字体无中文字形，回退渲染行高与正文不一致（保持同区块值字体统一） -->
+                <span class="desc-grid-value"><?php echo isset($user['last_login_at']) && $user['last_login_at'] ? '<span class="mono">' . $user['last_login_at'] . '</span>' : '从未登录'; ?></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         注册信息：同款描述列表。IP/版本号等宽字体；
+         User-Agent 跨整行（.desc-grid-item-full，置于列表末尾）
+         并以代码块样式（淡底 + 限高滚动）呈现长串
+         ============================================================ -->
+    <div class="detail-section">
+        <h3 class="section-title">注册信息</h3>
+        <div class="desc-grid">
+            <div class="desc-grid-item">
+                <span class="desc-grid-label">注册IP</span>
+                <!-- 占位文案「未记录」不包 mono（原因同上）；真实 IP 保持等宽便于对齐 -->
+                <span class="desc-grid-value"><?php echo isset($user['register_ip']) && $user['register_ip'] ? '<span class="mono">' . htmlspecialchars($user['register_ip']) . '</span>' : '未记录'; ?></span>
+            </div>
+            <div class="desc-grid-item">
+                <span class="desc-grid-label">设备类型</span>
+                <span class="desc-grid-value"><?php echo isset($user['register_device_type']) && $user['register_device_type'] ? htmlspecialchars($user['register_device_type']) : '未记录'; ?></span>
+            </div>
+            <div class="desc-grid-item">
+                <span class="desc-grid-label">操作系统</span>
+                <span class="desc-grid-value"><?php echo isset($user['register_os']) && $user['register_os'] ? htmlspecialchars($user['register_os']) : '未记录'; ?></span>
+            </div>
+            <div class="desc-grid-item">
+                <span class="desc-grid-label">浏览器</span>
+                <span class="desc-grid-value"><?php echo isset($user['register_browser']) && $user['register_browser'] ? htmlspecialchars($user['register_browser']) : '未记录'; ?></span>
+            </div>
+            <div class="desc-grid-item">
+                <span class="desc-grid-label">浏览器版本</span>
+                <!-- 占位文案「未记录」不包 mono（原因同上）；真实版本号保持等宽 -->
+                <span class="desc-grid-value"><?php echo isset($user['register_browser_version']) && $user['register_browser_version'] ? '<span class="mono">' . htmlspecialchars($user['register_browser_version']) . '</span>' : '未记录'; ?></span>
+            </div>
+            <div class="desc-grid-item">
+                <span class="desc-grid-label">注册来源</span>
+                <!-- URL 可能很长：word-break 自动换行不截断（规格由 .desc-grid-value 内建） -->
+                <span class="desc-grid-value"><?php echo isset($user['register_referer']) && $user['register_referer'] ? htmlspecialchars($user['register_referer']) : '直接访问'; ?></span>
+            </div>
+            <?php if (isset($user['register_user_agent']) && $user['register_user_agent']): ?>
+            <!-- User-Agent：跨整行代码块（限高滚动，避免撑开卡片） -->
+            <div class="desc-grid-item desc-grid-item-full">
+                <span class="desc-grid-label">User-Agent</span>
+                <span class="desc-grid-value desc-grid-value-desc"><?php echo htmlspecialchars($user['register_user_agent']); ?></span>
+            </div>
+            <?php endif; ?>
+        </div>
+    </div>
+
+<?php include 'components/footer_wrapper.html'; ?>

@@ -1,0 +1,63 @@
+<?php
+/**
+ * 表头排序链接生成函数（公共组件）
+ *
+ * 使用方法：在列表模板的 <thead> 之前 include 本组件一次，然后对需要排序的表头调用：
+ *   <?php include ADMIN_PATH . '/templates/components/sort_link.html'; ?>
+ *   <th><?php echo sortLink('created_at', '发布时间', $sort, $order); ?></th>
+ *
+ * 排序交互（三态循环，与主流组件库表格一致）：
+ *   未排序（灰色双箭头，悬浮提示「点击升序」）
+ *   → 升序（上箭头高亮主题色，悬浮提示「点击降序」）
+ *   → 降序（下箭头高亮主题色，悬浮提示「取消排序」）
+ *   → 取消排序回到默认
+ * 自动保留当前 URL 中的筛选参数，切换排序后回到第 1 页。
+ * 悬浮提示复用 .has-tooltip 纯 CSS 气泡（components.css tooltip 区块），
+ * 箭头/高亮样式见 components.css「表头排序与列筛选」区块。
+ *
+ * 依赖变量：$sort（当前排序字段）、$order（当前升降序），由控制器通过 ListQuery::sort() 获取
+ */
+if (!function_exists('sortLink')) {
+    /**
+     * 生成表头排序链接
+     * @param string $field 排序字段名（需与控制器白名单一致）
+     * @param string $label 表头显示文字
+     * @param string $sort  当前排序字段
+     * @param string $order 当前升降序（asc/desc）
+     * @return string 带双箭头指示与悬浮提示的排序链接 HTML
+     */
+    function sortLink($field, $label, $sort, $order) {
+        // 计算点击后的目标排序状态：未排序 → 升序 → 降序 → 取消（三态循环）
+        if ($sort !== $field) {
+            $nextOrder = 'asc';
+            $tip = '点击升序';
+            $stateClass = '';
+        } elseif ($order === 'asc') {
+            $nextOrder = 'desc';
+            $tip = '点击降序';
+            $stateClass = ' sorted-asc';
+        } else {
+            $nextOrder = '';
+            $tip = '取消排序';
+            $stateClass = ' sorted-desc';
+        }
+        // 组装 URL：保留现有 GET 筛选参数，替换 sort/order，重置页码
+        $params = $_GET;
+        unset($params['page']); // 切换排序后回到第一页
+        if ($nextOrder === '') {
+            unset($params['sort'], $params['order']); // 取消排序
+        } else {
+            $params['sort'] = $field;
+            $params['order'] = $nextOrder;
+        }
+        $url = 'admin.php?' . http_build_query($params);
+        // 上/下双箭头：未排序时双箭头同为浅灰，激活态由 .sorted-asc/.sorted-desc 控制高亮单箭头
+        $icons = '<span class="sort-icons" aria-hidden="true">'
+            . '<svg class="sort-icon-up" viewBox="0 0 1024 1024" focusable="false" fill="currentColor" aria-hidden="true"><path d="M858.9 689L530.5 308.2c-9.4-10.9-27.5-10.9-37 0L165.1 689c-12.2 14.2-1.2 35 18.5 35h656.8c19.7 0 30.7-20.8 18.5-35z"></path></svg>'
+            . '<svg class="sort-icon-down" viewBox="0 0 1024 1024" focusable="false" fill="currentColor" aria-hidden="true"><path d="M840.4 300H183.6c-19.7 0-30.7 20.8-18.5 35l328.4 380.8c9.4 10.9 27.5 10.9 37 0L858.9 335c12.2-14.2 1.2-35-18.5-35z"></path></svg>'
+            . '</span>';
+        return '<a href="' . htmlspecialchars($url) . '" class="th-sort has-tooltip' . $stateClass . '" data-tip="' . $tip . '">'
+            . '<span class="th-sort-label">' . $label . '</span>' . $icons . '</a>';
+    }
+}
+?>

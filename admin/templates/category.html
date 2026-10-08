@@ -1,0 +1,213 @@
+<?php $currentAction = 'category'; $pageTitle = '分类管理';  include 'components/page_wrapper.html'; ?>
+            
+    <!-- ==================== 工具栏（两段式：简单列表无筛选区，对齐列表页规范） ==================== -->
+    <div class="list-toolbar list-toolbar-flat">
+        <!-- 添加分类：在右侧抽屉内打开表单（common.js 通用 openEntityDrawer，保存成功后自动关抽屉并刷新列表），href 保留支持中键新窗口 -->
+        <a href="admin.php?action=category&sub=add" class="btn btn-primary" onclick="openEntityDrawer(this.href, '添加分类'); return false;">
+            <?php echo admin_svg_icon('plus', ''); ?>添加分类
+        </a>
+        <!-- 保存排序：AJAX 提交表格内嵌的排序表单，成功后原地 Toast 提示，不再整页跳转 -->
+        <button type="button" class="btn btn-default" onclick="saveCategoryOrder(this)">
+            <?php echo admin_svg_icon('check', ''); ?>保存排序
+        </button>
+
+        <!-- 批量操作下拉菜单：菜单项通过 data-batch 属性分发（见底部脚本） -->
+        <div class="btn-group">
+            <!-- 批量操作下拉触发按钮：文字与箭头垂直居中（原内联样式迁移至 components.css 的 .tx-batch-toggle） -->
+            <a href="javascript:void(0)" class="btn btn-default dropdown-toggle tx-batch-toggle">
+                批量操作<span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu batch-menu">
+                <li><a href="javascript:void(0)" data-batch="delete" class="menu-item-danger">批量删除</a></li>
+            </ul>
+        </div>
+
+        <!-- 批量选中计数提示：勾选行复选框后显示「已选 N 项」（common.js initBatchSelectedInfo 自动维护） -->
+        <span id="batch-selected-info" class="batch-selected-info"></span>
+    </div>
+
+    <div class="table-container">
+        <form id="category-form" action="admin.php?action=category&sub=updateOrder" method="post">
+        <table class="table">
+                <thead>
+                    <tr>
+                        <!-- 复选框列：表头为全选开关（id=select_all，见底部批量脚本） -->
+                        <th class="col-check"><input type="checkbox" id="select_all"></th>
+                        <th>ID</th>
+                        <th>分类名称</th>
+                        <th>别名</th>
+                        <th>跳转链接</th>
+                        <th>排序</th>
+                        <th>文章数量</th>
+                        <th>创建时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($categories as $category): ?>
+                    <tr>
+                        <!-- 行复选框：name=ids[] 供批量操作收集；分类复选框位于排序表单内，
+                             保存排序时由脚本临时禁用（见 saveCategoryOrder），不会随排序数据提交 -->
+                        <td class="col-check"><input type="checkbox" name="ids[]" value="<?php echo $category['id']; ?>" class="category_checkbox"></td>
+                        <td><?php echo $category['id']; ?></td>
+                        <td>
+                            <?php 
+                            // 显示树形结构的分类名称
+                            if ($category['parent_id'] == 0) {
+                                echo '<strong>' . $category['name'] . '</strong>';
+                            } else {
+                                // 计算缩进级别
+                                $indent = '';
+                                $parentId = $category['parent_id'];
+                                $currentCategory = $category;
+                                
+                                // 只显示一级子分类的缩进
+                                if ($parentId != 0) {
+                                    $indent = '└─ ';
+                                }
+                                echo $indent . $category['name'];
+                            }
+                            ?>
+                        </td>
+                        <td><?php echo isset($category['slug']) && !empty($category['slug']) ? $category['slug'] : '-'; ?></td>
+                        <td><?php echo isset($category['redirect_url']) && !empty($category['redirect_url']) ? '<a href="' . htmlspecialchars($category['redirect_url']) . '" target="_blank" class="tx-redirect-link">' . htmlspecialchars(mb_substr($category['redirect_url'], 0, 30)) . (mb_strlen($category['redirect_url']) > 30 ? '...' : '') . '</a>' : '-'; ?></td>
+                        <!-- 排序输入框：窄宽度（原内联 width:60px 迁移至 components.css 的 .tx-sort-input，
+                             该类携带 8 个 :not([type=...]) 链以覆盖 forms.css 的 input 基础宽度） -->
+                        <td><input type="number" name="order_by[<?php echo $category['id']; ?>]" value="<?php echo $category['sort']; ?>" class="tx-sort-input"></td>
+                        <td><?php echo $category['article_count']; ?></td>
+                        <td><?php echo date('Y-m-d H:i:s', $category['created_at']); ?></td>
+                        <td>
+                            <!-- 操作列：文字链接式（对齐用户/文章列表页）；编辑走右侧抽屉 -->
+                            <a href="admin.php?action=category&sub=edit&id=<?php echo $category['id']; ?>" class="table-link" onclick="openEntityDrawer(this.href, '编辑分类'); return false;">编辑</a>
+                            <span class="table-action-divider"></span>
+                            <a href="admin.php?action=category&sub=delete&id=<?php echo $category['id']; ?>" class="table-link table-link-danger" onclick="return confirmLink(this, '确定要删除这个分类吗？', { type: 'danger', confirmText: '删除' });">删除</a>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </form>
+    </div>
+
+<script>
+/**
+ * 保存排序：AJAX 提交排序表单
+ * 通过 fetch 将表格内全部 order_by[分类ID] 排序值 POST 到 updateOrder，
+ * 成功后留在当前页由 showToast 原地提示，不再整页跳转
+ */
+function saveCategoryOrder(btn) {
+    // 组装表单数据并附加 ajax=1 标记，后端据此返回 JSON 而非提示页
+    var form = document.getElementById('category-form');
+    if (!form) {
+        return;
+    }
+    // 批量删除用的 ids[] 行复选框也在排序表单内，提交前临时禁用（disabled 字段不进入 FormData），
+    // 提交完成后立即恢复，避免无关数据混入排序请求
+    var batchBoxes = form.querySelectorAll('input[name="ids[]"]');
+    batchBoxes.forEach(function (cb) { cb.disabled = true; });
+    // 组装表单数据并附加 ajax=1 标记，后端据此返回 JSON 而非提示页
+    var formData = new FormData(form);
+    batchBoxes.forEach(function (cb) { cb.disabled = false; });
+    formData.append('ajax', '1');
+    // 提交期间禁用按钮，防止重复提交
+    btn.disabled = true;
+    fetch(form.action, { method: 'POST', body: formData })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+            showToast(data.message || (data.success ? '排序更新成功' : '排序更新失败'), data.success ? 'success' : 'error');
+        })
+        .catch(function () {
+            showToast('排序更新失败，请稍后重试', 'error');
+        })
+        .finally(function () {
+            btn.disabled = false;
+        });
+}
+</script>
+
+<script>
+/**
+ * 批量操作脚本（对齐文章列表页交互）：
+ * 1. 表头全选/取消全选，并同步行选中高亮；
+ * 2. 行复选框变化时同步该行 .selected 高亮；
+ * 3. 批量菜单点击分发：批量删除为危险操作，先弹确认框，确认后以
+ *    POST + ids[] + csrf_token 提交到 batchDelete（后端逐条校验关联保护）。
+ * 「已选 N 项」计数徽标由 common.js 的 initBatchSelectedInfo 全局自动维护，无需在此处理。
+ */
+(function () {
+    // 收集当前勾选的分类 ID 列表
+    var getSelectedIds = function () {
+        return Array.prototype.map.call(
+            document.querySelectorAll('.category_checkbox:checked'),
+            function (cb) { return cb.value; }
+        );
+    };
+
+    // 统一构建 POST 表单并提交（ids[] + 额外参数 + CSRF 令牌）
+    var submitBatchForm = function (url, params) {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = url;
+        getSelectedIds().forEach(function (id) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'ids[]';
+            input.value = id;
+            form.appendChild(input);
+        });
+        Object.keys(params || {}).forEach(function (key) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = params[key];
+            form.appendChild(input);
+        });
+        // CSRF 令牌：由会话生成，后端 Security::validateCsrfToken 校验
+        var tokenInput = document.createElement('input');
+        tokenInput.type = 'hidden';
+        tokenInput.name = 'csrf_token';
+        tokenInput.value = '<?php echo $_SESSION['csrf_token']; ?>';
+        form.appendChild(tokenInput);
+        document.body.appendChild(form);
+        form.submit();
+    };
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // 全选/取消全选：表头复选框同步所有行复选框的选中状态与行高亮
+        var selectAll = document.getElementById('select_all');
+        if (selectAll) {
+            selectAll.addEventListener('change', function () {
+                document.querySelectorAll('.category_checkbox').forEach(function (checkbox) {
+                    checkbox.checked = selectAll.checked;
+                    checkbox.closest('tr').classList.toggle('selected', selectAll.checked);
+                });
+            });
+        }
+
+        // 单个复选框变化时同步该行高亮
+        document.querySelectorAll('.category_checkbox').forEach(function (cb) {
+            cb.addEventListener('change', function (e) {
+                e.target.closest('tr').classList.toggle('selected', e.target.checked);
+            });
+        });
+
+        // 批量菜单点击分发（下拉开合由 common.js initDropdowns 统一事件委托处理）
+        document.querySelectorAll('.batch-menu a[data-batch]').forEach(function (item) {
+            item.addEventListener('click', function (e) {
+                e.preventDefault();
+                if (getSelectedIds().length === 0) {
+                    showToast('请先选择分类', 'error');
+                    return;
+                }
+                // 批量删除：统一确认弹窗（危险操作红色样式），确认后提交
+                showConfirmDialog('确定要删除选中的分类吗？', { type: 'danger', confirmText: '删除' }).then(function (ok) {
+                    if (ok) {
+                        submitBatchForm('admin.php?action=category&method=batchDelete', {});
+                    }
+                });
+            });
+        });
+    });
+})();
+</script>
+<?php include 'components/footer_wrapper.html'; ?>

@@ -1,0 +1,380 @@
+    <?php  $currentAction = 'user'; $pageTitle = '用户列表'; include 'components/page_wrapper.html'; ?>
+
+    <!-- 搜索和筛选表单（列表页第一视觉层）：filter-section-flat 为白底变体（components.css），
+         桌面端横向排布（filter-row flex），移动端纵向排布（与文章管理页行为一致，直接展开不折叠） -->
+    <div class="filter-section filter-section-flat">
+        <form method="get" action="admin.php" id="search-form" class="filter-form">
+            <input type="hidden" name="action" value="user">
+            <div class="filter-row">
+                <div class="filter-group filter-group-wide">
+                    <label for="user_search">搜索</label>
+                    <input type="text" name="search" id="user_search" class="filter-input" placeholder="用户名/昵称/邮箱"
+                           value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
+                </div>
+
+                <div class="filter-group">
+                    <label for="user_role_filter">角色</label>
+                    <select name="role" id="user_role_filter" class="filter-select">
+                        <option value="">全部角色</option>
+                        <?php foreach ($roleList as $roleId => $roleName): ?>
+                        <option value="<?php echo $roleId; ?>"
+                                <?php echo isset($_GET['role']) && $_GET['role'] == $roleId ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($roleName); ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="user_status_filter">状态</label>
+                    <select name="status" id="user_status_filter" class="filter-select">
+                        <option value="">全部状态</option>
+                        <option value="1" <?php echo isset($_GET['status']) && $_GET['status'] === '1' ? 'selected' : ''; ?>>正常</option>
+                        <option value="0" <?php echo isset($_GET['status']) && $_GET['status'] === '0' ? 'selected' : ''; ?>>禁用</option>
+                    </select>
+                </div>
+
+                <!-- 注册时间为次要筛选条件：默认收起（.filter-extra 机制见 forms.css），
+                     点击「展开筛选」按钮后显示 -->
+                <div class="filter-group filter-extra">
+                    <label>注册时间</label>
+                    <!-- date-range-box：两个日期输入合并为一个边框容器（components.css 一体框样式） -->
+                    <div class="date-range-box">
+                        <input type="date" name="created_at_start" class="date-picker-input" placeholder="开始日期"
+                               value="<?php echo isset($_GET['created_at_start']) ? htmlspecialchars($_GET['created_at_start']) : ''; ?>">
+                        <span class="date-separator">-</span>
+                        <input type="date" name="created_at_end" class="date-picker-input" placeholder="结束日期"
+                               value="<?php echo isset($_GET['created_at_end']) ? htmlspecialchars($_GET['created_at_end']) : ''; ?>">
+                    </div>
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <?php echo admin_svg_icon('search', ''); ?>搜索
+                    </button>
+                    <a href="admin.php?action=user" class="btn btn-default">
+                        <?php echo admin_svg_icon('refresh', ''); ?>重置
+                    </a>
+                    <!-- 展开/收起次要筛选条件：保证默认状态下高频条件与按钮同行不换行 -->
+                    <button type="button" class="btn btn-default filter-toggle-btn" onclick="toggleFilterExtra(this)">
+                        <span class="filter-toggle-text">展开筛选</span>
+                        <?php echo admin_svg_icon('chevron-down', 'filter-toggle-arrow'); ?>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- 工具栏（列表页第二视觉层）：list-toolbar-flat 白底+底部分割线（components.css），
+         左侧主操作（添加 + 批量操作下拉），右侧次要操作图标组（导入/导出）；
+         批量操作由旧「下拉框 + 执行按钮」改为统一下拉菜单（逻辑见页面底部 executeBatchAction()） -->
+    <div class="list-toolbar list-toolbar-flat">
+        <a href="admin.php?action=user&sub=add" class="btn btn-primary" onclick="openEntityDrawer(this.href, '添加用户'); return false;">
+            <?php echo admin_svg_icon('plus', ''); ?>添加
+        </a>
+
+        <!-- 用户回收站入口：左侧红色按钮（与添加并排，对齐文章列表工具栏样式） -->
+        <a href="admin.php?action=user&method=recycle" class="btn btn-danger-ghost">
+            <?php echo admin_svg_icon('trash', ''); ?>回收站
+        </a>
+
+        <?php Hook::trigger('admin_user_after_list', []); ?>
+        <div class="btn-group">
+            <!-- 批量操作下拉：开合由 common.js initDropdowns() 统一事件委托处理；
+                 菜单项经 executeBatchAction(动作) 执行，未勾选用户时统一 toast 提示 -->
+            <button type="button" class="btn btn-default dropdown-toggle">批量操作</button>
+            <ul class="dropdown-menu">
+                <li><a href="javascript:void(0)" onclick="executeBatchAction('batch-disable')">批量禁用</a></li>
+                <li><a href="javascript:void(0)" onclick="executeBatchAction('batch-enable')">批量启用</a></li>
+                <li><a href="javascript:void(0)" onclick="executeBatchAction('batch-delete')" class="menu-item-danger">批量删除</a></li>
+                <li><a href="javascript:void(0)" onclick="executeBatchAction('batch-role')">批量修改角色</a></li>
+            </ul>
+        </div>
+
+        <!-- 批量选中计数提示：勾选行复选框后显示「已选 N 项」（common.js initBatchSelectedInfo 自动维护） -->
+        <span id="batch-selected-info" class="batch-selected-info"></span>
+        <!-- 右侧图标组：导入/导出为不常用但需常驻入口的次要操作（ul-toolbar-side 推至最右，
+             见 components.css），文字说明由 .has-tooltip 纯 CSS 悬浮提示展示（components.css 工具栏区块） -->
+        <div class="ul-toolbar-side">
+            <!-- 导入用户：在右侧抽屉内打开导入页（common.js 通用 openEntityDrawer，
+                 全部导入成功时经 respondWithToast 跳回列表自动关抽屉并刷新父页；
+                 存在失败/跳过明细时结果面板留在抽屉内供排查，href 保留支持中键新窗口） -->
+            <a href="admin.php?action=user&sub=import" class="icon-btn has-tooltip" data-tip="导入用户" aria-label="导入用户"
+               onclick="openEntityDrawer(this.href, '导入用户'); return false;">
+                <?php echo admin_svg_icon('download', ''); ?>
+            </a>
+            <div class="btn-group">
+                <!-- 导出下拉：开合逻辑由 common.js initDropdowns() 统一事件委托处理 -->
+                <button type="button" class="icon-btn dropdown-toggle has-tooltip" data-tip="导出数据" aria-label="导出数据">
+                    <?php echo admin_svg_icon('upload', ''); ?>
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a href="javascript:void(0)" onclick="exportUsers('csv')">导出CSV</a>
+                    </li>
+                    <li>
+                        <a href="javascript:void(0)" onclick="exportUsers('xls')">导出Excel</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-container">
+
+        <!-- 表格：白底 + 行悬停高亮（不使用斑马纹，视觉对齐统一列表页风格） -->
+        <table class="table">
+            <?php include ADMIN_PATH . '/templates/components/sort_link.html'; ?>
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="select-all-table" class="user-checkbox" onclick="selectAllUsersInTable(this)"></th>
+                    <th><?php echo sortLink('id', 'ID', $sort, $order); ?></th>
+                    <th>用户名</th>
+                    <th>昵称</th>
+                    <th>角色</th>
+                    <th>账号状态</th>
+                    <?php Hook::trigger('admin_user_list_column_header'); ?>
+                    <th><?php echo sortLink('created_at', '创建时间', $sort, $order); ?></th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($users)): ?>
+                <!-- 空状态：区分「没有用户」与「筛选无结果」两种场景文案 -->
+                <tr>
+                    <td colspan="9">
+                        <?php
+                        $userHasFilter = (isset($_GET['search']) && $_GET['search'] !== '')
+                            || (isset($_GET['role']) && $_GET['role'] !== '')
+                            || (isset($_GET['status']) && $_GET['status'] !== '')
+                            || (isset($_GET['created_at_start']) && $_GET['created_at_start'] !== '')
+                            || (isset($_GET['created_at_end']) && $_GET['created_at_end'] !== '');
+                        if ($userHasFilter) {
+                            $emptyTitle = '没有符合条件的用户';
+                            $emptyIcon = 'search';
+                            $emptyDesc = '尝试调整筛选条件后重新查询';
+                        } else {
+                            $emptyTitle = '暂无用户';
+                            $emptyIcon = 'inbox';
+                            $emptyActionUrl = 'admin.php?action=user&sub=add';
+                            $emptyActionText = '添加用户';
+                        }
+                        include 'components/empty_state.html';
+                        ?>
+                    </td>
+                </tr>
+                <?php else: ?>
+                <?php foreach ($users as $user): ?>
+                <tr>
+                    <td><input type="checkbox" class="user-checkbox" value="<?php echo $user['id']; ?>"<?php echo $user['id'] == 1 ? ' disabled' : ''; ?>></td>
+                    <td><?php echo $user['id']; ?></td>
+                    <td>
+                        <!-- 用户名/昵称均可点击进入用户详情页（替代独立「详情」按钮，减少操作列元素） -->
+                        <a href="admin.php?action=user&sub=detail&id=<?php echo $user['id']; ?>" class="table-link"><?php echo htmlspecialchars($user['username']); ?></a>
+                    </td>
+                    <td>
+                        <a href="admin.php?action=user&sub=detail&id=<?php echo $user['id']; ?>" class="table-link"><?php echo htmlspecialchars($user['nickname']); ?></a>
+                    </td>
+                    <td>
+                        <span class="role-tag <?php echo $user['role_class']; ?>"><?php echo htmlspecialchars($user['role_name']); ?></span>
+                    </td>
+                    <td>
+                        <span class="status-tag <?php echo $user['status'] == 1 ? 'status-active' : 'status-inactive'; ?>">
+                            <?php echo htmlspecialchars($user['status_name']); ?>
+                        </span>
+                    </td>
+                    <?php Hook::trigger('admin_user_list_column_cell', $user); ?>
+                    <td><?php echo htmlspecialchars($user['created_at']); ?></td>
+                    <td>
+                        <a href="admin.php?action=user&sub=edit&id=<?php echo $user['id']; ?>" class="table-link" onclick="openEntityDrawer(this.href, '编辑用户'); return false;">
+                            编辑
+                        </a>
+                        <?php if ($user['id'] != 1): ?>
+                        <!-- 编辑与操作之间的竖分隔线 -->
+                        <span class="table-action-divider"></span>
+                        <!-- ul-action-dropdown：操作下拉组行内块布局（components.css） -->
+                        <div class="btn-group ul-action-dropdown">
+                            <!-- 开合逻辑由 common.js initDropdowns() 统一事件委托处理（点击/外部关闭/Esc） -->
+                            <a href="javascript:void(0)" class="table-link dropdown-toggle">
+                                操作<span class="caret"></span>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a href="admin.php?action=user&sub=toggleStatus&id=<?php echo $user['id']; ?>&status=<?php echo $user['status'] == 1 ? 0 : 1; ?>" onclick="return confirmLink(this, '确定<?php echo $user['status'] == 1 ? '禁用' : '解封'; ?>这个用户吗？', { type: 'warning', title: '账号状态', confirmText: '<?php echo $user['status'] == 1 ? '禁用' : '解封'; ?>' });">
+                                        <?php echo $user['status'] == 1 ? '禁用' : '解封'; ?>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="admin.php?action=user&sub=delete&id=<?php echo $user['id']; ?>" onclick="return confirmLink(this, '确定要将这个用户移至回收站吗？', { type: 'danger', confirmText: '移入回收站' });" class="menu-item-danger">
+                                        删除
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+        </div>
+
+        <!-- 分页：放在表格容器之外，避免贴着表格边框显得拥挤 -->
+        <?php if (isset($totalPages) && $totalPages > 1): ?>
+        <?php
+        // 分页链接透传参数：筛选条件（搜索/角色/状态/注册时间范围）+ 排序 + 每页条数，
+        // 翻页时不丢失当前列表状态
+        $filters = [];
+        if (isset($_GET['search']) && $_GET['search'] !== '') $filters['search'] = $_GET['search'];
+        if (isset($_GET['role']) && $_GET['role'] !== '') $filters['role'] = $_GET['role'];
+        if (isset($_GET['status']) && $_GET['status'] !== '') $filters['status'] = $_GET['status'];
+        if (isset($_GET['created_at_start']) && $_GET['created_at_start'] !== '') $filters['created_at_start'] = $_GET['created_at_start'];
+        if (isset($_GET['created_at_end']) && $_GET['created_at_end'] !== '') $filters['created_at_end'] = $_GET['created_at_end'];
+        // 排序参数并入分页链接，翻页时不丢失当前排序状态
+        if (!empty($sort)) { $filters['sort'] = $sort; $filters['order'] = $order; }
+        // 每页条数并入分页链接（可选项集合供分页组件渲染下拉框）
+        $filters['limit'] = $limit;
+        $pageSizes = $allowedPageSizes;
+        ?>
+        <div class="pagination-container">
+            <?php include 'components/pagination.html'; ?>
+        </div>
+        <?php endif; ?>
+        
+
+    
+    <script>
+        // 用户页面特定的JavaScript
+
+        // 筛选表单提交前移除空值参数，保持 URL 简洁（与文章管理页行为一致）
+        document.getElementById('search-form').addEventListener('submit', function() {
+            ['search', 'role', 'status', 'created_at_start', 'created_at_end'].forEach(function(name) {
+                const field = this.elements[name];
+                if (field && field.value === '') {
+                    field.removeAttribute('name');
+                }
+            }, this);
+        });
+        
+        // 下拉菜单开合已由 common.js initDropdowns() 统一处理，无需页面内联实现
+
+        // 全选用户
+        function selectAllUsersInTable(checkbox) {
+            const userCheckboxes = document.querySelectorAll('.user-checkbox');
+            userCheckboxes.forEach(cb => {
+                if (!cb.disabled) {
+                    cb.checked = checkbox.checked;
+                }
+            });
+        }
+        
+        // 执行批量操作（由工具栏「批量操作」下拉菜单触发，动作作为参数传入；
+        // 未勾选用户时统一 toast 提示；批量修改角色打开页面底部统一弹窗）
+        function executeBatchAction(action) {
+            const selectedUsers = document.querySelectorAll('.user-checkbox:checked');
+            if (selectedUsers.length === 0) {
+                showToast('请选择至少一个用户', 'error');
+                return;
+            }
+
+            const userIds = Array.from(selectedUsers).map(cb => cb.value).join(',');
+
+            // 关闭已打开的下拉菜单（弹窗流程不发生页面跳转，需手动收起）
+            document.querySelectorAll('.dropdown-menu.show').forEach(function(menu) {
+                menu.classList.remove('show');
+                const group = menu.closest('.btn-group, .dropdown');
+                if (group) group.classList.remove('show');
+            });
+
+            if (action === 'batch-disable') {
+                showConfirmDialog('确定要禁用选中的' + selectedUsers.length + '个用户吗？', { type: 'warning', title: '批量操作', confirmText: '禁用' }).then(ok => {
+                    if (ok) window.location.href = 'admin.php?action=user&sub=batchToggleStatus&status=0&user_ids=' + userIds;
+                });
+            } else if (action === 'batch-enable') {
+                showConfirmDialog('确定要启用选中的' + selectedUsers.length + '个用户吗？', { type: 'warning', title: '批量操作', confirmText: '启用' }).then(ok => {
+                    if (ok) window.location.href = 'admin.php?action=user&sub=batchToggleStatus&status=1&user_ids=' + userIds;
+                });
+            } else if (action === 'batch-delete') {
+                showConfirmDialog('确定要将选中的' + selectedUsers.length + '个用户移至回收站吗？', { type: 'danger', title: '批量操作', confirmText: '移入回收站' }).then(ok => {
+                    if (ok) window.location.href = 'admin.php?action=user&sub=batchDelete&user_ids=' + userIds;
+                });
+            } else if (action === 'batch-role') {
+                openBatchRoleModal();
+            }
+        }
+
+        // ==================== 批量修改角色弹窗 ====================
+        // 结构为统一 .modal-overlay > .modal 体系（components.css），.show 控制显隐
+
+        // 打开弹窗（记住本次勾选的用户，提交时拼入请求）
+        function openBatchRoleModal() {
+            document.getElementById('batchRoleModal').classList.add('show');
+        }
+
+        // 关闭弹窗（× / 取消按钮）
+        function closeBatchRoleModal() {
+            document.getElementById('batchRoleModal').classList.remove('show');
+        }
+
+        // 弹窗内确定提交：校验角色已选、与勾选用户拼成批量修改请求后跳转
+        function submitBatchRole(e) {
+            e.preventDefault();
+            const roleId = document.getElementById('batch-role-modal-select').value;
+            if (!roleId) {
+                showToast('请选择要修改的角色', 'error');
+                return false;
+            }
+            const selectedUsers = document.querySelectorAll('.user-checkbox:checked');
+            if (selectedUsers.length === 0) {
+                showToast('请选择至少一个用户', 'error');
+                closeBatchRoleModal();
+                return false;
+            }
+            const userIds = Array.from(selectedUsers).map(cb => cb.value).join(',');
+            closeBatchRoleModal();
+            window.location.href = 'admin.php?action=user&sub=batchUpdateRole&user_ids=' + userIds + '&role_id=' + roleId;
+            return false;
+        }
+        
+        // 导出用户
+        function exportUsers(format) {
+            const searchParams = new URLSearchParams(window.location.search);
+            searchParams.set('action', 'user');
+            searchParams.set('sub', 'export');
+            searchParams.set('format', format);
+            window.location.href = 'admin.php?' + searchParams.toString();
+        }
+    </script>
+
+    <!-- 批量修改角色弹窗：复用统一 .modal-overlay > .modal 体系（components.css，.show 控制显隐）。
+         由工具栏「批量操作 → 批量修改角色」打开（openBatchRoleModal），提交见 submitBatchRole() -->
+    <div class="modal-overlay" id="batchRoleModal" onclick="if (event.target === this) closeBatchRoleModal();">
+        <div class="modal modal-sm" role="dialog" aria-modal="true" aria-label="批量修改角色">
+            <div class="modal-header">
+                <h3 class="modal-title">批量修改角色</h3>
+                <button type="button" class="modal-close" onclick="closeBatchRoleModal()" aria-label="关闭">&times;</button>
+            </div>
+            <form onsubmit="return submitBatchRole(event);">
+                <div class="modal-body">
+                    <!-- ul-batch-role-form-group / ul-batch-role-select：弹窗内表单组去下边距、
+                         下拉撑满宽度（components.css，替代原内联样式） -->
+                    <div class="form-group ul-batch-role-form-group">
+                        <label for="batch-role-modal-select">新角色</label>
+                        <select id="batch-role-modal-select" class="filter-select ul-batch-role-select">
+                            <option value="">请选择角色</option>
+                            <?php foreach ($roleList as $batchRoleId => $batchRoleName): ?>
+                            <option value="<?php echo $batchRoleId; ?>"><?php echo htmlspecialchars($batchRoleName); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeBatchRoleModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">确定</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+<?php include 'components/footer_wrapper.html'; ?>

@@ -1,0 +1,64 @@
+# 安装程序生成的站点配置（含站点数据库账号密码），禁止提交仓库
+core/config/database.php
+
+# 分发包压缩文件与本地构建产物
+*.zip
+
+# 运行时数据目录：缓存/日志/上传文件不入库（.gitkeep 仅保证解压后目录存在）
+storage/*
+!storage/.gitkeep
+uploads/*
+!uploads/.gitkeep
+
+# 系统与编辑器杂物
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# 内部开发文档，禁止提交开源仓库
+AI_PLUGIN_PLAN.md
+OSS_PLUGIN_PLAN.md
+COS_PLUGIN_PLAN.md
+QINIU_PLUGIN_PLAN.md
+UPYUN_PLUGIN_PLAN.md
+UPDATE_PACKAGE_PLAN.md
+UPDATE_DISTRIBUTE_PLAN.md
+PLUGIN_EXTRACT_PLAN.md
+BLOGKIT_WEBSITE_PLAN.md
+SECURITY.md
+ADMIN_REDESIGN_PLAN.md
+ADMIN_FORM_NAV.md
+ADMIN_CLEARABLE_INPUTS.md
+ADMIN_ACTION_SHEET.md
+ADMIN_SHEET_MODAL.md
+ADMIN_STEPPER.md
+ADMIN_IOS_ROADMAP.md
+RELEASE_1.0.0_PLAN.md
+MENU_SLOT_REFACTOR_PLAN.md
+
+# 发布包目录（2026-09-26 决议：升级包/版本包为本地构建产物，
+# 官网发布同一份 zip，不进源码仓库——含一键打包脚本与打包产物）
+update/
+
+# 官方独立插件（2026-09-25 决议：五个官方插件独立开发上架官网应用市场分发，
+# 不属于主系统自带功能，同步主系统源码仓库时切记不要同步——防误提交）
+plugins/aikit/
+plugins/alioss/
+plugins/tencos/
+plugins/qiniu/
+plugins/upyun/
+
+# 功能型官方插件（插件化剥离产物，与五存储插件同策略：仅应用市场上架分发，
+# 不属于主系统自带功能，同步主系统源码仓库时切记不要同步——防误提交）
+plugins/auditlog/
+plugins/devkit/
+plugins/imageopt/
+plugins/interaction/
+plugins/notification/
+plugins/openapi/
+
+# 本地开发杂物与运行时标记
+.trae/
+install.lock
+generate_test_data.php
