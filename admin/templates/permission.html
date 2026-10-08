@@ -1,0 +1,294 @@
+<?php  $currentAction = 'permission'; $pageTitle = '权限管理'; include 'components/page_wrapper.html'; ?>
+    
+
+    
+    <!-- ==================== 筛选区（对齐用户/文章列表页三段式结构） ==================== -->
+    <!-- filter-section-flat：白底变体 + 底部分割线（components.css） -->
+    <div class="filter-section filter-section-flat">
+        <!-- GET 表单规范：提交时表单数据会整体替换 action 地址的 query string，
+             因此 action 只写 admin.php，路由参数 action/sub 由隐藏域随表单数据提交
+             （否则筛选后跳回仪表盘），与文章/用户等列表页同款写法 -->
+        <form method="get" action="admin.php" class="filter-form">
+            <input type="hidden" name="action" value="permission">
+            <input type="hidden" name="sub" value="list">
+            <div class="filter-row">
+                <!-- 关键词搜索：按权限名称或编码模糊匹配（模型层 name/code 双列 LIKE） -->
+                <div class="filter-group filter-group-wide">
+                    <label for="permission_search">搜索</label>
+                    <input type="text" id="permission_search" name="search" class="filter-input" placeholder="权限名称或 code" value="<?php echo isset($search) ? $search : ''; ?>">
+                </div>
+
+                <!-- 权限类型筛选：树形权限按 menu/api/page 等类型归类 -->
+                <div class="filter-group">
+                    <label for="permission_type">类型</label>
+                    <select name="type" id="permission_type" class="filter-select">
+                        <option value="">所有类型</option>
+                        <?php foreach ($permissionTypes as $key => $name): ?>
+                        <option value="<?php echo $key; ?>" <?php echo isset($type) && $type == $key ? 'selected' : ''; ?>>
+                            <?php echo $name; ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <!-- 启用状态筛选 -->
+                <div class="filter-group">
+                    <label for="permission_status">状态</label>
+                    <select name="status" id="permission_status" class="filter-select">
+                        <option value="">所有状态</option>
+                        <option value="1" <?php echo isset($status) && $status == 1 ? 'selected' : ''; ?>>启用</option>
+                        <option value="0" <?php echo isset($status) && $status == 0 ? 'selected' : ''; ?>>禁用</option>
+                    </select>
+                </div>
+
+                <!-- 搜索 / 重置按钮组：带线性图标，对齐其他列表页 -->
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <?php echo admin_svg_icon('search', ''); ?>搜索
+                    </button>
+                    <a href="admin.php?action=permission" class="btn btn-default">
+                        <?php echo admin_svg_icon('refresh', ''); ?>重置
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- ==================== 工具栏（主操作区，对齐列表页规范） ==================== -->
+    <div class="list-toolbar list-toolbar-flat">
+        <!-- 添加权限：在右侧抽屉内打开表单（common.js 通用 openEntityDrawer，保存成功后自动关抽屉并刷新列表），href 保留支持中键新窗口 -->
+        <a href="admin.php?action=permission&sub=add" class="btn btn-primary" onclick="openEntityDrawer(this.href, '添加权限'); return false;">
+            <?php echo admin_svg_icon('plus', ''); ?>添加权限
+        </a>
+
+        <!-- 批量操作下拉菜单：菜单项通过 data-batch 属性分发（见底部脚本） -->
+        <div class="btn-group">
+            <!-- rb-toolbar-toggle：下拉触发按钮 flex 居中（components.css，与角色列表页共用） -->
+            <a href="javascript:void(0)" class="btn btn-default dropdown-toggle rb-toolbar-toggle">
+                批量操作<span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu batch-menu">
+                <li><a href="javascript:void(0)" data-batch="delete" class="menu-item-danger">批量删除</a></li>
+            </ul>
+        </div>
+
+        <!-- 一键修复权限：调用迁移引擎按 code 幂等补回被误删的内置权限、
+             为存量菜单行补 is_system 标记，并同步为角色 1 授权；
+             仅 bk_permission 补插与标记回填，无任何 DDL/其他表变更（POST+CSRF，
+             确认弹窗后提交，见底部脚本） -->
+        <form method="post" action="admin.php?action=permission&method=repair" id="repair-permission-form" class="toolbar-inline-form">
+            <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+            <button type="button" id="repair-permission-btn" class="btn btn-default">
+                <?php echo admin_svg_icon('sun', ''); ?>一键修复权限
+            </button>
+        </form>
+
+        <!-- 批量选中计数提示：勾选行复选框后显示「已选 N 项」（common.js initBatchSelectedInfo 自动维护） -->
+        <span id="batch-selected-info" class="batch-selected-info"></span>
+    </div>
+
+    <!-- 权限树列表 -->
+    <div class="table-container">
+        <table class="table">
+                <thead>
+                    <tr>
+                        <!-- 复选框列：表头为全选开关（id=select_all，见底部批量脚本） -->
+                        <th class="col-check"><input type="checkbox" id="select_all"></th>
+                        <th>ID</th>
+                        <th>权限名称</th>
+                        <th>权限编码</th>
+                        <th>权限类型</th>
+                        <th>路径</th>
+                        <th>图标</th>
+                        <th>排序</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    // 递归函数，用于生成权限表格行
+                    // 说明：控制器已将权限树按深度优先顺序展平并分页切片，传入的行不携带 children 键，
+                    // 因此函数对平铺行逐条渲染（保留递归分支以兼容整树渲染的调用方式）
+                    function renderPermissionTableRows($permissions, $permissionTypes) {
+                        $html = '';
+
+                        foreach ($permissions as $permission) {
+                            // 内置权限判断：is_system 列缺失（未升级的老库）时按非内置处理，行为与旧版一致
+                            $isSystem = !empty($permission['is_system']);
+                            $html .= '<tr>';
+                            // 行复选框：name=ids[] 供批量操作收集；内置权限禁止批量删除（禁用勾选）
+                            if ($isSystem) {
+                                $html .= '<td class="col-check"><input type="checkbox" class="permission_checkbox" disabled title="系统内置权限，不可删除"></td>';
+                            } else {
+                                $html .= '<td class="col-check"><input type="checkbox" name="ids[]" value="' . $permission['id'] . '" class="permission_checkbox"></td>';
+                            }
+                            $html .= '<td>' . $permission['id'] . '</td>';
+                            // 名称列：内置权限追加「内置」徽章，提示该行受系统保护
+                            $html .= '<td>' . $permission['name'] . ($isSystem ? ' <span class="system-badge" title="系统内置权限：不可删除，编码由系统维护">内置</span>' : '') . '</td>';
+                            $html .= '<td>' . $permission['code'] . '</td>';
+                            $html .= '<td>' . $permissionTypes[$permission['type']] . '</td>';
+                            $html .= '<td>' . $permission['path'] . '</td>';
+                            $html .= '<td>' . $permission['icon'] . '</td>';
+                            $html .= '<td>' . $permission['sort'] . '</td>';
+                            $html .= '<td><span class="status-badge ' . ($permission['status'] == 1 ? 'active' : 'inactive') . '">' . ($permission['status'] == 1 ? '启用' : '禁用') . '</span></td>';
+                            $html .= '<td class="action-buttons">';
+                            // 操作列：文字链接式（对齐用户/文章列表页规范），编辑走右侧抽屉
+                            $html .= '<a href="admin.php?action=permission&sub=edit&id=' . $permission['id'] . '" class="table-link" onclick="openEntityDrawer(this.href, \'编辑权限\'); return false;">编辑</a>';
+                            $html .= '<span class="table-action-divider"></span>';
+                            // 禁用/启用互斥切换：链接文案随当前状态变化
+                            $html .= '<a href="admin.php?action=permission&sub=toggleStatus&id=' . $permission['id'] . '&status=' . ($permission['status'] == 1 ? 0 : 1) . '" class="table-link">' . ($permission['status'] == 1 ? '禁用' : '启用') . '</a>';
+                            // 删除：仅非内置权限渲染；改为 POST 行内小表单 + CSRF 令牌 + 确认弹窗
+                            //（对齐批量删除标准，防 GET 链接误触发/跨站伪造）
+                            if (!$isSystem) {
+                                $html .= '<span class="table-action-divider"></span>';
+                                $html .= '<form method="post" action="admin.php?action=permission&method=delete" class="row-inline-form">'
+                                    . '<input type="hidden" name="id" value="' . $permission['id'] . '">'
+                                    . '<input type="hidden" name="csrf_token" value="' . $_SESSION['csrf_token'] . '">'
+                                    . '<button type="submit" class="table-link table-link-danger" onclick="return confirmSubmit(this, \'删除后所有角色将失去该权限，确定要删除吗？\', { type: \'danger\', confirmText: \'删除\' });">删除</button>'
+                                    . '</form>';
+                            }
+                            $html .= '</td>';
+                            $html .= '</tr>';
+                            
+                            // 递归渲染子权限
+                            if (isset($permission['children']) && !empty($permission['children'])) {
+                                $html .= renderPermissionTableRows($permission['children'], $permissionTypes);
+                            }
+                        }
+                        
+                        return $html;
+                    }
+                    
+                    // 渲染权限表格行
+                    echo renderPermissionTableRows($permissionTree, $permissionTypes);
+                    
+                    if (empty($permissionTree)):
+                    ?>
+                    <tr>
+                        <td colspan="10">
+                            <?php $emptyTitle = '暂无权限数据'; $emptyIcon = 'inbox'; include 'components/empty_state.html'; ?>
+                        </td>
+                    </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+    </div>
+
+    <!-- 分页：放在表格容器之外，避免贴着表格边框显得拥挤 -->
+    <?php
+        // 引入公共分页组件：type/status 筛选条件并入分页链接（控制器传入的 $filters 仅含非空项），
+        // 翻页时不会丢失当前筛选状态；每页条数可选项沿用 ListQuery 惯例
+        $action = 'permission';
+        $filters['limit'] = $limit; // 复用控制器传入的筛选条件数组，追加每页条数
+        $pageSizes = $allowedPageSizes;
+    ?>
+    <?php if (isset($totalPages) && $totalPages > 1): ?>
+    <!-- rb-pagination-mt：分页容器与表格拉开间距（components.css，与角色列表页共用） -->
+    <div class="pagination-container rb-pagination-mt">
+        <?php include 'components/pagination.html'; ?>
+    </div>
+    <?php endif; ?>
+
+<script>
+/**
+ * 批量操作脚本（对齐文章列表页交互）：
+ * 1. 表头全选/取消全选，并同步行选中高亮；
+ * 2. 行复选框变化时同步该行 .selected 高亮；
+ * 3. 批量菜单点击分发：批量删除为危险操作，先弹确认框，确认后以
+ *    POST + ids[] + csrf_token 提交到 batchDelete（后端逐条校验子权限保护并汇总数量）。
+ * 「已选 N 项」计数徽标由 common.js 的 initBatchSelectedInfo 全局自动维护，无需在此处理。
+ */
+(function () {
+    // 收集当前勾选的权限 ID 列表
+    var getSelectedIds = function () {
+        return Array.prototype.map.call(
+            document.querySelectorAll('.permission_checkbox:checked'),
+            function (cb) { return cb.value; }
+        );
+    };
+
+    // 统一构建 POST 表单并提交（ids[] + 额外参数 + CSRF 令牌）
+    var submitBatchForm = function (url, params) {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = url;
+        getSelectedIds().forEach(function (id) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'ids[]';
+            input.value = id;
+            form.appendChild(input);
+        });
+        Object.keys(params || {}).forEach(function (key) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = params[key];
+            form.appendChild(input);
+        });
+        // CSRF 令牌：由会话生成，后端 Security::validateCsrfToken 校验
+        var tokenInput = document.createElement('input');
+        tokenInput.type = 'hidden';
+        tokenInput.name = 'csrf_token';
+        tokenInput.value = '<?php echo $_SESSION['csrf_token']; ?>';
+        form.appendChild(tokenInput);
+        document.body.appendChild(form);
+        form.submit();
+    };
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // 全选/取消全选：表头复选框同步所有行复选框的选中状态与行高亮
+        var selectAll = document.getElementById('select_all');
+        if (selectAll) {
+            selectAll.addEventListener('change', function () {
+                document.querySelectorAll('.permission_checkbox').forEach(function (checkbox) {
+                    checkbox.checked = selectAll.checked;
+                    checkbox.closest('tr').classList.toggle('selected', selectAll.checked);
+                });
+            });
+        }
+
+        // 单个复选框变化时同步该行高亮
+        document.querySelectorAll('.permission_checkbox').forEach(function (cb) {
+            cb.addEventListener('change', function (e) {
+                e.target.closest('tr').classList.toggle('selected', e.target.checked);
+            });
+        });
+
+        // 批量菜单点击分发（下拉开合由 common.js initDropdowns 统一事件委托处理）
+        document.querySelectorAll('.batch-menu a[data-batch]').forEach(function (item) {
+            item.addEventListener('click', function (e) {
+                e.preventDefault();
+                if (getSelectedIds().length === 0) {
+                    showToast('请先选择权限', 'error');
+                    return;
+                }
+                // 批量删除：统一确认弹窗（危险操作红色样式），确认后提交；
+                // 存在子权限/内置权限由后端模型层拒绝并计入跳过数量
+                showConfirmDialog('确定要删除选中的权限吗？', { type: 'danger', confirmText: '删除' }).then(function (ok) {
+                    if (ok) {
+                        submitBatchForm('admin.php?action=permission&method=batchDelete', {});
+                    }
+                });
+            });
+        });
+
+        // 一键修复权限：确认弹窗后提交修复表单（POST+CSRF）。
+        // 操作幂等：按 install.sql 种子 code 补回缺失的内置权限并同步授权角色 1，
+        // 已完整时后端返回「无需修复」提示，可放心随时点击
+        var repairBtn = document.getElementById('repair-permission-btn');
+        if (repairBtn) {
+            repairBtn.addEventListener('click', function () {
+                showConfirmDialog('将按系统种子数据补回缺失的内置权限并补上内置标记，操作幂等安全。立即修复吗？', { confirmText: '立即修复' }).then(function (ok) {
+                    if (ok) {
+                        document.getElementById('repair-permission-form').submit();
+                    }
+                });
+            });
+        }
+    });
+})();
+</script>
+
+<?php include 'components/footer_wrapper.html'; ?>

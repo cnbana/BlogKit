@@ -1,0 +1,475 @@
+<?php $currentAction = 'article'; $pageTitle = '文章管理';  include 'components/page_wrapper.html'; ?>
+
+    <!-- ==================== 筛选区（列表页第一视觉层，对齐用户列表页三段式结构） ==================== -->
+    <!-- filter-section-flat：白底变体 + 底部分割线（components.css） -->
+    <div class="filter-section filter-section-flat">
+        <form method="get" action="admin.php" class="filter-form">
+            <input type="hidden" name="action" value="article">
+            <input type="hidden" name="sub" value="list">
+
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="category_filter">分类</label>
+                    <select name="category" id="category_filter" class="filter-select">
+                        <option value="" <?php echo empty($_GET['category']) ? 'selected' : ''; ?>>全部</option>
+                        <?php foreach ($categories as $category): ?>
+                            <option value="<?php echo $category['id']; ?>" <?php echo isset($_GET['category']) && $_GET['category'] == $category['id'] ? 'selected' : ''; ?>>
+                                <?php echo $category['name']; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="status_filter">状态</label>
+                    <select name="status" id="status_filter" class="filter-select">
+                        <option value="" <?php echo (isset($_GET['status']) && $_GET['status'] == '') || !isset($_GET['status']) ? 'selected' : ''; ?>>全部</option>
+                        <option value="1" <?php echo isset($_GET['status']) && $_GET['status'] == 1 ? 'selected' : ''; ?>>已发布</option>
+                        <option value="0" <?php echo isset($_GET['status']) && $_GET['status'] == 0 ? 'selected' : ''; ?>>草稿</option>
+                    </select>
+                </div>
+
+                <!-- 置顶状态筛选已改为表头列筛选（置顶状态列漏斗图标，见下方 thead），
+                     顶部筛选区不再重复提供该条件 -->
+
+                <div class="filter-group filter-group-wide">
+                    <label for="search_filter">搜索</label>
+                    <input type="text" name="search" id="search_filter" class="filter-input" placeholder="标题或内容" value="<?php echo isset($_GET['search']) ? $_GET['search'] : ''; ?>">
+                </div>
+
+                <!-- 发布时间为次要筛选条件：默认收起（.filter-extra 机制见 forms.css） -->
+                <div class="filter-group filter-extra">
+                    <label>发布时间</label>
+                    <!-- date-range-box：两个日期输入合并为一个边框容器（components.css 一体框样式，与用户列表页一致） -->
+                    <div class="date-range-box">
+                        <input type="date" name="date_from" id="date_from" class="date-picker-input" value="<?php echo isset($_GET['date_from']) ? htmlspecialchars($_GET['date_from']) : ''; ?>">
+                        <span class="date-separator">-</span>
+                        <input type="date" name="date_to" id="date_to" class="date-picker-input" value="<?php echo isset($_GET['date_to']) ? htmlspecialchars($_GET['date_to']) : ''; ?>">
+                    </div>
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary" id="filter-btn">
+                        <?php echo admin_svg_icon('search', ''); ?>搜索
+                    </button>
+                    <button type="button" class="btn btn-default" id="reset-btn">
+                        <?php echo admin_svg_icon('refresh', ''); ?>重置
+                    </button>
+                    <!-- 展开/收起次要筛选条件：保证默认状态下高频条件与按钮同行不换行 -->
+                    <button type="button" class="btn btn-default filter-toggle-btn" onclick="toggleFilterExtra(this)">
+                        <span class="filter-toggle-text">展开筛选</span>
+                        <?php echo admin_svg_icon('chevron-down', 'filter-toggle-arrow'); ?>
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <script>
+            // 文章页面特定的JavaScript
+            document.addEventListener('DOMContentLoaded', function() {
+                // 说明：发布时间筛选已改用浏览器原生日期控件（type="date"），
+                // 不再初始化 BlogKitAdvanced.DatePicker 自定义年份选择器
+
+                // 获取筛选表单元素
+                const categoryFilter = document.getElementById('category_filter');
+                const statusFilter = document.getElementById('status_filter');
+                const topTypeFilter = document.getElementById('top_type_filter');
+                const searchFilter = document.getElementById('search_filter');
+                const filterBtn = document.getElementById('filter-btn');
+                const resetBtn = document.getElementById('reset-btn');
+                
+                // 重置按钮点击事件
+                if (resetBtn) {
+                    resetBtn.addEventListener('click', function() {
+                        // 跳转到指定URL重置筛选
+                        window.location.href = '/admin.php?action=article&sub=list';
+                    });
+                }
+                
+                // 表单提交时处理空参数
+                const form = document.querySelector('form');
+                const dateFromFilter = document.getElementById('date_from');
+                const dateToFilter = document.getElementById('date_to');
+                
+                if (form) {
+                    form.addEventListener('submit', function(e) {
+                        if (categoryFilter && categoryFilter.value === '') {
+                            categoryFilter.removeAttribute('name');
+                        }
+                        if (statusFilter && statusFilter.value === '') {
+                            statusFilter.removeAttribute('name');
+                        }
+                        if (topTypeFilter && topTypeFilter.value === '') {
+                            topTypeFilter.removeAttribute('name');
+                        }
+                        if (searchFilter && searchFilter.value.trim() === '') {
+                            searchFilter.removeAttribute('name');
+                        }
+                        if (dateFromFilter && dateFromFilter.value === '') {
+                            dateFromFilter.removeAttribute('name');
+                        }
+                        if (dateToFilter && dateToFilter.value === '') {
+                            dateToFilter.removeAttribute('name');
+                        }
+                    });
+                }
+                
+                // 全选/取消全选
+                const selectAll = document.getElementById('select_all');
+                if (selectAll) {
+                    selectAll.addEventListener('change', function() {
+                        var checkboxes = document.querySelectorAll('.article_checkbox');
+                        checkboxes.forEach(function(checkbox) {
+                            checkbox.checked = selectAll.checked;
+                            checkbox.closest('tr').classList.toggle('selected', selectAll.checked);
+                        });
+                    });
+                }
+                
+                // 单选时高亮行
+                document.querySelectorAll('.article_checkbox').forEach(function(cb) {
+                    cb.addEventListener('change', function(e) {
+                        e.target.closest('tr').classList.toggle('selected', e.target.checked);
+                    });
+                });
+                
+                // ==================== 批量操作（统一下拉菜单 + 确认弹窗，对齐用户列表页交互） ====================
+                // 收集当前勾选的文章 ID 列表
+                const getSelectedIds = () =>
+                    Array.from(document.querySelectorAll('.article_checkbox:checked')).map((cb) => cb.value);
+
+                // 统一构建 POST 表单并提交（ids[] + 额外参数 + CSRF 令牌）
+                const submitBatchForm = (url, params) => {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = url;
+                    getSelectedIds().forEach((id) => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'ids[]';
+                        input.value = id;
+                        form.appendChild(input);
+                    });
+                    Object.keys(params).forEach((key) => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = key;
+                        input.value = params[key];
+                        form.appendChild(input);
+                    });
+                    const tokenInput = document.createElement('input');
+                    tokenInput.type = 'hidden';
+                    tokenInput.name = 'csrf_token';
+                    tokenInput.value = '<?php echo $_SESSION['csrf_token']; ?>';
+                    form.appendChild(tokenInput);
+                    document.body.appendChild(form);
+                    form.submit();
+                };
+
+                // 弹窗开关（统一 .modal-overlay > .modal 体系，.show 控制显示）
+                const openBatchModal = (id) => {
+                    const overlay = document.getElementById(id);
+                    if (overlay) overlay.classList.add('show');
+                };
+                const closeBatchModal = (overlay) => {
+                    overlay.classList.remove('show');
+                };
+
+                // 批量菜单点击分发（直接操作：置顶/状态立即提交；删除需确认；移动分类/修改标签需弹窗补充信息）
+                document.querySelectorAll('.batch-menu a[data-batch]').forEach((item) => {
+                    item.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        const action = this.getAttribute('data-batch');
+                        if (getSelectedIds().length === 0) {
+                            showToast('请先选择文章', 'error');
+                            return;
+                        }
+                        if (action.startsWith('top-')) {
+                            // 批量置顶：data-batch 为 top-{置顶类型}
+                            submitBatchForm('admin.php?action=article&method=batchTop', { top_type: action.split('-')[1] });
+                        } else if (action.startsWith('status-')) {
+                            // 批量改状态：data-batch 为 status-{0|1}
+                            submitBatchForm('admin.php?action=article&method=batchStatus', { status: action.split('-')[1] });
+                        } else if (action === 'delete') {
+                            // 批量删除：统一确认弹窗（危险操作红色样式）
+                            showConfirmDialog('确定要删除选中的文章吗？', { type: 'danger', confirmText: '删除' }).then((ok) => {
+                                if (ok) submitBatchForm('admin.php?action=article&method=batchDelete', {});
+                            });
+                        } else if (action === 'move') {
+                            openBatchModal('move-modal');
+                        } else if (action === 'tags') {
+                            openBatchModal('tags-modal');
+                        }
+                    });
+                });
+
+                // 批量移动分类弹窗：确定按钮
+                const moveModal = document.getElementById('move-modal');
+                if (moveModal) {
+                    moveModal.querySelector('.confirm-ok').addEventListener('click', () => {
+                        const categoryId = document.getElementById('target_category').value;
+                        if (!categoryId) {
+                            showToast('请选择目标分类', 'error');
+                            return;
+                        }
+                        closeBatchModal(moveModal);
+                        submitBatchForm('admin.php?action=article&method=batchMove', { category_id: categoryId });
+                    });
+                }
+
+                // 批量修改标签弹窗：确定按钮
+                const tagsModal = document.getElementById('tags-modal');
+                if (tagsModal) {
+                    tagsModal.querySelector('.confirm-ok').addEventListener('click', () => {
+                        const tags = document.getElementById('batch_tags_input').value.trim();
+                        if (!tags) {
+                            showToast('请输入要设置的标签', 'error');
+                            return;
+                        }
+                        closeBatchModal(tagsModal);
+                        submitBatchForm('admin.php?action=article&method=batchTags', {
+                            tags: tags,
+                            tag_mode: document.getElementById('tag_mode').value
+                        });
+                    });
+                }
+
+                // 两个弹窗的关闭逻辑：右上角 ×、取消按钮、点击遮罩空白处
+                [moveModal, tagsModal].forEach((overlay) => {
+                    if (!overlay) return;
+                    overlay.querySelector('.modal-close').addEventListener('click', () => closeBatchModal(overlay));
+                    const cancelBtn = overlay.querySelector('.confirm-cancel');
+                    if (cancelBtn) cancelBtn.addEventListener('click', () => closeBatchModal(overlay));
+                    overlay.addEventListener('click', (e) => {
+                        if (e.target === overlay) closeBatchModal(overlay);
+                    });
+                });
+            });
+        </script>
+    </div>
+
+    <!-- 批量弹窗组：放在工具栏之前，保证「工具栏 → 表格」DOM 相邻
+         （列表堆叠一体化样式依赖相邻兄弟选择器衔接；弹窗为 fixed 定位，DOM 位置不影响展示） -->
+    <!-- 批量移动分类弹窗（统一 .modal-overlay > .modal 体系，.show 控制） -->
+    <div class="modal-overlay" id="move-modal">
+        <div class="modal modal-sm" role="dialog" aria-modal="true">
+            <div class="modal-header">
+                <h3 class="modal-title">批量移动分类</h3>
+                <button type="button" class="modal-close" aria-label="关闭">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="target_category">目标分类</label>
+                    <!-- 全宽下拉框（原内联 width:100% 迁移至 components.css 的 .art-w-full） -->
+                    <select id="target_category" class="art-w-full">
+                        <option value="">选择分类</option>
+                        <?php foreach ($categories as $category): ?>
+                            <option value="<?php echo $category['id']; ?>"><?php echo $category['name']; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary confirm-cancel">取消</button>
+                <!-- 主按钮 = 具体动作文案（5.3：按钮动词开头，不使用泛化「确定」） -->
+                <button type="button" class="btn btn-primary confirm-ok">移动</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 批量修改标签弹窗 -->
+    <div class="modal-overlay" id="tags-modal">
+        <div class="modal modal-sm" role="dialog" aria-modal="true">
+            <div class="modal-header">
+                <h3 class="modal-title">批量修改标签</h3>
+                <button type="button" class="modal-close" aria-label="关闭">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="batch_tags_input">标签</label>
+                    <!-- 全宽输入框（原内联 width:100% 迁移至 components.css 的 .art-w-full） -->
+                    <input type="text" id="batch_tags_input" class="art-w-full" placeholder="输入标签，逗号分隔">
+                </div>
+                <div class="form-group">
+                    <label for="tag_mode">写入方式</label>
+                    <!-- 全宽下拉框（原内联 width:100% 迁移至 components.css 的 .art-w-full） -->
+                    <select id="tag_mode" class="art-w-full">
+                        <option value="replace">替换（覆盖现有标签）</option>
+                        <option value="add">追加（保留现有标签）</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary confirm-cancel">取消</button>
+                <!-- 主按钮 = 具体动作文案（5.3：按钮动词开头，不使用泛化「确定」） -->
+                <button type="button" class="btn btn-primary confirm-ok">修改</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 工具栏（列表页第二视觉层，对齐用户列表页） ==================== -->
+    <!-- 左侧：添加文章（编辑器页较重，保持整页跳转不进抽屉）+ 回收站（红色按钮）+ 批量操作下拉 -->
+    <div class="list-toolbar list-toolbar-flat">
+        <a href="admin.php?action=article&sub=add" class="btn btn-primary">
+            <?php echo admin_svg_icon('plus', ''); ?>添加文章
+        </a>
+
+        <!-- 回收站入口：左侧红色按钮（与添加文章并排） -->
+        <a href="admin.php?action=article&method=recycle" class="btn btn-danger-ghost">
+            <?php echo admin_svg_icon('trash', ''); ?>回收站
+        </a>
+
+        <!-- 批量操作下拉菜单：菜单项通过 data-batch 属性分发（见上方脚本），
+             移动分类/修改标签两项需要补充信息，点击后打开对应弹窗 -->
+        <div class="btn-group">
+            <!-- 批量操作下拉触发按钮：文字与箭头垂直居中（原内联样式迁移至 components.css 的 .art-batch-toggle） -->
+            <a href="javascript:void(0)" class="btn btn-default dropdown-toggle art-batch-toggle">
+                批量操作<span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu batch-menu">
+                <li><a href="javascript:void(0)" data-batch="top-1">批量设置全局置顶</a></li>
+                <li><a href="javascript:void(0)" data-batch="top-2">批量设置首页置顶</a></li>
+                <li><a href="javascript:void(0)" data-batch="top-3">批量设置分类置顶</a></li>
+                <li><a href="javascript:void(0)" data-batch="top-0">批量取消置顶</a></li>
+                <li><a href="javascript:void(0)" data-batch="status-1">批量发布</a></li>
+                <li><a href="javascript:void(0)" data-batch="status-0">批量设为草稿</a></li>
+                <li><a href="javascript:void(0)" data-batch="move">批量移动分类</a></li>
+                <li><a href="javascript:void(0)" data-batch="tags">批量修改标签</a></li>
+                <li><a href="javascript:void(0)" data-batch="delete" class="menu-item-danger">批量删除</a></li>
+            </ul>
+        </div>
+
+        <!-- 批量选中计数提示：勾选行复选框后显示「已选 N 项」（common.js initBatchSelectedInfo 自动维护） -->
+        <span id="batch-selected-info" class="batch-selected-info"></span>
+    </div>
+
+                <div class="table-container">
+        <table class="table">
+            <?php
+            // 引入公共排序链接组件（sortLink 函数定义）
+            include ADMIN_PATH . '/templates/components/sort_link.html';
+            // 引入公共列筛选组件（columnFilter 函数定义）
+            include ADMIN_PATH . '/templates/components/col_filter.html';
+            ?>
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="select_all"></th>
+                    <th><?php echo sortLink('id', 'ID', $sort, $order); ?></th>
+                    <th>标题</th>
+                    <th>分类</th>
+                    <th>作者</th>
+                    <th>状态</th>
+                    <!-- 置顶状态：表头列筛选（漏斗面板，多选值逗号分隔经 top_type 参数提交，
+                         模型侧支持 IN 查询；替代原顶部筛选区的隐藏式置顶筛选） -->
+                    <th class="th-filterable"><?php echo columnFilter('top_type', '置顶状态', [
+                        ['value' => 0, 'label' => '正常'],
+                        ['value' => 1, 'label' => '全局置顶'],
+                        ['value' => 2, 'label' => '首页置顶'],
+                        ['value' => 3, 'label' => '分类置顶'],
+                    ]); ?></th>
+                    <th><?php echo sortLink('created_at', '发布时间', $sort, $order); ?></th>
+                    <th><?php echo sortLink('view_count', '阅读量', $sort, $order); ?></th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($articles)): ?>
+                <!-- 空状态：区分「一篇都没有」与「筛选无结果」两种场景文案 -->
+                <tr>
+                    <td colspan="10">
+                        <?php
+                        $articleHasFilter = (isset($_GET['search']) && $_GET['search'] !== '')
+                            || (isset($_GET['category']) && $_GET['category'] !== '')
+                            || (isset($_GET['status']) && $_GET['status'] !== '')
+                            || (isset($_GET['date_from']) && $_GET['date_from'] !== '')
+                            || (isset($_GET['date_to']) && $_GET['date_to'] !== '');
+                        if ($articleHasFilter) {
+                            $emptyTitle = '没有符合条件的文章';
+                            $emptyIcon = 'search';
+                            $emptyDesc = '尝试调整筛选条件后重新查询';
+                        } else {
+                            $emptyTitle = '暂无文章';
+                            $emptyIcon = 'file';
+                            $emptyActionUrl = 'admin.php?action=article&sub=add';
+                            $emptyActionText = '写文章';
+                        }
+                        include 'components/empty_state.html';
+                        ?>
+                    </td>
+                </tr>
+                <?php else: ?>
+                <?php foreach ($articles as $article): ?>
+                <tr>
+                    <td><input type="checkbox" name="ids[]" value="<?php echo $article['id']; ?>" class="article_checkbox"></td>
+                    <td><?php echo $article['id']; ?></td>
+                    <td><?php echo $article['title']; ?></td>
+                    <td><?php echo $article['category_name']; ?></td>
+                    <td><?php echo $article['author']; ?></td>
+                    <td><?php echo $article['status'] == 1 ? '<span class="badge badge-success">已发布</span>' : '<span class="badge badge-warning">草稿</span>'; ?></td>
+                    <td>
+                        <?php if (isset($article['top_type']) && $article['top_type'] == 1): ?>
+                            <span class="badge badge-danger">全局置顶</span>
+                        <?php elseif (isset($article['top_type']) && $article['top_type'] == 2): ?>
+                            <span class="badge badge-warning">首页置顶</span>
+                        <?php elseif (isset($article['top_type']) && $article['top_type'] == 3): ?>
+                            <span class="badge badge-primary">分类置顶</span>
+                        <?php else: ?>
+                            <span class="badge badge-secondary">正常</span>
+                        <?php endif; ?>
+                    </td>
+                    <td><?php echo $article['created_at_formatted']; ?></td>
+                    <td><?php echo $article['view_count']; ?></td>
+                    <td>
+                        <!-- 操作列：文字链接式（对齐用户列表页）。文章编辑页含编辑器，保持整页跳转不进抽屉；
+                             删除收入「操作」下拉，保持列面整洁 -->
+                        <a href="admin.php?action=article&sub=edit&id=<?php echo $article['id']; ?>" class="table-link">编辑</a>
+                        <span class="table-action-divider"></span>
+                        <!-- 下拉容器：行内块布局（原内联 display:inline-block 迁移至 components.css 的 .art-actions-inline） -->
+                        <div class="btn-group art-actions-inline">
+                            <!-- 开合逻辑由 common.js initDropdowns() 统一事件委托处理（点击/外部关闭/Esc） -->
+                            <a href="javascript:void(0)" class="table-link dropdown-toggle">
+                                操作<span class="caret"></span>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a href="admin.php?action=article&sub=delete&id=<?php echo $article['id']; ?>" onclick="return confirmLink(this, '确定要将这篇文章移至回收站吗？', { type: 'danger', confirmText: '移入回收站' });" class="menu-item-danger">
+                                        删除
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+
+        <!-- 分页导航：包裹在列表容器内，与表格一体（对齐用户列表页布局） -->
+        <?php
+            // 引入公共分页组件
+            $action = 'article';
+            $total = $total_articles;
+            $limit = $pageSize;
+            $filters = [];
+            if (isset($_GET['category']) && !empty($_GET['category'])) $filters['category'] = $_GET['category'];
+            if (isset($_GET['status']) && !empty($_GET['status'])) $filters['status'] = $_GET['status'];
+            // top_type=0（正常）是有效筛选值，须用 !== '' 判断而非 empty（'0' 为假值会被丢弃）
+            if (isset($_GET['top_type']) && $_GET['top_type'] !== '') $filters['top_type'] = $_GET['top_type'];
+            if (isset($_GET['search']) && !empty($_GET['search'])) $filters['search'] = $_GET['search'];
+            if (isset($_GET['date_from']) && !empty($_GET['date_from'])) $filters['date_from'] = $_GET['date_from'];
+            if (isset($_GET['date_to']) && !empty($_GET['date_to'])) $filters['date_to'] = $_GET['date_to'];
+            // 排序参数并入分页链接，翻页时不丢失当前排序状态
+            if (!empty($sort)) { $filters['sort'] = $sort; $filters['order'] = $order; }
+            // 每页条数并入分页链接，翻页时不丢失
+            $filters['limit'] = $pageSize;
+            // 每页条数可选项（供分页组件渲染下拉框）
+            $pageSizes = $allowedPageSizes;
+            $filters['sub'] = 'list'; // 保持子操作
+        ?>
+    </div>
+
+    <!-- 分页：放在表格容器之外，避免贴着表格边框显得拥挤 -->
+    <?php include ADMIN_PATH . '/templates/components/pagination.html'; ?>
+
+<?php include 'components/footer_wrapper.html'; ?>

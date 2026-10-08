@@ -1,0 +1,166 @@
+<?php  $currentAction = 'user'; $pageTitle = '用户回收站'; include 'components/page_wrapper.html'; ?>
+
+    <!-- ==================== 筛选区（对齐列表页三段式结构） ==================== -->
+    <!-- filter-section-flat：白底变体 + 底部分割线（components.css）；
+         回收站仅搜索一个条件：按用户名/昵称/邮箱匹配，回车或点击搜索按钮提交 -->
+    <div class="filter-section filter-section-flat">
+        <form method="get" action="admin.php" class="filter-form">
+            <input type="hidden" name="action" value="user">
+            <input type="hidden" name="method" value="recycle">
+
+            <div class="filter-row">
+                <div class="filter-group filter-group-wide">
+                    <label for="search_filter">搜索</label>
+                    <input type="text" name="search" id="search_filter" class="filter-input" placeholder="用户名/昵称/邮箱"
+                           value="<?php echo htmlspecialchars($search); ?>">
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <?php echo admin_svg_icon('search', ''); ?>搜索
+                    </button>
+                    <a href="admin.php?action=user&method=recycle" class="btn btn-default">
+                        <?php echo admin_svg_icon('refresh', ''); ?>重置
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- ==================== 工具栏（对齐列表页） ==================== -->
+    <!-- 左侧：返回用户列表入口 + 批量操作下拉（批量恢复/批量永久删除） -->
+    <div class="list-toolbar list-toolbar-flat">
+        <a href="admin.php?action=user" class="btn btn-default">
+            <?php echo admin_svg_icon('arrow-left', ''); ?>返回用户列表
+        </a>
+
+        <!-- 批量操作下拉：开合由 common.js initDropdowns() 统一事件委托处理；
+             菜单项经 executeRecycleBatch(动作) 执行，未勾选用户时统一 toast 提示 -->
+        <div class="btn-group">
+            <button type="button" class="btn btn-default dropdown-toggle">批量操作</button>
+            <ul class="dropdown-menu">
+                <li><a href="javascript:void(0)" onclick="executeRecycleBatch('batch-restore')">批量恢复</a></li>
+                <li><a href="javascript:void(0)" onclick="executeRecycleBatch('batch-force-delete')">批量永久删除</a></li>
+            </ul>
+        </div>
+
+        <!-- 批量选中计数提示：勾选行复选框后显示「已选 N 项」；
+             行选框 class 为 recycle-checkbox，符合 common.js initBatchSelectedInfo 的识别规则，自动维护 -->
+        <span id="batch-selected-info" class="batch-selected-info"></span>
+    </div>
+
+    <div class="table-container">
+        <!-- 表格：白底 + 行悬停高亮，对齐用户列表页风格 -->
+        <table class="table">
+            <thead>
+                <tr>
+                    <!-- 复选框列：表头为全选开关，与用户列表页交互一致（ul-recycle-check-col 窄列宽见 components.css） -->
+                    <th class="ul-recycle-check-col"><input type="checkbox" id="select-all-recycle"></th>
+                    <th>ID</th>
+                    <th>用户名</th>
+                    <th>昵称</th>
+                    <th>角色</th>
+                    <th>删除时间</th>
+                    <th>创建时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($users)): ?>
+                <!-- 空状态：区分「回收站为空」与「搜索无结果」两种场景文案 -->
+                <tr>
+                    <td colspan="8">
+                        <?php
+                        if ($search !== '') {
+                            $emptyTitle = '没有符合条件的用户';
+                            $emptyIcon = 'search';
+                            $emptyDesc = '尝试调整搜索关键词后重新查询';
+                        } else {
+                            $emptyTitle = '回收站中没有用户';
+                            $emptyIcon = 'inbox';
+                            $emptyDesc = '被删除的用户会在这里保留，可随时恢复';
+                        }
+                        include 'components/empty_state.html';
+                        ?>
+                    </td>
+                </tr>
+                <?php else: ?>
+                <?php foreach ($users as $user): ?>
+                <tr>
+                    <td><input type="checkbox" class="recycle-checkbox" value="<?php echo $user['id']; ?>"></td>
+                    <td><?php echo $user['id']; ?></td>
+                    <td><?php echo htmlspecialchars($user['username']); ?></td>
+                    <td><?php echo htmlspecialchars($user['nickname']); ?></td>
+                    <td>
+                        <span class="role-tag role-<?php echo in_array($user['role'], [1, 2, 3, 4]) ? ['admin', 'visitor', 'editor', 'author'][$user['role'] - 1] : 'default'; ?>">
+                            <?php echo htmlspecialchars($user['role_name'] ?? '未知角色'); ?>
+                        </span>
+                    </td>
+                    <td><?php echo $user['deleted_at']; ?></td>
+                    <td><?php echo $user['created_at']; ?></td>
+                    <td>
+                        <!-- 操作列：文字链接式（对齐用户/文章列表页）；
+                             恢复为普通确认，永久删除为危险确认（不可恢复） -->
+                        <a href="admin.php?action=user&method=restore&id=<?php echo $user['id']; ?>" class="table-link" onclick="return confirmLink(this, '确定要恢复这个用户吗？恢复后账号为禁用状态，需手动启用。', { type: 'info', title: '恢复确认', confirmText: '恢复' });">恢复</a>
+                        <span class="table-action-divider"></span>
+                        <a href="admin.php?action=user&method=permanentlyDelete&id=<?php echo $user['id']; ?>" class="table-link table-link-danger" onclick="return confirmLink(this, '确定要永久删除这个用户吗？此操作不可恢复。', { type: 'danger', confirmText: '永久删除' });">永久删除</a>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+
+        <?php if (!empty($users)): ?>
+        <!-- 分页导航：公共分页组件（method=recycle 与搜索词随分页透传） -->
+        <?php
+            $action = 'user';
+            $filters = ['method' => 'recycle'];
+            if ($search !== '') {
+                $filters['search'] = $search;
+            }
+            include 'components/pagination.html';
+        ?>
+        <?php endif; ?>
+    </div>
+
+    <script>
+    // ==================== 回收站批量操作 ====================
+
+    // 表头全选/取消全选：与行内复选框状态联动
+    document.getElementById('select-all-recycle').addEventListener('change', function() {
+        document.querySelectorAll('.recycle-checkbox').forEach(function(cb) {
+            cb.checked = this.checked;
+        }, this);
+    });
+
+    // 批量操作入口：校验勾选后经确认弹窗发起对应批量请求
+    function executeRecycleBatch(action) {
+        const selected = document.querySelectorAll('.recycle-checkbox:checked');
+        if (selected.length === 0) {
+            showToast('请选择至少一个用户', 'error');
+            return;
+        }
+
+        const userIds = Array.from(selected).map(function(cb) { return cb.value; }).join(',');
+
+        // 关闭已打开的下拉菜单（确认弹窗流程不发生页面跳转，需手动收起）
+        document.querySelectorAll('.dropdown-menu.show').forEach(function(menu) {
+            menu.classList.remove('show');
+            const group = menu.closest('.btn-group, .dropdown');
+            if (group) group.classList.remove('show');
+        });
+
+        if (action === 'batch-restore') {
+            showConfirmDialog('确定要恢复选中的' + selected.length + '个用户吗？恢复后账号为禁用状态。', { type: 'info', title: '批量操作', confirmText: '恢复' }).then(function(ok) {
+                if (ok) window.location.href = 'admin.php?action=user&method=batchRestore&user_ids=' + userIds;
+            });
+        } else if (action === 'batch-force-delete') {
+            showConfirmDialog('确定要永久删除选中的' + selected.length + '个用户吗？名下有文章的用户将被跳过。此操作不可恢复。', { type: 'danger', title: '批量操作', confirmText: '永久删除' }).then(function(ok) {
+                if (ok) window.location.href = 'admin.php?action=user&method=batchForceDelete&user_ids=' + userIds;
+            });
+        }
+    }
+    </script>
+
+<?php include 'components/footer_wrapper.html'; ?>

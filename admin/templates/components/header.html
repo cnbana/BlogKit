@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo isset($pageTitle) ? $pageTitle . ' - ' : ''; ?>BlogKit</title>
+    <!-- 公共CSS（带文件修改时间版本参数，更新后浏览器自动拉取新文件） -->
+    <link rel="stylesheet" href="<?php echo admin_asset_url(ADMIN_ASSETS_URL . '/css/common.css'); ?>">
+    <!-- 模块CSS -->
+    <link rel="stylesheet" href="<?php echo admin_asset_url(ADMIN_ASSETS_URL . '/css/forms.css'); ?>">
+    <link rel="stylesheet" href="<?php echo admin_asset_url(ADMIN_ASSETS_URL . '/css/tables.css'); ?>">
+    <!-- 侧边栏CSS -->
+    <link rel="stylesheet" href="<?php echo admin_asset_url(ADMIN_ASSETS_URL . '/css/sidebar.css'); ?>">
+    <!-- 组件CSS -->
+    <link rel="stylesheet" href="<?php echo admin_asset_url(ADMIN_ASSETS_URL . '/css/components.css'); ?>">
+    <!-- 页面专属样式已并入 components.css，$pageCss 机制已移除；
+         插件模板仍可通过 $pageCssUrl 指定自定义完整地址挂载自有样式 -->
+    <?php if (isset($pageCssUrl)): ?>
+        <link rel="stylesheet" href="<?php echo $pageCssUrl; ?>">
+    <?php endif; ?>
+    <!-- jQuery库 -->
+    <script src="<?php echo admin_asset_url(ADMIN_ASSETS_URL . '/js/jquery-4.0.0.min.js'); ?>"></script>
+    <!-- 公共JavaScript -->
+    <script src="<?php echo admin_asset_url(ADMIN_ASSETS_URL . '/js/common.js'); ?>"></script>
+    <!-- 侧边栏JavaScript -->
+    <script src="<?php echo admin_asset_url(ADMIN_ASSETS_URL . '/js/sidebar.js'); ?>"></script>
+    <!-- Header JavaScript（命令面板、通知中心、用户菜单） -->
+    <script src="<?php echo admin_asset_url(ADMIN_ASSETS_URL . '/js/header.js'); ?>"></script>
+    
+    <!-- 页面特定JavaScript（同样经 admin_asset_url 附加 mtime 版本参数，
+         避免页面专属脚本更新后浏览器继续使用强缓存中的旧文件） -->
+    <?php if (isset($pageJs)): ?>
+        <script src="<?php echo admin_asset_url(ADMIN_ASSETS_URL . '/js/' . $pageJs); ?>"></script>
+    <?php endif; ?>
+    
+    <!-- 插件头部钩子 -->
+    <?php echo Plugin::triggerHook('admin_header'); ?>
+    <!-- 挂载点：admin.head，插件可在此注入 <head> 内的自定义样式/脚本（head 尾部执行） -->
+    <?php Plugin::slot('admin.head'); ?>
+</head>
+<body>
+    <script>
+    // 立即设置侧边栏状态，避免加载闪烁
+    (function() {
+        try {
+            const collapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            const theme = localStorage.getItem('sidebarTheme');
+
+            // 立即应用折叠状态
+            if (collapsed) {
+                document.documentElement.classList.add('sidebar-collapsed-init');
+                document.body.classList.add('sidebar-collapsed-init');
+            }
+
+            // auto 主题标记：与 sidebar.js 的默认值（无存储时取 auto）保持一致。
+            // 首帧主题切换按钮需显示「跟随系统」图标，此标记类供 CSS 选中
+            // auto 图标（可与下方暗色初始化类并存，CSS 中 auto 规则后置覆盖）
+            if (theme === 'auto' || theme === null) {
+                document.documentElement.classList.add('theme-auto-init');
+                document.body.classList.add('theme-auto-init');
+            }
+
+            // 立即应用主题
+            if (theme === 'dark') {
+                document.documentElement.classList.add('theme-dark-init');
+                document.body.classList.add('theme-dark-init');
+            } else if (theme === 'light') {
+                document.documentElement.classList.add('theme-light-init');
+                document.body.classList.add('theme-light-init');
+            } else if ((theme === 'auto' || theme === null) && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('theme-dark-init');
+                document.body.classList.add('theme-dark-init');
+            }
+        } catch(e) {}
+    })();
+    </script>
+    <div class="container">

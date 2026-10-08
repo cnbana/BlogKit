@@ -1,0 +1,301 @@
+<?php $currentAction = 'theme'; $pageTitle = '主题管理'; include 'components/page_wrapper.html'; ?>
+
+    <!--
+        主题管理页
+        安全说明：
+        1. 出于安全考虑已移除上传主题功能入口，主题仅可通过 FTP 等方式部署到 themes 目录
+        2. "设为默认/卸载"为 POST 表单提交并携带 CSRF 令牌，不再使用 GET 链接（防跨站请求伪造）
+        3. 已彻底移除主题预览功能（preview 方法、theme_preview.html 模板及前台 ?theme_preview= 参数支持）
+        4. 搜索（kw）与分页（page/limit）由 ThemeController::index() 服务端处理，
+           与 MarketController 同口径（limit 白名单 10/20/50/100）
+    -->
+
+    <!-- 操作栏：左「主题市场」入口（跳应用市场并自动筛选主题类型）+
+         右搜索框（应用市场首页同款组合框 .mk-search-form，GET 提交 kw） -->
+    <div class="action-section theme-toolbar">
+        <a href="admin.php?action=market&type=theme" class="btn btn-info">主题市场</a>
+        <div class="theme-toolbar-controls">
+            <form method="get" action="admin.php" class="mk-search-form">
+                <!-- 隐藏域保持路由（搜索参数仅 kw，翻页/条数由分页组件维护） -->
+                <input type="hidden" name="action" value="theme">
+                <input type="text" name="kw" id="theme-kw-input" value="<?php echo htmlspecialchars($kw, ENT_QUOTES); ?>"
+                       placeholder="搜索主题名称 / 描述 / 作者"
+                       class="mk-search-input" autocomplete="off">
+                <!-- 清空图标：输入非空时显示（JS 维护 hidden 属性），点击就地清空文本 -->
+                <button type="button" id="theme-kw-clear" class="mk-search-clear" title="清空关键词" aria-label="清空关键词" hidden>
+                    <?php echo admin_svg_icon('x-circle', ''); ?>
+                </button>
+                <!-- 搜索图标按钮：内嵌输入框右侧（与市场搜索组合框同结构） -->
+                <button type="submit" class="mk-search-btn" title="搜索" aria-label="搜索">
+                    <?php echo admin_svg_icon('search', ''); ?>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 主题统计信息条：左侧统计（始终按全部主题统计，不随搜索变化）+
+         右侧视图切换（Segmented 分段控制器，common.css 的 .seg 组件，
+         图文列表 / 图片卡片两段互斥，偏好存 localStorage，与市场页同交互） -->
+    <div class="stats-section theme-stats">
+        <div class="theme-stats-info">
+            <div class="stat-item">
+                <strong>主题总数：</strong><?php echo count($themes); ?>
+            </div>
+            <div class="stat-item">
+                <strong>当前默认：</strong><?php echo $defaultTheme; ?>
+            </div>
+            <div class="stat-item">
+                <strong>可定制主题：</strong><?php
+                    $customizableThemes = 0;
+                    foreach ($themes as $theme) {
+                        $themePath = ROOT_PATH . '/themes/' . $theme['slug'] . '/theme.json';
+                        if (file_exists($themePath)) {
+                            $themeJson = json_decode(file_get_contents($themePath), true);
+                            if ($themeJson && isset($themeJson['settings']) && !empty($themeJson['settings'])) {
+                                $customizableThemes++;
+                            }
+                        }
+                    }
+                    echo $customizableThemes;
+                ?>
+            </div>
+        </div>
+        <!-- 视图切换：选中块 seg-active 由 JS 维护；.theme-view-toggle 仅保留推到行尾的定位职责 -->
+        <div class="theme-view-toggle seg" role="group" aria-label="视图切换">
+            <button type="button" id="theme-view-list" class="seg-item" title="图文列表">
+                <?php echo admin_svg_icon('list', ''); ?>
+            </button>
+            <button type="button" id="theme-view-card" class="seg-item" title="图片卡片">
+                <?php echo admin_svg_icon('grid', ''); ?>
+            </button>
+        </div>
+    </div>
+
+    <!-- 主题视图容器：卡片 / 列表两种布局同源渲染（同一份 $pagedThemes，当前页切片），
+         .theme-as-list 类由 JS 切换 + localStorage 记忆，默认图片卡片视图 -->
+    <div id="theme-app-wrap">
+        <?php if (empty($pagedThemes)): ?>
+        <!-- 空状态：复用市场页 .mk-empty 规格（样式见 components.css 应用市场区块） -->
+        <div class="mk-empty">
+            <p class="mk-empty-title">没有找到匹配的主题</p>
+            <p class="mk-empty-desc"><?php echo $kw !== '' ? '没有找到与“' . htmlspecialchars($kw, ENT_QUOTES) . '”匹配的主题，换个关键词试试。' : '暂无已安装主题，可将主题目录部署到 themes 目录后刷新本页。'; ?></p>
+        </div>
+        <?php else: ?>
+        <!-- ===== 图片卡片视图（默认） ===== -->
+        <div class="theme-grid">
+            <?php foreach ($pagedThemes as $theme): ?>
+            <div class="theme-card">
+                <!-- 主题截图（无截图时显示占位图，支持暗色主题） -->
+                <?php if (!empty($theme['screenshot'])): ?>
+                    <div class="theme-screenshot">
+                        <img src="../themes/<?php echo $theme['slug']; ?>/<?php echo $theme['screenshot']; ?>" alt="<?php echo $theme['name']; ?>">
+                    </div>
+                <?php else: ?>
+                    <div class="theme-screenshot theme-screenshot-placeholder">
+                        <span>无截图</span>
+                    </div>
+                <?php endif; ?>
+
+                <div class="theme-card-header">
+                    <h3><?php echo $theme['name']; ?></h3>
+                    <?php if ($theme['slug'] == $defaultTheme): ?>
+                        <span class="default-badge">当前默认</span>
+                    <?php endif; ?>
+                </div>
+
+                <!-- 主题详细信息 -->
+                <div class="theme-info">
+                    <p><strong>版本：</strong><?php echo $theme['version']; ?></p>
+                    <p><strong>作者：</strong><?php echo $theme['author']; ?></p>
+                    <p class="theme-desc"><strong>描述：</strong><?php echo $theme['description']; ?></p>
+                </div>
+
+                <!-- 主题标签 -->
+                <div class="theme-tags">
+                    <?php
+                    // 检查主题是否有设置配置
+                    $themePath = ROOT_PATH . '/themes/' . $theme['slug'] . '/theme.json';
+                    $hasSettings = false;
+                    if (file_exists($themePath)) {
+                        $themeJson = json_decode(file_get_contents($themePath), true);
+                        if ($themeJson && isset($themeJson['settings']) && !empty($themeJson['settings'])) {
+                            $hasSettings = true;
+                            echo '<span class="theme-tag theme-tag-custom">可定制</span>';
+                        }
+                    }
+                    echo '<span class="theme-tag theme-tag-slug">' . $theme['slug'] . '</span>';
+                    ?>
+                </div>
+
+                <!-- 操作按钮（设为默认/卸载改用 POST 表单 + CSRF 令牌） -->
+                <div class="theme-actions">
+                    <?php if ($theme['slug'] == $defaultTheme): ?>
+                        <button type="button" class="btn btn-secondary" disabled>已激活</button>
+                    <?php else: ?>
+                        <form method="POST" action="admin.php?action=theme&sub=set_default" class="theme-action-form">
+                            <input type="hidden" name="theme" value="<?php echo $theme['slug']; ?>">
+                            <?php echo Security::getCsrfField(); ?>
+                            <button type="submit" class="btn btn-primary">设为默认</button>
+                        </form>
+                    <?php endif; ?>
+                    <?php if ($hasSettings): ?>
+                        <!-- 主题设置按钮（GET 只读页面，无风险） -->
+                        <a href="admin.php?action=theme&sub=settings&theme=<?php echo $theme['slug']; ?>" class="btn btn-info">主题设置</a>
+                    <?php endif; ?>
+                    <?php if ($theme['slug'] != $defaultTheme): ?>
+                        <form method="POST" action="admin.php?action=theme&sub=uninstall" class="theme-action-form" onsubmit="return confirmForm(this, '确定要卸载这个主题吗？主题文件将被彻底删除。', { type: 'danger', title: '卸载主题', confirmText: '卸载' });">
+                            <input type="hidden" name="theme" value="<?php echo $theme['slug']; ?>">
+                            <?php echo Security::getCsrfField(); ?>
+                            <button type="submit" class="btn btn-danger">卸载</button>
+                        </form>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+
+        <!-- ===== 图文列表视图（横向条目：缩略图 + 名称/描述/元信息 + 操作区） ===== -->
+        <div class="theme-list">
+            <?php foreach ($pagedThemes as $theme): ?>
+            <?php
+            // 列表条目的「可定制」判断与卡片视图同源（theme.json settings 非空）
+            $themePath = ROOT_PATH . '/themes/' . $theme['slug'] . '/theme.json';
+            $hasSettings = false;
+            if (file_exists($themePath)) {
+                $themeJson = json_decode(file_get_contents($themePath), true);
+                if ($themeJson && isset($themeJson['settings']) && !empty($themeJson['settings'])) {
+                    $hasSettings = true;
+                }
+            }
+            ?>
+            <div class="theme-list-row">
+                <!-- 缩略图：96x64 圆角裁切（无截图时输出占位块） -->
+                <div class="theme-list-img">
+                    <?php if (!empty($theme['screenshot'])): ?>
+                        <img src="../themes/<?php echo $theme['slug']; ?>/<?php echo $theme['screenshot']; ?>" alt="<?php echo $theme['name']; ?>">
+                    <?php else: ?>
+                        <span class="theme-list-img-placeholder">无截图</span>
+                    <?php endif; ?>
+                </div>
+                <div class="theme-list-main">
+                    <div class="theme-list-head">
+                        <span class="theme-list-name"><?php echo $theme['name']; ?></span>
+                        <?php if ($theme['slug'] == $defaultTheme): ?>
+                            <span class="default-badge">当前默认</span>
+                        <?php endif; ?>
+                        <?php if ($hasSettings): ?>
+                            <span class="theme-tag theme-tag-custom">可定制</span>
+                        <?php endif; ?>
+                        <span class="theme-tag theme-tag-slug"><?php echo $theme['slug']; ?></span>
+                    </div>
+                    <p class="theme-list-desc"><?php echo $theme['description']; ?></p>
+                    <div class="theme-list-meta">
+                        <span>v<?php echo $theme['version']; ?></span>
+                        <span><?php echo $theme['author']; ?></span>
+                    </div>
+                </div>
+                <!-- 操作区：与卡片视图同一套动作（POST+CSRF），小号按钮适配行高 -->
+                <div class="theme-list-side">
+                    <?php if ($theme['slug'] == $defaultTheme): ?>
+                        <button type="button" class="btn btn-secondary btn-sm" disabled>已激活</button>
+                    <?php else: ?>
+                        <form method="POST" action="admin.php?action=theme&sub=set_default" class="theme-action-form">
+                            <input type="hidden" name="theme" value="<?php echo $theme['slug']; ?>">
+                            <?php echo Security::getCsrfField(); ?>
+                            <button type="submit" class="btn btn-primary btn-sm">设为默认</button>
+                        </form>
+                    <?php endif; ?>
+                    <?php if ($hasSettings): ?>
+                        <a href="admin.php?action=theme&sub=settings&theme=<?php echo $theme['slug']; ?>" class="btn btn-info btn-sm">设置</a>
+                    <?php endif; ?>
+                    <?php if ($theme['slug'] != $defaultTheme): ?>
+                        <form method="POST" action="admin.php?action=theme&sub=uninstall" class="theme-action-form" onsubmit="return confirmForm(this, '确定要卸载这个主题吗？主题文件将被彻底删除。', { type: 'danger', title: '卸载主题', confirmText: '卸载' });">
+                            <input type="hidden" name="theme" value="<?php echo $theme['slug']; ?>">
+                            <?php echo Security::getCsrfField(); ?>
+                            <button type="submit" class="btn btn-danger btn-sm">卸载</button>
+                        </form>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+    </div>
+
+    <?php if (!empty($pagedThemes)): ?>
+    <!-- 分页导航：公共分页组件（页码连体导航 + 统计/每页条数/跳页），
+         kw 搜索参数随分页链接透传，翻页后视图偏好由 localStorage 保持 -->
+    <div class="theme-pagination">
+        <?php
+            // 引入公共分页组件
+            $action = 'theme';
+            $filters = $paginationFilters;
+            include ADMIN_PATH . '/templates/components/pagination.html';
+        ?>
+    </div>
+    <?php endif; ?>
+
+<!-- 搜索组合框的清空图标逻辑：与市场页同款（输入非空时显示圆形叉号，
+     点击清空关键词；搜索由回车或搜索按钮触发，无 JS 时图标保持 hidden） -->
+<script>
+    (function () {
+        var input = document.getElementById('theme-kw-input');
+        var clearBtn = document.getElementById('theme-kw-clear');
+        if (!input || !clearBtn) return;
+
+        // 按输入框是否有值同步清空图标显隐
+        function sync() {
+            clearBtn.hidden = (input.value === '');
+        }
+
+        // 输入过程实时同步显隐
+        input.addEventListener('input', sync);
+
+        // 点击清空：就地清值 + 同步显隐 + 焦点回到输入框（不提交表单、不刷新页面）
+        clearBtn.addEventListener('click', function () {
+            input.value = '';
+            sync();
+            input.focus();
+        });
+
+        // 页面载入时（关键词回填场景）初始化一次显隐
+        sync();
+    })();
+</script>
+
+<!-- 视图切换逻辑：读写 localStorage（bk_admin_theme_view），
+     在容器上切换 .theme-as-list 类实现两种布局的显隐（CSS 控制），默认图片卡片 -->
+<script>
+    (function () {
+        var KEY = 'bk_admin_theme_view';
+        var wrap = document.getElementById('theme-app-wrap');
+        var btnList = document.getElementById('theme-view-list');
+        var btnCard = document.getElementById('theme-view-card');
+        if (!wrap || !btnList || !btnCard) return;
+
+        // 读取本地视图偏好（隐私模式等 localStorage 不可用时静默回退默认卡片）
+        var saved = 'card';
+        try { saved = localStorage.getItem(KEY) || 'card'; } catch (e) {}
+
+        function apply(view) {
+            var isList = view === 'list';
+            wrap.classList.toggle('theme-as-list', isList);
+            // 选中态类为 .seg 组件的通用选中类（common.css 定义浮起样式）
+            btnList.classList.toggle('seg-active', isList);
+            btnCard.classList.toggle('seg-active', !isList);
+        }
+
+        btnList.addEventListener('click', function () {
+            apply('list');
+            try { localStorage.setItem(KEY, 'list'); } catch (e) {}
+        });
+        btnCard.addEventListener('click', function () {
+            apply('card');
+            try { localStorage.setItem(KEY, 'card'); } catch (e) {}
+        });
+
+        apply(saved);
+    })();
+</script>
+
+<?php include 'components/footer_wrapper.html'; ?>

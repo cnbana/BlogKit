@@ -1,0 +1,168 @@
+/**
+ * 验证码样式
+ */
+.captcha-wrapper {
+    margin: 0.9375rem 0;
+}
+
+.captcha-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+}
+
+.captcha-input-group {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    flex-wrap: wrap;
+}
+
+.captcha-input-wrapper {
+    position: relative;
+    flex: 1;
+    min-width: 12.5rem;
+}
+
+.captcha-input {
+    width: 100%;
+    padding: 0.625rem 2.5rem 0.625rem 0.9375rem;
+    font-size: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 0.25rem;
+    box-sizing: border-box;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.captcha-input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.125rem rgba(0, 123, 255, 0.25);
+}
+
+.captcha-input-success {
+    border-color: #28a745 !important;
+    box-shadow: 0 0 0 0.125rem rgba(40, 167, 69, 0.25) !important;
+}
+
+.captcha-input-error {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 0.125rem rgba(220, 53, 69, 0.25) !important;
+}
+
+.captcha-status-icon {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    pointer-events: none;
+}
+
+.captcha-status-icon svg {
+    display: block;
+}
+
+.captcha-image-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.captcha-image {
+    width: 7.5rem;
+    height: 2.5rem;
+    border: 1px solid #ddd;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: opacity 0.3s ease;
+    background-color: #f8f9fa;
+}
+
+.captcha-image:hover {
+    opacity: 0.9;
+}
+
+.captcha-message {
+    font-size: 0.875rem;
+    padding: 0.3125rem 0;
+    min-height: 1.25rem;
+}
+
+.captcha-message-success {
+    color: #28a745;
+}
+
+.captcha-message-error {
+    color: #dc3545;
+}
+
+.captcha-message-info {
+    color: #17a2b8;
+}
+
+/* 响应式设计 */
+@media (max-width: 48rem) {
+    .captcha-input-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .captcha-input {
+        min-width: auto;
+    }
+    
+    .captcha-image-container {
+        flex-direction: row;
+        justify-content: center;
+    }
+    
+    .captcha-image {
+        width: 9.375rem;
+        height: 3.125rem;
+    }
+}
+
+/* 登录页辅助提示样式（由 login_allow_* 控制展示） */
+.hint-message {
+    font-size: 0.875rem;
+    padding: 0.625rem 0.9375rem;
+    margin: 0 0 0.9375rem 0;
+    background-color: #e7f3ff;
+    border: 1px solid #b3d9ff;
+    color: #004085;
+    border-radius: 0.25rem;
+    line-height: 1.5;
+}
+
+.hint-message strong {
+    font-weight: 600;
+}
+
+/* 深色主题适配 */
+@media (prefers-color-scheme: dark) {
+    .hint-message {
+        background-color: #1a3352;
+        border-color: #2c4a7a;
+        color: #bcdcff;
+    }
+    .captcha-input {
+        background-color: #343a40;
+        color: #fff;
+        border-color: #495057;
+    }
+    
+    .captcha-input:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    }
+    
+    .captcha-image {
+        background-color: #495057;
+        border-color: #6c757d;
+    }
+}

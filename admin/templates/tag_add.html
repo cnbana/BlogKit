@@ -1,0 +1,17 @@
+<?php $currentAction = 'tag'; $pageTitle = '添加标签'; include 'components/page_wrapper.html'; ?>
+            
+            <div class="form-container">
+                <form action="admin.php?action=tag&sub=add" method="post">
+                    <div class="form-group">
+                        <label for="name">标签名称</label>
+                        <input type="text" id="name" name="name" placeholder="请输入标签名称">
+                    </div>
+                    
+                    <!-- 按钮行：统一使用横向 .form-actions（原误用纵向 .form-group 导致保存被拉伸全宽、取消掉行） -->
+                    <div class="form-actions">
+                        <input type="submit" class="btn btn-primary" value="保存">
+                        <a href="admin.php?action=tag" class="btn btn-default drawer-cancel">取消</a>
+                    </div>
+                </form>
+            </div>
+<?php include 'components/footer_wrapper.html'; ?>

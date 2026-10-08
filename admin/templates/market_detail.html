@@ -1,0 +1,122 @@
+<?php $currentAction = 'market'; $pageTitle = $pageTitle ?? '应用详情';  include 'components/page_wrapper.html'; ?>
+
+<!-- ============ 应用详情子页（op=detail，内嵌完整详情替代跳转官网） ============ -->
+<!-- 数据流：MarketController::detail() 调官网 /api/market/app（响应含 detail 富文本
+     正文与全量版本历史），本模板只做展示；安装按钮复用 do_install 一键管线 -->
+
+<!-- 顶部操作栏（布局类见 components.css .mk-detail-actions / .mk-link-end） -->
+<div class="action-section mk-detail-actions">
+    <a href="admin.php?action=market" class="btn btn-default drawer-cancel">&laquo; 返回应用市场</a>
+    <!-- 官网完整介绍入口（富文本排版/截图大图等以官网为准） -->
+    <a href="<?php echo htmlspecialchars(Config::get('market_api_url', ''), ENT_QUOTES); ?>/apps/detail/<?php echo (int)$app['id']; ?>"
+       target="_blank" class="btn btn-default mk-link-end">在官网查看完整介绍</a>
+</div>
+
+<!-- 详情头部：图 + 名称/徽章/状态/操作（面板样式见 components.css .mk-panel） -->
+<div class="mk-panel">
+    <div class="mk-head-row">
+        <!-- 头部图：主题封面（220×140 宽图 cover）/ 插件圆角图标容器（88×88，
+             内层 mk-icon-box-lg 背景为 LOGO 主色浅调，由控制器动态输出）；
+             无图输出占位块（控制器预拼好 $imageHtml）。
+             内联样式保留：宽高尺寸随 $type 由 PHP 动态输出（主题/插件两套值），
+             无法静态化为 CSS 类 -->
+        <?php if ($type === 'theme'): ?>
+        <div class="mk-detail-img" style="width:220px; height:140px; overflow:hidden; border-radius:6px; background:var(--hover-bg); flex-shrink:0;">
+            <?php echo $imageHtml; ?>
+        </div>
+        <?php else: ?>
+        <!-- 插件：外层容器只做占位定位与圆角裁切（overflow:hidden），
+             浅色底由内层 mk-icon-box-lg 铺满承担（LOGO 主色浅调，控制器动态输出），
+             插件图标自身的圆角形状直接呈现 -->
+        <div class="mk-detail-img" style="width:88px; height:88px; flex-shrink:0; border-radius:20px; overflow:hidden;">
+            <?php echo $imageHtml; ?>
+        </div>
+        <?php endif; ?>
+        <div class="mk-head-info">
+            <div class="mk-title-row">
+                <h2 class="mk-app-title"><?php echo htmlspecialchars($app['name'], ENT_QUOTES); ?></h2>
+                <!-- 类型徽章：样式见 components.css .mk-badge-type -->
+                <span class="mk-badge-type">
+                    <?php echo $type === 'theme' ? '主题' : '插件'; ?>
+                </span>
+                <?php if (trim((string)$app['category']) !== ''): ?>
+                <!-- 分类徽章：样式见 components.css .mk-badge-cat -->
+                <span class="mk-badge-cat">
+                    <?php echo htmlspecialchars($app['category'], ENT_QUOTES); ?>
+                </span>
+                <?php endif; ?>
+                <?php echo $statusHtml; ?>
+            </div>
+            <p class="mk-app-desc">
+                <?php echo htmlspecialchars($app['description'], ENT_QUOTES); ?>
+            </p>
+            <div class="mk-meta-row">
+                <span>作者：<?php echo htmlspecialchars($app['author'], ENT_QUOTES); ?></span>
+                <span>最新版本：v<?php echo $latestVersion !== '' ? htmlspecialchars($latestVersion, ENT_QUOTES) : '-'; ?></span>
+                <span>更新时间：<?php echo htmlspecialchars(mb_substr((string)$app['updated_at'], 0, 10), ENT_QUOTES); ?></span>
+                <span><?php echo (int)$app['installs']; ?> 次安装 / <?php echo (int)$app['download_count']; ?> 次下载</span>
+            </div>
+            <div class="mk-install-row">
+                <?php echo $installBtn; ?>
+                <?php if ($installBtn === '' && !$installed && $canInstall): ?>
+                <span class="mk-muted-note">（安装按钮仅在卡片上，或刷新后重试）</span>
+                <?php endif; ?>
+                <span class="mk-muted-note">安装完成后可在对应管理页启用（主题管理 / 插件管理）</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 详情正文（官网后台录入的富文本 HTML，与官网 /apps/detail 同口径原样输出） -->
+<?php $detailHtml = isset($app['detail']) ? (string)$app['detail'] : ''; if (trim($detailHtml) !== ''): ?>
+<div class="mk-panel mk-panel-tight">
+    <h3 class="mk-section-title">应用介绍</h3>
+    <div class="mk-detail-body">
+        <?php echo $detailHtml; ?>
+    </div>
+</div>
+<?php endif; ?>
+
+<!-- 版本历史（全量版本；安装动作只针对最新兼容版本，历史版本仅供查看变更说明）。
+     卡片复用通用详情分区组件 .detail-section（替代原内联阴影容器），
+     记录型表格统一 .doc-table 展示组件（去斑马纹与内联样式） -->
+<div class="detail-section">
+    <h3 class="section-title">版本历史（<?php echo count($versionRows); ?>）</h3>
+    <?php if (empty($versionRows)): ?>
+    <?php $emptyTitle = '暂无版本记录'; $emptyIcon = 'file'; include 'components/empty_state.html'; ?>
+    <?php else: ?>
+    <!-- .doc-table-wrap 横向滚动容器：手机/平板窄屏下表格按最小宽度展示、左右滑动查看 -->
+    <div class="doc-table-wrap">
+    <table class="doc-table">
+        <thead>
+        <tr>
+            <!-- 列宽类见 components.css .mk-col-version / .mk-col-published / .mk-col-size -->
+            <th class="mk-col-version">版本</th>
+            <th class="mk-col-published">发布时间</th>
+            <th class="mk-col-size">大小</th>
+            <th>更新说明</th>
+        </tr>
+        </thead>
+        <tbody>
+        <?php foreach ($versionRows as $vrow): ?>
+        <tr>
+            <td class="mono">
+                v<?php echo htmlspecialchars((string)$vrow['version'], ENT_QUOTES); ?>
+                <?php if ((int)$vrow['incompatible'] === 1): ?>
+                <!-- 当前主系统版本不在该版本兼容区间内 -->
+                <span class="label label-default" title="与当前系统版本不兼容">不兼容</span>
+                <?php endif; ?>
+            </td>
+            <td class="mono"><?php echo htmlspecialchars(mb_substr((string)$vrow['published'], 0, 10), ENT_QUOTES); ?></td>
+            <td class="mono"><?php echo htmlspecialchars((string)$vrow['size'], ENT_QUOTES); ?></td>
+            <!-- 弱化文字色见 components.css .doc-table td.mk-cell-muted -->
+            <td class="mk-cell-muted"><?php echo $vrow['changelog'] !== '' ? htmlspecialchars((string)$vrow['changelog'], ENT_QUOTES) : '—'; ?></td>
+        </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
+    </div><!-- /.doc-table-wrap 横向滚动容器 -->
+    <?php endif; ?>
+</div>
+
+<?php include 'components/footer_wrapper.html'; ?>

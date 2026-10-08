@@ -1,0 +1,146 @@
+/* ============================================================
+   BlogKit Admin - Tables CSS
+   统一表格样式（设计纲领：专业、克制、高效）
+   规格来源：ADMIN_REDESIGN_PLAN.md 3.3 表格
+   - 表头：底 --bg-subtle，12px/600/--text-secondary，高 40px，无大写转换
+   - 行高：44px 固定，悬停 --hover-bg，不做斑马纹
+   - 分割线：行间 1px --border-split，表头下沿 1px --border-color，无竖线
+   - 选中行：--primary-subtle 底色
+   - 全部颜色引用 common.css 设计 Token，明暗双主题自动适配
+   类名兼容说明：.table / .table-striped / .data-table / .table-container
+   均保留原有类名，仅统一样式实现，存量模板零改动
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   表格容器：白底细边框，与下方分页条连体（容器只带上圆角，
+   下圆角由分页条 .pagination 提供，见 components.css）
+   ------------------------------------------------------------ */
+.table-container {
+    background-color: var(--bg-container);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    /* 窄屏下表格横向滚动而不撑破容器（AdminLTE/Tabler 的 .table-responsive 同款行为） */
+    overflow-x: auto;
+}
+
+/* 基础表格：无类名表格（后台少量页面直接使用 table 标签）与 .table 共用规格 */
+table,
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* 表头：40px 高，浅灰底小字 */
+th {
+    background-color: var(--bg-subtle);
+    padding: 10px 16px;
+    text-align: left;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    line-height: 20px;
+    color: var(--text-secondary);
+    /* 表头下沿使用更深一档的分割线，与数据行区分层级 */
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+
+/* 数据行：44px 行高，行间浅分割线，无竖线 */
+td {
+    padding: 11px 16px;
+    text-align: left;
+    font-size: var(--font-size-sm);
+    line-height: 22px;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-split);
+    vertical-align: middle;
+}
+
+/* 行悬停：仅变背景色，无阴影无位移 */
+tr:hover {
+    background-color: var(--hover-bg);
+}
+
+/* ------------------------------------------------------------
+   组件类表格（.table）：与基础表格同规格（合并定义避免双份维护）
+   ------------------------------------------------------------ */
+.table th {
+    background-color: var(--bg-subtle);
+}
+
+/* ------------------------------------------------------------
+   斑马纹弃用：设计纲领不做斑马纹。
+   .table-striped 类名保留以兼容存量模板（备份/插件/市场页），
+   渲染为普通表格（条纹不再可见），后续模板改造时可逐步移除该类
+   ------------------------------------------------------------ */
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: transparent;
+}
+
+/* 表格行悬停深色模式增强（优先级最高） */
+body.dark-theme tr:hover,
+body.dark-theme .table-striped tbody tr:nth-of-type(odd):hover {
+    background-color: var(--hover-bg);
+}
+
+/* ------------------------------------------------------------
+   选中行高亮（批量操作勾选后）：主色半透明浅底，明暗通用
+   ------------------------------------------------------------ */
+.table tbody tr.selected,
+table tbody tr.selected {
+    background-color: var(--primary-subtle) !important;
+}
+
+.table tbody tr.selected td,
+table tbody tr.selected td {
+    background-color: transparent !important;
+}
+
+/* ------------------------------------------------------------
+   复选框列：40px 常驻窄列（模板在复选框所在 th/td 上加 .col-check）
+   ------------------------------------------------------------ */
+.table .col-check,
+table .col-check {
+    width: 40px;
+    padding-left: 16px;
+    padding-right: 8px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* ------------------------------------------------------------
+   内容标题列：首行内容字重突出（模板在标题列 td 上加 .cell-title）；
+   可点击的标题直接使用 .table-link（见 components.css）
+   ------------------------------------------------------------ */
+.table td.cell-title,
+table td.cell-title {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+/* 空表格提示：由 empty_state.html 组件自带样式负责居中显示，
+   此处不再做 td[colspan] 全局居中（避免影响普通跨列数据单元格） */
+
+/* ==================== 中小屏表格可读性 ==================== */
+/* 侧边栏展开（769px~1200px）或移动端时主内容区变窄，
+   列宽被压到极限会导致表头/单元格文字竖排断行；
+   统一给表格最小宽度，超出部分由 .table-container 横向滚动查看 */
+@media (max-width: 1200px) {
+    .table-container .table,
+    .table-container table {
+        min-width: 880px;
+    }
+}
+
+/* ==================== 暗色主题 ==================== */
+/* 明色值已全部 Token 化，绝大多数样式随 Token 自动切换；
+   此处仅保留少量需要覆盖的规则（历史遗留的内联样式表格底色等） */
+
+/* 表格容器深色主题（覆盖部分模板的内联背景色） */
+body.dark-theme .table-container {
+    background-color: var(--bg-container) !important;
+}
+
+/* 内联样式表格行悬停深色主题（个别模板残留内联底色时保证悬停可见） */
+body.dark-theme [style*="background-color:"] tr:hover {
+    background-color: var(--hover-bg) !important;
+}

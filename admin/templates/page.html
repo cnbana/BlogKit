@@ -1,0 +1,166 @@
+<?php $currentAction = 'page'; $pageTitle = '页面管理';  include 'components/page_wrapper.html'; ?>
+    
+    <!-- ==================== 工具栏（两段式：简单列表无筛选区，对齐列表页规范） ==================== -->
+    <div class="list-toolbar list-toolbar-flat">
+        <a href="admin.php?action=page&sub=add" class="btn btn-primary">
+            <?php echo admin_svg_icon('plus', ''); ?>添加页面
+        </a>
+
+        <!-- 批量操作下拉菜单：菜单项通过 data-batch 属性分发（见底部脚本），
+             发布/设为草稿为直接提交，删除为危险操作需确认 -->
+        <div class="btn-group">
+            <!-- 批量操作下拉触发按钮：文字与箭头垂直居中（原内联样式迁移至 components.css 的 .pgm-batch-toggle） -->
+            <a href="javascript:void(0)" class="btn btn-default dropdown-toggle pgm-batch-toggle">
+                批量操作<span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu batch-menu">
+                <li><a href="javascript:void(0)" data-batch="status-1">批量发布</a></li>
+                <li><a href="javascript:void(0)" data-batch="status-0">批量设为草稿</a></li>
+                <li><a href="javascript:void(0)" data-batch="delete" class="menu-item-danger">批量删除</a></li>
+            </ul>
+        </div>
+
+        <!-- 批量选中计数提示：勾选行复选框后显示「已选 N 项」（common.js initBatchSelectedInfo 自动维护） -->
+        <span id="batch-selected-info" class="batch-selected-info"></span>
+    </div>
+
+    <div class="table-container">
+        <?php include ADMIN_PATH . '/templates/components/sort_link.html'; ?>
+        <table class="table">
+            <thead>
+                <tr>
+                    <!-- 复选框列：表头为全选开关（id=select_all，见底部批量脚本） -->
+                    <th class="col-check"><input type="checkbox" id="select_all"></th>
+                    <th><?php echo sortLink('id', 'ID', $sort, $order); ?></th>
+                    <th><?php echo sortLink('title', '标题', $sort, $order); ?></th>
+                    <th>别名</th>
+                    <th>状态</th>
+                    <th><?php echo sortLink('updated_at', '更新时间', $sort, $order); ?></th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($pages as $pageItem): ?>
+                <tr>
+                    <!-- 行复选框：name=ids[] 供批量操作收集。
+                         注意：循环变量使用 $pageItem 而非 $page，避免覆盖分页组件依赖的当前页码变量 -->
+                    <td class="col-check"><input type="checkbox" name="ids[]" value="<?php echo $pageItem['id']; ?>" class="page_checkbox"></td>
+                    <td><?php echo $pageItem['id']; ?></td>
+                    <td><?php echo $pageItem['title']; ?></td>
+                    <td><?php echo $pageItem['slug']; ?></td>
+                    <!-- 状态徽标：复用全局 status-badge（active/inactive），对齐权限管理等列表页 -->
+                    <td><span class="status-badge <?php echo $pageItem['status'] == 1 ? 'active' : 'inactive'; ?>"><?php echo $pageItem['status'] == 1 ? '已发布' : '草稿'; ?></span></td>
+                    <td><?php echo $pageItem['updated_at']; ?></td>
+                    <td>
+                        <!-- 操作列：文字链接式（对齐用户/文章列表页规范） -->
+                        <a href="admin.php?action=page&sub=edit&id=<?php echo $pageItem['id']; ?>" class="table-link">编辑</a>
+                        <span class="table-action-divider"></span>
+                        <a href="admin.php?action=page&sub=delete&id=<?php echo $pageItem['id']; ?>" class="table-link table-link-danger" onclick="return confirmLink(this, '确定要删除这个页面吗？', { type: 'danger', confirmText: '删除' });">删除</a>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        </div>
+
+        <!-- 分页：放在表格容器之外，避免贴着表格边框显得拥挤
+             （与表格的间距由 components.css 的 .pgm-pagination-gap 提供，替代原内联 margin-top） -->
+        <?php if (isset($totalPages) && $totalPages > 1): ?>
+        <div class="pagination-container pgm-pagination-gap">
+            <?php include 'components/pagination.html'; ?>
+        </div>
+        <?php endif; ?>
+
+<script>
+/**
+ * 批量操作脚本（对齐文章列表页交互）：
+ * 1. 表头全选/取消全选，并同步行选中高亮；
+ * 2. 行复选框变化时同步该行 .selected 高亮；
+ * 3. 批量菜单点击分发：发布/设为草稿按 data-batch 中的目标状态直接提交；
+ *    批量删除为危险操作，先弹确认框，确认后以 POST + ids[] + csrf_token 提交。
+ * 「已选 N 项」计数徽标由 common.js 的 initBatchSelectedInfo 全局自动维护，无需在此处理。
+ */
+(function () {
+    // 收集当前勾选的页面 ID 列表
+    var getSelectedIds = function () {
+        return Array.prototype.map.call(
+            document.querySelectorAll('.page_checkbox:checked'),
+            function (cb) { return cb.value; }
+        );
+    };
+
+    // 统一构建 POST 表单并提交（ids[] + 额外参数 + CSRF 令牌）
+    var submitBatchForm = function (url, params) {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = url;
+        getSelectedIds().forEach(function (id) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'ids[]';
+            input.value = id;
+            form.appendChild(input);
+        });
+        Object.keys(params || {}).forEach(function (key) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = params[key];
+            form.appendChild(input);
+        });
+        // CSRF 令牌：由会话生成，后端 Security::validateCsrfToken 校验
+        var tokenInput = document.createElement('input');
+        tokenInput.type = 'hidden';
+        tokenInput.name = 'csrf_token';
+        tokenInput.value = '<?php echo $_SESSION['csrf_token']; ?>';
+        form.appendChild(tokenInput);
+        document.body.appendChild(form);
+        form.submit();
+    };
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // 全选/取消全选：表头复选框同步所有行复选框的选中状态与行高亮
+        var selectAll = document.getElementById('select_all');
+        if (selectAll) {
+            selectAll.addEventListener('change', function () {
+                document.querySelectorAll('.page_checkbox').forEach(function (checkbox) {
+                    checkbox.checked = selectAll.checked;
+                    checkbox.closest('tr').classList.toggle('selected', selectAll.checked);
+                });
+            });
+        }
+
+        // 单个复选框变化时同步该行高亮
+        document.querySelectorAll('.page_checkbox').forEach(function (cb) {
+            cb.addEventListener('change', function (e) {
+                e.target.closest('tr').classList.toggle('selected', e.target.checked);
+            });
+        });
+
+        // 批量菜单点击分发（下拉开合由 common.js initDropdowns 统一事件委托处理）
+        document.querySelectorAll('.batch-menu a[data-batch]').forEach(function (item) {
+            item.addEventListener('click', function (e) {
+                e.preventDefault();
+                var action = this.getAttribute('data-batch');
+                if (getSelectedIds().length === 0) {
+                    showToast('请先选择页面', 'error');
+                    return;
+                }
+                if (action.indexOf('status-') === 0) {
+                    // 批量发布 / 设为草稿：data-batch 为 status-{0|1}，与文章列表页一致直接提交
+                    submitBatchForm('admin.php?action=page&method=batchStatus', { status: action.split('-')[1] });
+                } else if (action === 'delete') {
+                    // 批量删除：统一确认弹窗（危险操作红色样式），确认后提交
+                    showConfirmDialog('确定要删除选中的页面吗？', { type: 'danger', confirmText: '删除' }).then(function (ok) {
+                        if (ok) {
+                            submitBatchForm('admin.php?action=page&method=batchDelete', {});
+                        }
+                    });
+                }
+            });
+        });
+    });
+})();
+</script>
+
+<?php include 'components/footer_wrapper.html'; ?>

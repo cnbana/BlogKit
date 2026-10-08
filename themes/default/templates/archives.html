@@ -1,0 +1,43 @@
+{assign var="page_title" value="文章归档"}
+{include file="header"}
+    <main>
+        <div class="container">
+            <div class="content-area">
+                <div class="content">
+                    {if theme_show_breadcrumb}{include file="common/breadcrumb.html"}{/if}
+
+                    <div class="archives-page">
+                        <h1 class="archives-title">文章归档</h1>
+                        <p class="archives-count">共 {echo value="total_articles"} 篇文章</p>
+
+                        {loop name="archives"}
+                            <div class="archive-year">
+                                <h2 class="archive-year-title">{field name="_key"}</h2>
+                                {loop name=":"}
+                                    <div class="archive-month">
+                                        <h3 class="archive-month-title">{field name="_key"}月 ({count name=":"}篇)</h3>
+                                        <ul class="archive-list">
+                                            {loop name=":"}
+                                                <li class="archive-item">
+                                                    <span class="archive-date">{field name="created_at" filter="date"}</span>
+                                                    <a href="{url:article:id}" class="archive-link">{field name="title"}</a>
+                                                    {if field='category_name'}<span class="archive-category">[{field name="category_name"}]</span>{/if}
+                                                </li>
+                                            {/loop}
+                                        </ul>
+                                    </div>
+                                {/loop}
+                            </div>
+                        {/loop}
+
+                        {if total_articles}
+                        {else}
+                            <div class="empty-state"><p>暂无归档文章</p></div>
+                        {/if}
+                    </div>
+                </div>
+                {include file="sidebar"}
+            </div>
+        </div>
+    </main>
+{include file="footer"}

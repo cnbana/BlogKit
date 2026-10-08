@@ -1,0 +1,66 @@
+<?php $currentAction = 'friendlink'; $pageTitle = '添加友情链接'; include 'components/page_wrapper.html'; ?>
+
+    <!-- 本页在友情链接列表右侧抽屉（openEntityDrawer）内打开，关闭抽屉即返回列表，
+         故不放置「返回友情链接列表」按钮（避免与抽屉关闭功能重复） -->
+
+    <!-- 添加友情链接表单：布局样式统一由 common.css（.content-section/.card）与
+         forms.css（.form-group/.form-hint/.form-required/.form-actions）提供，
+         模板不再内联样式（与其他编辑页保持同一套干净 class 写法） -->
+    <div class="content-section">
+        <div class="card">
+            <div class="card-header">
+                <h3>友情链接信息</h3>
+            </div>
+            <div class="card-body">
+                <form method="post" action="admin.php?action=friendlink&sub=save_add">
+                    <div class="form-group">
+                        <label for="name">链接名称 <span class="form-required">*</span></label>
+                        <input type="text" id="name" name="name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="url">链接地址 <span class="form-required">*</span></label>
+                        <input type="url" id="url" name="url" required>
+                        <small class="form-hint">请输入完整的URL地址，如：https://example.com</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">链接描述</label>
+                        <textarea id="description" name="description" rows="3"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="logo">链接Logo</label>
+                        <input type="text" id="logo" name="logo">
+                        <small class="form-hint">请输入Logo图片的完整URL地址</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="sort">排序</label>
+                        <!-- input-narrow：短数值字段固定窄宽（forms.css） -->
+                        <input type="number" id="sort" name="sort" value="0" class="input-narrow">
+                        <small class="form-hint">数值越小，排序越靠前</small>
+                    </div>
+
+                    <div class="form-group">
+                        <!-- 二值开关统一使用滑动开关（与系统设置页一致），提交行为与原复选框相同 -->
+                        <div class="switch-row">
+                            <div class="switch-row-text">
+                                <label for="status">状态</label>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="status" name="status" checked>
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 按钮行：保存居左（与分类/标签/角色/权限等表单页统一，不用右对齐变体） -->
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+<?php include 'components/footer_wrapper.html'; ?>

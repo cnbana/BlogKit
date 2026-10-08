@@ -1,0 +1,223 @@
+<?php $currentAction = 'comment'; $pageTitle = '评论回收站';  include 'components/page_wrapper.html'; ?>
+    
+    <!-- ==================== 筛选区（对齐列表页三段式结构） ==================== -->
+    <!-- filter-section-flat：白底变体 + 底部分割线（components.css） -->
+    <div class="filter-section filter-section-flat">
+        <form method="get" action="admin.php" class="filter-form">
+            <input type="hidden" name="action" value="comment">
+            <input type="hidden" name="sub" value="recycle">
+
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="status_filter">状态</label>
+                    <select name="status" id="status_filter" class="filter-select">
+                        <option value="" <?php echo empty($_GET['status']) ? 'selected' : ''; ?>>全部</option>
+                        <option value="1" <?php echo isset($_GET['status']) && $_GET['status'] == 1 ? 'selected' : ''; ?>>已审核</option>
+                        <option value="0" <?php echo isset($_GET['status']) && $_GET['status'] == 0 ? 'selected' : ''; ?>>待审核</option>
+                    </select>
+                </div>
+
+                <div class="filter-group filter-group-wide">
+                    <label for="search_filter">搜索</label>
+                    <input type="text" name="search" id="search_filter" class="filter-input" placeholder="评论内容" value="<?php echo isset($_GET['search']) ? $_GET['search'] : ''; ?>">
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary" id="filter-btn">
+                        <?php echo admin_svg_icon('search', ''); ?>搜索
+                    </button>
+                    <button type="button" class="btn btn-default" id="reset-btn">
+                        <?php echo admin_svg_icon('refresh', ''); ?>重置
+                    </button>
+                </div>
+            </div>
+        </form>
+        
+        <script>
+            // 评论回收站页面特定的JavaScript
+            // 获取筛选表单元素
+            const statusFilter = document.getElementById('status_filter');
+            const searchFilter = document.getElementById('search_filter');
+            const filterBtn = document.getElementById('filter-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            
+            // 重置按钮点击事件
+            resetBtn.addEventListener('click', function() {
+                // 跳转到指定URL重置筛选
+                window.location.href = '/admin.php?action=comment&sub=recycle';
+            });
+            
+            // 表单提交时处理空参数
+            document.querySelector('form').addEventListener('submit', function(e) {
+                if (statusFilter.value === '') {
+                    statusFilter.removeAttribute('name');
+                }
+                if (searchFilter.value.trim() === '') {
+                    searchFilter.removeAttribute('name');
+                }
+            });
+        </script>
+    </div>
+
+    <!-- ==================== 工具栏（对齐列表页） ==================== -->
+    <!-- 左侧：返回评论列表入口；右侧：批量操作下拉（批量恢复/批量彻底删除）+ 选中计数提示 -->
+    <div class="list-toolbar list-toolbar-flat">
+        <a href="admin.php?action=comment" class="btn btn-default">
+            <?php echo admin_svg_icon('arrow-left', ''); ?>返回评论列表
+        </a>
+
+        <!-- 批量操作下拉：菜单项通过 data-batch 属性分发（见页面底部批量脚本），
+             恢复提交到 batchRestore，彻底删除提交到 batchForceDelete（危险操作红色样式） -->
+        <div class="btn-group">
+            <!-- 批量操作下拉触发按钮：文字与箭头垂直居中（原内联样式迁移至 components.css 的 .cm-batch-toggle） -->
+            <a href="javascript:void(0)" class="btn btn-default dropdown-toggle cm-batch-toggle">
+                批量操作<span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu batch-menu">
+                <li><a href="javascript:void(0)" data-batch="restore">批量恢复</a></li>
+                <li><a href="javascript:void(0)" data-batch="force-delete" class="menu-item-danger">批量彻底删除</a></li>
+            </ul>
+        </div>
+
+        <!-- 批量选中计数提示：勾选行复选框后显示「已选 N 项」（common.js initBatchSelectedInfo 自动维护） -->
+        <span id="batch-selected-info" class="batch-selected-info"></span>
+    </div>
+
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <!-- 复选框列：表头为全选开关（批量脚本联动），行内复选框统一命名 ids[] 供批量提交；
+                         列宽 40px（原内联样式迁移至 components.css 的 .cm-col-check） -->
+                    <th class="cm-col-check"><input type="checkbox" id="select_all"></th>
+                    <th>ID</th>
+                    <th>文章</th>
+                    <th>用户</th>
+                    <th>评论内容</th>
+                    <th>状态</th>
+                    <th>评论时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($comments)): ?>
+                <tr>
+                    <td colspan="8">
+                        <?php $emptyTitle = '回收站中暂无评论数据'; $emptyIcon = 'message'; $emptyDesc = '当有评论被删除时，将显示在这里'; include 'components/empty_state.html'; ?>
+                    </td>
+                </tr>
+                <?php else: ?>
+                <?php foreach ($comments as $comment): ?>
+                <tr>
+                    <!-- 批量选择复选框：name="ids[]"（控制器读取 $_POST['ids'] 数组），class 供全选脚本定位 -->
+                    <td><input type="checkbox" name="ids[]" value="<?php echo $comment['id']; ?>" class="comment_recycle_checkbox"></td>
+                    <td><?php echo $comment['id']; ?></td>
+                    <td><?php echo $comment['article_title']; ?></td>
+                    <td><?php echo $comment['nickname'] ? $comment['nickname'] : $comment['username']; ?></td>
+                    <td><?php echo mb_substr($comment['content'], 0, 50) . (mb_strlen($comment['content']) > 50 ? '...' : ''); ?></td>
+                    <td><?php echo $comment['status'] == 1 ? '<span class="badge badge-success">已审核</span>' : '<span class="badge badge-warning">待审核</span>'; ?></td>
+                    <td><?php echo $comment['created_at']; ?></td>
+                    <td>
+                        <!-- 操作列：文字链接式（确认弹窗由 confirmLink 统一处理） -->
+                        <a href="admin.php?action=comment&sub=restore&id=<?php echo $comment['id']; ?>" class="table-link" onclick="return confirmLink(this, '确定要恢复这条评论吗？', { type: 'info', title: '恢复确认', confirmText: '恢复' });">恢复</a>
+                        <span class="table-action-divider"></span>
+                        <a href="admin.php?action=comment&sub=forceDelete&id=<?php echo $comment['id']; ?>" class="table-link table-link-danger" onclick="return confirmLink(this, '确定要彻底删除这条评论吗？此操作不可恢复。', { type: 'danger', confirmText: '彻底删除' });">彻底删除</a>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- 分页导航 -->
+    <?php if (!empty($comments)): ?>
+    <?php 
+        // 引入公共分页组件
+        $action = 'comment';
+        $total = $totalCount;
+        $limit = Config::get('admin_pagination_count', 20);
+        $filters = [];
+        if (isset($_GET['status']) && !empty($_GET['status'])) $filters['status'] = $_GET['status'];
+        if (isset($_GET['article_id']) && !empty($_GET['article_id'])) $filters['article_id'] = $_GET['article_id'];
+        if (isset($_GET['search']) && !empty($_GET['search'])) $filters['search'] = $_GET['search'];
+        $filters['sub'] = 'recycle'; // 保持子操作
+        include ADMIN_PATH . '/templates/components/pagination.html';
+    ?>
+    <?php endif; ?>
+
+    <script>
+    // ==================== 回收站批量操作（对齐评论列表页交互） ====================
+    // 说明：批量恢复/批量彻底删除端点（batchRestore/batchForceDelete）返回 JSON 响应，
+    // 因此这里用 fetch 提交并根据响应弹出 toast 后刷新列表，
+    // 避免表单整页提交导致浏览器直接渲染裸 JSON 文本。
+    document.addEventListener('DOMContentLoaded', function() {
+        // 收集当前勾选的评论 ID 列表（行复选框统一命名 ids[]）
+        const getRecycleSelectedIds = () =>
+            Array.from(document.querySelectorAll('input[name="ids[]"]:checked')).map((cb) => cb.value);
+
+        // 统一 POST 提交（ids[] + 额外参数 + CSRF 令牌），成功后延迟刷新让用户看到提示
+        const submitRecycleBatchJson = (url, params) => {
+            const body = new URLSearchParams();
+            getRecycleSelectedIds().forEach((id) => body.append('ids[]', id));
+            Object.keys(params).forEach((key) => body.append(key, params[key]));
+            body.append('csrf_token', '<?php echo $_SESSION['csrf_token']; ?>');
+            fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                body: body.toString()
+            })
+                .then((res) => res.json())
+                .then((res) => {
+                    showToast(res.msg || (res.code === 200 ? '操作成功' : '操作失败'), res.code === 200 ? 'success' : 'error');
+                    if (res.code === 200) {
+                        setTimeout(() => window.location.reload(), 800);
+                    }
+                })
+                .catch(() => showToast('请求失败，请重试', 'error'));
+        };
+
+        // 全选/取消全选：与行内复选框状态联动，并同步行高亮
+        const recycleSelectAll = document.getElementById('select_all');
+        if (recycleSelectAll) {
+            recycleSelectAll.addEventListener('change', function() {
+                document.querySelectorAll('input[name="ids[]"]').forEach(function(cb) {
+                    cb.checked = recycleSelectAll.checked;
+                    cb.closest('tr').classList.toggle('selected', cb.checked);
+                });
+            });
+        }
+
+        // 单选时高亮行（tables.css 的 tr.selected 样式）
+        document.querySelectorAll('input[name="ids[]"]').forEach(function(cb) {
+            cb.addEventListener('change', function() {
+                cb.closest('tr').classList.toggle('selected', cb.checked);
+            });
+        });
+
+        // 批量菜单点击分发：恢复走 batchRestore；彻底删除为不可恢复的危险操作，强确认后提交
+        document.querySelectorAll('.batch-menu a[data-batch]').forEach(function(item) {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                const action = this.getAttribute('data-batch');
+                if (getRecycleSelectedIds().length === 0) {
+                    showToast('请先选择评论', 'error');
+                    return;
+                }
+                if (action === 'restore') {
+                    // 批量恢复：普通确认即可
+                    showConfirmDialog('确定要恢复选中的评论吗？', { type: 'info', title: '批量操作', confirmText: '恢复' }).then(function(ok) {
+                        if (ok) submitRecycleBatchJson('admin.php?action=comment&sub=batchRestore', {});
+                    });
+                } else if (action === 'force-delete') {
+                    // 批量彻底删除：危险操作强确认（红色样式确认弹窗，物理删除不可恢复）
+                    showConfirmDialog('确定要彻底删除选中的评论吗？此操作不可恢复。', { type: 'danger', confirmText: '彻底删除' }).then(function(ok) {
+                        if (ok) submitRecycleBatchJson('admin.php?action=comment&sub=batchForceDelete', {});
+                    });
+                }
+            });
+        });
+    });
+    </script>
+
+<?php include 'components/footer_wrapper.html'; ?>

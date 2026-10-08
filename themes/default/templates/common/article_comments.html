@@ -1,0 +1,64 @@
+<!-- 评论区域 -->
+{if config.comment_enabled}
+<div class="comments-section" id="comments">
+    <div class="comments-box">
+    <h3>评论 <span class="comment-count">0</span></h3>
+    
+    <!-- 评论表单（只有登录用户可见） -->
+    {if-permission type="is_user"}
+        <div class="comment-form">
+            <h4>发表评论</h4>
+            <form id="commentForm">
+                <input type="hidden" name="article_id" value="{field name="id"}">
+                <input type="hidden" name="parent_id" value="0">
+                <div class="form-group">
+                    <label for="comment_content">评论内容：</label>
+                    <div class="comment-textarea-wrapper">
+                        <textarea id="comment_content" name="content" rows="5" required placeholder="写下你的评论..." data-min-length="{config.comment_min_length}" data-max-length="{config.comment_max_length}" class="comment-textarea"></textarea>
+                        <div class="char-counter">
+                            <span class="current-length">0</span>
+                            <span class="length-separator">/</span>
+                            <span class="max-length">{config.comment_max_length}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 验证码组件 -->
+                {if captcha_enabled && captcha_comment_enabled}
+                <div class="form-group">
+                    <label>验证码：</label>
+                    <div class="captcha-wrapper" data-captcha-width="{echo value="captcha_width"}" data-captcha-height="{echo value="captcha_height"}" data-captcha-font-size="{echo value="captcha_font_size"}"></div>
+                </div>
+                {endif}
+                
+                <div class="form-group">
+                    <button type="submit" class="submit-comment btn btn-primary">提交评论</button>
+                </div>
+            </form>
+        </div>
+    {/if-permission}
+    
+    <!-- 未登录用户提示 -->
+    {if-permission type="is_guest"}
+          <div class="login-prompt">
+              <p>请登录后发表评论 <a href="{url:login:redirect}">登录</a></p>
+          </div>
+      {/if-permission}
+    
+    <!-- 评论排序 -->
+    <div class="comments-sort">
+        <span class="sort-tab active" data-sort="latest">最新</span>
+        <span class="sort-tab" data-sort="hottest">最热</span>
+    </div>
+    
+    <!-- 评论列表 -->
+    <div class="comments-list">
+        <!-- 评论列表将通过AJAX加载 -->
+    </div>
+    
+    <!-- 分页控件 -->
+    <div class="comments-pagination">
+    </div>
+</div>
+</div>
+{endif}

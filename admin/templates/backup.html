@@ -1,0 +1,144 @@
+<?php  $currentAction = 'backup'; $pageTitle = '数据备份管理'; include 'components/page_wrapper.html'; ?>
+
+    <!-- 操作按钮 -->
+    <div class="backup-actions">
+        <a href="admin.php?action=backup&sub=create&type=database" class="btn btn-primary" onclick="return confirmLink(this, '确认创建数据库备份？', { type: 'info', title: '创建备份', confirmText: '备份' })">备份数据库</a>
+        <a href="admin.php?action=backup&sub=create&type=files" class="btn btn-success" onclick="return confirmLink(this, '确认创建文件备份？', { type: 'info', title: '创建备份', confirmText: '备份' })">备份文件</a>
+        <a href="admin.php?action=backup&sub=create&type=full" class="btn btn-warning" onclick="return confirmLink(this, '全量备份需要较长时间，确认继续？', { type: 'warning', title: '创建备份', confirmText: '开始备份' })">全量备份</a>
+    </div>
+
+    <!-- 提示消息 -->
+    <?php if (isset($_SESSION['backup_success'])): ?>
+    <div class="alert alert-success backup-alert">
+        <?php echo htmlspecialchars($_SESSION['backup_success']); ?>
+    </div>
+    <?php unset($_SESSION['backup_success']); endif; ?>
+
+    <?php if (isset($_SESSION['backup_error'])): ?>
+    <div class="alert alert-danger backup-alert">
+        <?php echo htmlspecialchars($_SESSION['backup_error']); ?>
+    </div>
+    <?php unset($_SESSION['backup_error']); endif; ?>
+
+    <!-- 统计概览 -->
+    <div class="backup-stats-grid">
+        <div class="table-container backup-stat-card">
+            <div class="backup-stat-value"><?php echo count($backups); ?></div>
+            <div class="backup-stat-label">备份总数</div>
+        </div>
+        <div class="table-container backup-stat-card">
+            <div class="backup-stat-value"><?php echo $diskInfo['backup_dir_size']; ?></div>
+            <div class="backup-stat-label">备份目录大小</div>
+        </div>
+        <div class="table-container backup-stat-card">
+            <div class="backup-stat-value"><?php echo $diskInfo['free']; ?></div>
+            <div class="backup-stat-label">磁盘剩余空间</div>
+            <!-- 磁盘占用进度条：宽度与颜色随使用率动态输出，保留内联样式 -->
+            <div class="backup-disk-bar">
+                <div class="backup-disk-bar-fill" style="width: <?php echo $diskInfo['used_percent']; ?>%; background: <?php echo $diskInfo['used_percent'] > 90 ? 'var(--danger-color)' : ($diskInfo['used_percent'] > 70 ? 'var(--warning-color)' : 'var(--success-color)'); ?>;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 备份列表 -->
+    <div class="table-container backup-list-panel">
+        <div class="backup-card-header">
+            <h3 class="backup-card-title">备份记录</h3>
+            <span class="backup-card-sub">保留最近 <?php echo (int)Config::get('backup_retain_count', 5); ?> 份</span>
+        </div>
+
+        <?php if (empty($backups)): ?>
+        <?php $emptyTitle = '暂无备份记录'; $emptyIcon = 'file'; $emptyDesc = '点击上方按钮创建第一个备份'; include 'components/empty_state.html'; ?>
+        <?php else: ?>
+        <!-- 备份文件列表：统一 .table 管理型表格（视觉/规格由 tables.css 提供），
+             类型徽章复用 .badge 语义色体系，文件名用通用等宽工具类 .mono -->
+        <div class="backup-table-scroll">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>文件名</th>
+                        <th>类型</th>
+                        <th>大小</th>
+                        <th>备份时间</th>
+                        <th>校验</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($backups as $b): ?>
+                    <tr>
+                        <td class="mono"><?php echo htmlspecialchars($b['name']); ?></td>
+                        <td>
+                            <!-- 类型徽章：数据库=主题色 / 文件=成功绿 / 其他=中性灰（色彩即语义） -->
+                            <?php $badgeClass = $b['type'] === 'db' ? 'badge-primary' : ($b['type'] === 'files' ? 'badge-success' : 'badge-secondary'); ?>
+                            <span class="badge <?php echo $badgeClass; ?>"><?php echo htmlspecialchars($b['type_label']); ?></span>
+                        </td>
+                        <td><?php echo $b['size_human']; ?></td>
+                        <td class="mono"><?php echo $b['datetime']; ?></td>
+                        <td>
+                            <?php if (file_exists($this->backupDir . $b['name'] . '.md5')): ?>
+                            <span class="badge badge-success" title="MD5 校验文件存在">正常</span>
+                            <?php else: ?>
+                            <span class="badge badge-danger" title="无校验文件">缺失</span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <!-- 下载为只读操作保留 GET 链接；恢复/删除为破坏性写操作，
+                                 统一改为行内 POST 小表单 + CSRF 令牌 + 确认弹窗（confirmSubmit） -->
+                            <a href="admin.php?action=backup&sub=download&file=<?php echo urlencode($b['name']); ?>" class="btn btn-sm btn-primary">下载</a>
+                            <form method="post" action="admin.php?action=backup&sub=restore" class="row-inline-form">
+                                <input type="hidden" name="file" value="<?php echo htmlspecialchars($b['name']); ?>">
+                                <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                                <button type="submit" class="btn btn-sm btn-warning" onclick="return confirmSubmit(this, '恢复备份将覆盖当前所有数据，此操作不可撤销。确定要恢复 <?php echo htmlspecialchars($b['name']); ?> 吗？', { type: 'danger', title: '恢复备份', confirmText: '恢复' })">恢复</button>
+                            </form>
+                            <form method="post" action="admin.php?action=backup&sub=delete" class="row-inline-form">
+                                <input type="hidden" name="file" value="<?php echo htmlspecialchars($b['name']); ?>">
+                                <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirmSubmit(this, '确定要删除此备份吗？', { type: 'danger', confirmText: '删除' })">删除</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        <?php endif; ?>
+    </div>
+
+    <!-- 备份设置 -->
+    <div class="table-container backup-settings-panel">
+        <div class="backup-card-header">
+            <h3 class="backup-card-title">备份设置</h3>
+        </div>
+        <div class="backup-settings-body">
+            <!-- 备份设置：仅保留有效的「保留份数」（自动备份执行器尚未实现，
+                 原 auto/frequency/include_* 等无消费点的开关已随无效配置移除，
+                 待后续版本实现执行器后再行恢复） -->
+            <form method="POST" action="admin.php?action=backup&sub=saveSettings">
+                <!-- CSRF 令牌：控制器对写操作统一校验 -->
+                <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                <div class="form-group backup-form-group">
+                    <label class="backup-form-label">保留份数</label>
+                    <input type="number" name="retain_count" value="<?php echo $backupConfig['retain_count']; ?>" min="1" max="30" class="backup-count-input">
+                    <span class="backup-form-tip">超过自动删除最旧的备份</span>
+                </div>
+                <div class="backup-submit-row">
+                    <button type="submit" class="btn btn-primary">保存设置</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+<script>
+// 自动隐藏提示消息
+setTimeout(function() {
+    var alerts = document.querySelectorAll('.alert');
+    alerts.forEach(function(alert) {
+        alert.style.transition = 'opacity 0.5s';
+        alert.style.opacity = '0';
+        setTimeout(function() { alert.remove(); }, 500);
+    });
+}, 5000);
+</script>
+
+<?php include 'components/footer_wrapper.html'; ?>

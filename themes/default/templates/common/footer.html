@@ -1,0 +1,71 @@
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-wrapper">
+                <!-- Footer Main Content -->
+                <div class="footer-main">
+                    <!-- 版权信息 -->
+                    <div class="footer-section footer-copyright-section">
+                        <p class="footer-copyright">
+                            &copy; {if config.copyright_start_year}{config.copyright_start_year}-{/if}{year}
+                            <span class="copyright-owner">
+                                {if config.copyright_owner}{config.copyright_owner}{else}{site.name}{/if}
+                            </span>
+                        </p>
+                    </div>
+                    
+                    <!-- 备案信息 -->
+                    <div class="footer-section footer-icp-section">
+                        {if isset="config.icp_display" && config.icp_display == 1 && config.icp_number}
+                        <a href="{if config.icp_link}{config.icp_link}{else}https://beian.miit.gov.cn/{/if}"
+                           target="_blank" rel="noopener noreferrer nofollow" 
+                           class="footer-link footer-icp-link">
+                            {config.icp_number}
+                        </a>
+                        {/if}
+                        
+                        {if isset="config.gongan_display" && config.gongan_display == 1 && config.gongan_number}
+                        <a href="{if config.gongan_link}{config.gongan_link}{else}https://www.beian.gov.cn/{/if}"
+                           target="_blank" rel="noopener noreferrer nofollow" 
+                           class="footer-link footer-gongan-link">
+                            <span class="gongan-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="22" viewBox="0 0 20 22">
+                                    <image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAWCAYAAADAQbwGAAAAAXNSR0IArs4c6QAABRBJREFUOE+t1WtQVAUUB/D/vfu6e3fZF7ssKgguIrCKwCjGTAiiIhqGWmGiNiaNQ5mapU6jkmEZaBNmU0hmPvrgY5IxTXxEPggFyRwBFQF5Lbgo4C6v5e7d1+U2bclEVp88n86X85vz5fwPgWdcxP95PN/qb2+uTbty4cYqJ+sRJ6ZE7/eNjDlFEKHm/5r7V5BnS5Pul1x8s+J8QxrPNlIPnDQEahWCtBRYC+2Jn2k4E/HiSwcJKrr4n/BTIM/z1OUvVrBbcxuw7AUeMTIO45g+SNQ0+pPjUWWhsXt9BT7cHIQ5G49RBEE4/46OAHneGuCsyj+yOKs2YVYyjUyyCqadJvCx/pDoaDDFdYg8kIyTulSc2FGG7w/HnyHCFi4miHGOJ+gw6ORNEZ3FO6vTszrE4YmjcDC2Ave+7IEAQ3DJSNBjFLBXd2GAcSHhx3SsOTsedadLcfzQtEeEzi9JF76+4Q90GOSZgtiCQtONNRvlOJZfj3k15TAfsYKcrAW6HHAPuCCY5AumsgWGFWG4vSwds+b0IT9XirWvSGPEE3Kqh0FrzZUAZU/Bsb23jPHr3nfibHYlIitawZZ0ggtSgxhLAyTAmxxwtj0ClRAMYverCI91IHszjY83+VwBtfoNQqpq9W5Y88OmdyYw1/YUMal4LcuF4n33MbOrBXXbquDJCIVsui+URi24W3b0511FwHIjTIumY0oCh4I9OqyedQdW2bIdWsOCD7xgU0nu1z7NJ7Oa9HPx/FId1i2twWeZ7SjdZYK83wmlUQehDwXSwcETqET4kkBs+YhD3rejUH5JgSjbT+hTLTgcMOPdlV6w4fjaDrLlt9F+s5/DxI3h6Lx+D+dTfkbUNB0eV1hhZ1jIDRp42mxQR6nQa5cg7jsj5EYDGo/3oufSL8DoyKbgRd+EesHGokzGdrOejpmuxIbqVOze2oFzKETKRBfux4Wip5eBKsQXGh8KfidqUXaHQxIy8Na28dibUo67Zd1QxU5qC5xdGOwFzedyTju7ytKCIg2o6wtB5AoJ5necwCpFLXxpD0ilFGIAivF+GLAJceCaFIWK2bhxdAgxASw6TR2QjonZq52y9e2/wO3XHY2lcWJ/PwRGKPHJpSnI3tQCcL0A70aawgqNikRRuw8GQQNQ470tNPJfb8TDRmCIsYIaG1Wui8uL94KdFdnuvvomIW9zQ052QxkXDTMjw+XzZtSTkzHX2IRRUgs+PzMBrl4WgeG+2DLfBHdLI2xuCpRWDLlxqlUdtl3rBZ2Dvy61VO46wna64LS4AXMbQhZGQ6KnAM4KzirEYDcL5TgNEOQLmC1oPdUA1kcLuUEOqT8NdWhGokidWjZ8KZ7B6uXWu/lfcQ6H0nK1E0IZD//ECHA9LNx2BiRNgdLIQIhFsFY0w8MJoZwaArcDVlXYjCVy/csXR5xer6kyaaD60FFKz/hjSASun4GIJgCRGEMeIcRSwG1jwZh7IdFrQAXo4eyzg3lgs6imJWdoQzJHgoOtn5YIBN3JrJ3AYEs3SM4NEQ24bHaIVUqAtYFp6wcpl0KsUwAkCbFGDomeBkTBRT76dekjw+HhTfqx7cIu14PalULOLqNVEngYF9w2NwSU0NsLNAoIKAFc7CBImRYC7dh2kjbsV+lbcgkiZ2gE+CTPGvZt0A48fjTP4TEnjonQGrkBXk6pSY1IKoV9gG+X+mnsQq2x2tpsuRh2myshcv6EnsrDZ/WrfgfneBE1IibN6wAAAABJRU5ErkJggg==" width="20" height="22" preserveAspectRatio="xMidYMid meet"/>
+                                </svg>
+                            </span>
+                            {config.gongan_number}
+                        </a>
+                        {/if}
+                    </div>
+                    
+                    <!-- Powered by -->
+                    <div class="footer-section footer-powered-section">
+                        <p class="footer-powered">
+                            <span class="powered-by-label">Powered by</span>
+                            <a href="//www.blogkit.cn" target="_blank" rel="noopener" 
+                               class="powered-by-link">BlogKit</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <script src="{site.url}/themes/default/assets/js/main.js"></script>
+    
+    <!-- 回到顶部按钮 -->
+    {if theme_show_back_to_top}
+    <div id="back-to-top" class="back-to-top">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </div>
+    {endif}
+
+    <!-- 自定义全局底部内容 -->
+    {theme_custom_footer}
+    
+    <!-- 插件钩子：页面底部 -->
+    {plugin_hook name="page_footer"}
+    
+</body>
+</html>

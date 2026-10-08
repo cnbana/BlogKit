@@ -1,0 +1,254 @@
+<!-- 数据库迁移管理 -->
+<!-- 样式说明：页面专属样式已并入 assets/css/components.css；颜色全部引用后台主题 CSS 变量（common.css 定义），暗色主题自动切换；版式遵循后台重设计纲领：无装饰、内容优先、低频信息折叠收纳 -->
+
+<div class="migrate-card">
+    <h4>数据库迁移</h4>
+    <!-- 字号/间距变体见 components.css .migrate-desc-main（颜色沿用 .migrate-desc） -->
+    <p class="migrate-desc migrate-desc-main">
+        自动比对 <code>install.sql</code> 与当前数据库结构，发现差异后一键同步。只做新增操作，不会删除任何表或字段。
+    </p>
+
+    <!-- 折叠说明：使用步骤 / 注意事项 / 能力说明统一收纳，默认不展开
+         （common.css 通用组件 .collapse-panel：左箭头指示 + 展开/收起动画） -->
+    <details class="collapse-panel migrate-doc">
+        <summary>使用说明与注意事项</summary>
+        <div class="collapse-body migrate-doc-body">
+            <h5>使用步骤</h5>
+            <ol>
+                <li>检查版本状态：状态为「最新」时无需操作；为「需要升级」时继续下一步</li>
+                <li>预览变更：点击「预览变更」，检查将要执行的 SQL 是否符合预期</li>
+                <li>执行迁移：确认无误后点击「执行迁移」，完成后查看执行报告</li>
+                <li>查看结果：页面底部的历史日志记录所有操作，成功后状态自动更新为「最新」</li>
+            </ol>
+            <h5>注意事项</h5>
+            <ul>
+                <li>执行迁移前建议先备份数据库</li>
+                <li>务必先预览再执行；执行出错不会更新版本号，可安全重试</li>
+                <li>系统只做新增操作，绝不删除任何表、字段或索引</li>
+            </ul>
+            <h5>能力说明</h5>
+            <ul>
+                <li>新增表/列/索引：检测 install.sql 中缺失的表和字段，自动生成 ALTER TABLE ADD</li>
+                <li>外键约束同步：自动添加缺失的外键约束，保证数据引用完整性</li>
+                <li>配置项种子数据：自动插入新增的配置项，不动已有配置</li>
+                <li>ENUM 类型变更：检测枚举列新增取值，自动 MODIFY COLUMN 追加</li>
+                <li>版本自动识别：从 install.sql 头部注释提取目标版本号，无需手动修改常量</li>
+                <li>迁移审计日志：每次操作记录到 bk_migration_log 表，可追溯历史变更</li>
+            </ul>
+        </div>
+    </details>
+
+    <!-- 版本状态 -->
+    <div class="migrate-status">
+        <div class="item">
+            <span class="label">当前数据库版本</span>
+            <span class="value <?php echo ($migrateStatus['current_version'] === null) ? 'na' : ''; ?>">
+                <?php echo $migrateStatus['current_version'] ?? '未知（首次安装）'; ?>
+            </span>
+        </div>
+        <div class="item">
+            <span class="label">目标版本（install.sql）</span>
+            <span class="value"><?php echo htmlspecialchars($migrateStatus['target_version']); ?></span>
+        </div>
+        <div class="item">
+            <span class="label">状态</span>
+            <?php if ($migrateStatus['current_version'] === null): ?>
+                <span class="migrate-badge mb-neutral">未记录</span>
+            <?php elseif ($migrateStatus['current_version'] === $migrateStatus['target_version']): ?>
+                <span class="migrate-badge mb-success">最新</span>
+            <?php else: ?>
+                <span class="migrate-badge mb-warning">需要升级</span>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- 操作提示：.status-banner 中性底横幅（warning 圆点表达「建议先预览」语义） -->
+    <div class="status-banner warning migrate-warning">
+        <span class="dot-status"></span>
+        <span class="status-text"><strong>操作提示</strong>
+        建议先「预览变更」确认无异常后再「执行迁移」。系统将同步缺失的表、字段、索引、外键、新配置项与 ENUM 枚举值；执行失败不会更新版本号。</span>
+    </div>
+
+    <div class="migrate-buttons">
+        <button id="btn-preview" class="btn btn-secondary" onclick="doMigrate('preview')">预览变更</button>
+        <button id="btn-run" class="btn btn-danger-ghost" onclick="runMigrate()">执行迁移</button>
+    </div>
+
+    <!-- 报告输出区 -->
+    <div id="migrate-report" class="migrate-report"></div>
+    <!-- 内联样式保留：display:none 初态 + doMigrate() 通过 loading.style.display
+         在 block/none 间切换加载态，且居中/内边距与显隐同属一段内联，一并保留 -->
+    <div id="migrate-loading" style="display:none; text-align:center; padding: 20px; color: var(--text-secondary, #718096);">
+        正在分析数据库结构，请稍候...
+    </div>
+</div>
+
+<!-- 迁移历史日志 -->
+<?php
+// 查询最近 20 条迁移日志
+$migrateHistory = [];
+try {
+    $db = Database::getInstance();
+    $logTable = $db->table('migration_log');
+    // 检查表是否存在
+    $tableCheck = $db->fetch("SHOW TABLES LIKE '$logTable'");
+    if ($tableCheck) {
+        $historyRows = $db->fetchAll("SELECT * FROM `$logTable` ORDER BY id DESC LIMIT 20");
+        if ($historyRows) {
+            $migrateHistory = $historyRows;
+        }
+    }
+} catch (Exception $e) {
+    // 忽略查询错误
+}
+?>
+
+<?php if (!empty($migrateHistory)): ?>
+<div class="migrate-card">
+    <div class="migrate-history-head">
+        <!-- h4 清边距规则见 components.css .migrate-history-head h4 -->
+        <h4>迁移历史</h4>
+        <button type="button" id="btn-toggle-cols" class="migrate-toggle" onclick="toggleHistoryCols()">显示完整列</button>
+    </div>
+    <!-- 字号/间距变体见 components.css .migrate-desc-history（颜色沿用 .migrate-desc） -->
+    <p class="migrate-desc migrate-desc-history">最近 20 次迁移操作记录</p>
+    <!-- 横向滚动容器：小屏下表格按 min-width 展示，超出部分左右滑动查看 -->
+    <div class="migrate-history">
+        <div class="migrate-history-wrap">
+        <!-- 记录型表格统一 .doc-table 展示组件（common.css），视觉与全后台一致 -->
+        <table class="doc-table">
+            <thead>
+                <tr>
+                    <th>时间</th>
+                    <th>操作</th>
+                    <th>版本</th>
+                    <th>表</th>
+                    <th>字段</th>
+                    <th class="col-extra">索引</th>
+                    <th class="col-extra">外键</th>
+                    <th class="col-extra">配置项</th>
+                    <th class="col-extra">枚举</th>
+                    <th>耗时</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($migrateHistory as $log): ?>
+                <tr>
+                    <td class="mono"><?php echo date('Y-m-d H:i', $log['created_at']); ?></td>
+                    <td>
+                        <?php if ($log['action'] === 'preview'): ?>
+                            <span class="migrate-badge mb-neutral">预览</span>
+                        <?php elseif ($log['success']): ?>
+                            <span class="migrate-badge mb-success">执行成功</span>
+                        <?php else: ?>
+                            <span class="migrate-badge mb-fail">执行失败</span>
+                        <?php endif; ?>
+                    </td>
+                    <td class="mono"><?php echo htmlspecialchars($log['version_from'] ?? '-'); ?> → <?php echo htmlspecialchars($log['version_to']); ?></td>
+                    <td class="mono"><?php echo $log['new_tables']; ?></td>
+                    <td class="mono"><?php echo $log['new_columns']; ?></td>
+                    <td class="mono col-extra"><?php echo $log['new_indexes']; ?></td>
+                    <td class="mono col-extra"><?php echo $log['new_fk']; ?></td>
+                    <td class="mono col-extra"><?php echo $log['new_config_items']; ?></td>
+                    <td class="mono col-extra"><?php echo $log['enum_changes']; ?></td>
+                    <td class="mono"><?php echo $log['duration_ms']; ?>ms</td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
+<script>
+/**
+ * 执行数据库迁移
+ * 先弹出确认对话框（危险操作二次确认），确认后再发起预览/执行请求
+ */
+function runMigrate() {
+    showConfirmDialog('确定要执行数据库迁移吗？执行前建议先「预览变更」确认将要执行的 SQL。', {
+        type: 'danger',
+        title: '执行迁移',
+        confirmText: '执行迁移'
+    }).then(function(ok) {
+        if (ok) {
+            doMigrate('run');
+        }
+    });
+}
+
+/**
+ * 切换迁移历史表格的完整列显示
+ * 默认只显示高频列，展开后追加显示索引/外键/配置项/枚举四列
+ */
+function toggleHistoryCols() {
+    var history = document.querySelector('.migrate-history');
+    var btn = document.getElementById('btn-toggle-cols');
+    if (!history || !btn) {
+        return;
+    }
+    var isFull = history.classList.toggle('full');
+    btn.textContent = isFull ? '收起完整列' : '显示完整列';
+}
+
+/**
+ * 发起迁移请求（preview=预览 / run=执行）
+ * 报告以终端风格等宽字体输出；执行成功后自动刷新页面更新版本状态
+ */
+function doMigrate(action) {
+    var report = document.getElementById('migrate-report');
+    var loading = document.getElementById('migrate-loading');
+    var btnPreview = document.getElementById('btn-preview');
+    var btnRun = document.getElementById('btn-run');
+
+    // 显示加载状态
+    report.classList.remove('visible', 'has-errors', 'success');
+    report.textContent = '';
+    loading.style.display = 'block';
+    btnPreview.disabled = true;
+    btnRun.disabled = true;
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', 'admin.php?action=migrate', true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.onload = function() {
+        loading.style.display = 'none';
+        btnPreview.disabled = false;
+        btnRun.disabled = false;
+
+        var result;
+        try {
+            result = JSON.parse(xhr.responseText);
+        } catch(e) {
+            report.textContent = '响应解析失败，请查看网络请求。\n\n原始响应:\n' + xhr.responseText.slice(0, 500);
+            report.classList.add('visible', 'has-errors');
+            return;
+        }
+
+        report.textContent = result.report || result.message || JSON.stringify(result, null, 2);
+        report.classList.add('visible');
+
+        if (result.success) {
+            report.classList.add('success');
+            // 如果执行了迁移，刷新页面更新版本号和日志
+            if (action === 'run' && result.changed) {
+                setTimeout(function() { location.reload(); }, 2000);
+            } else if (action === 'run' && !result.changed) {
+                // 无需变更也刷新以更新版本状态
+                setTimeout(function() { location.reload(); }, 1500);
+            }
+        } else {
+            report.classList.add('has-errors');
+        }
+    };
+    xhr.onerror = function() {
+        loading.style.display = 'none';
+        btnPreview.disabled = false;
+        btnRun.disabled = false;
+        report.textContent = '网络请求失败，请检查后台是否正常运行。';
+        report.classList.add('visible', 'has-errors');
+    };
+    xhr.send('migrate_action=' + encodeURIComponent(action));
+}
+</script>

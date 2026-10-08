@@ -1,0 +1,869 @@
+:root {
+    --sidebar-width: 220px;
+    --sidebar-collapsed-width: 70px;
+    /* 品牌蓝统一引用 common.css 全局 Token（明暗主题下取值一致，可安全引用） */
+    --primary-color: var(--primary);
+    /* 侧边栏自带的双主题配色：亮色态直接使用、暗色态配合 .theme-dark-init 防闪烁。
+   暗色三值取全局暗色 Token（common.css body.dark-theme）的字面值：
+   侧边栏深色态仅与 body.dark-theme 同时出现，此处用字面值而非 var()
+   是因为 :root 作用域下 var(--bg-container) 等解析到的是亮色值。
+   历史：曾用 slate 蓝灰系（#1e293b 等），与内容区中性暗色体系不一致，
+   统一为中性灰阶（布局黑 / 容器深灰 / 浮层浅一档） */
+    --sidebar-bg-dark: #141414;
+    --sidebar-bg-light: #ffffff;
+    --sidebar-text-dark: rgba(255, 255, 255, 0.85);
+    --sidebar-text-light: rgba(0, 0, 0, 0.88);
+    --sidebar-hover-dark: #262626;
+    --sidebar-hover-light: #f5f5f5;
+    /* 选中态底色：亮色为主色的极浅蓝调、暗色为深蓝灰（与主色文字搭配） */
+    --sidebar-selected-light: #e6f4ff;
+    --sidebar-selected-dark: #111a2c;
+    /* 侧栏折叠过渡：收敛到 200ms 上限（动效规范） */
+    --transition-speed: 0.2s;
+}
+
+/* ========== 页面加载时的初始化状态（防止闪烁） ========== */
+/* 这些类在 JS 初始化前生效，没有过渡动画 */
+.sidebar-collapsed-init .sidebar {
+    width: var(--sidebar-collapsed-width) !important;
+    transition: none !important;
+}
+
+.sidebar-collapsed-init .main-content {
+    margin-left: var(--sidebar-collapsed-width) !important;
+    transition: none !important;
+}
+
+.sidebar-collapsed-init .sidebar .menu-text,
+.sidebar-collapsed-init .sidebar .sidebar-title,
+.sidebar-collapsed-init .sidebar .menu-arrow {
+    display: none !important;
+}
+
+.sidebar-collapsed-init .sidebar .sidebar-header-actions {
+    flex-direction: column !important;
+    gap: 10px !important;
+}
+
+.sidebar-collapsed-init .sidebar .menu-icon {
+    margin-right: 0 !important;
+}
+
+.sidebar-collapsed-init .sidebar .sub-menu {
+    display: none !important;
+}
+
+/* 深色主题初始化（防闪烁）：配色对齐全局暗色 Token 字面值，
+   与 JS 应用 .dark-theme 后的正式样式一致，避免切换瞬间跳色 */
+.theme-dark-init .sidebar {
+    background-color: var(--sidebar-bg-dark) !important;
+    color: var(--sidebar-text-dark) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    transition: none !important;
+}
+
+.theme-dark-init {
+    background-color: #000000 !important;
+    transition: none !important;
+}
+
+.theme-dark-init .main-content {
+    background-color: #000000 !important;
+    color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.theme-dark-init .header {
+    background-color: #141414 !important;
+    border-bottom-color: #424242 !important;
+}
+
+.theme-dark-init .header h2 {
+    color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* 全局导航栏初始化样式 - 防止闪烁 */
+.sidebar-collapsed-init .header {
+    left: var(--sidebar-collapsed-width) !important;
+    transition: none !important;
+}
+
+/* 主题切换按钮图标首帧防闪烁：
+   #themeIcon 内预置了 auto/light/dark 三个图标（page_wrapper.html），
+   默认全部隐藏、仅显示 auto；header.html 顶部阻塞脚本已按 localStorage
+   提前打上 theme-*-init 类，这里据此在首帧直接选中正确的图标，
+   无需等待 sidebar.js 在 DOMContentLoaded 里填充（否则首帧为空按钮，
+   图标后补即产生闪烁）。sidebar.js 初始化后用单一图标覆盖 innerHTML，
+   视觉与 CSS 选中态一致，无跳变 */
+#themeIcon .ti {
+    display: none;
+}
+
+#themeIcon .ti-auto {
+    display: block;
+}
+
+.theme-dark-init #themeIcon .ti-auto {
+    display: none;
+}
+
+.theme-dark-init #themeIcon .ti-dark {
+    display: block;
+}
+
+.theme-light-init #themeIcon .ti-auto {
+    display: none;
+}
+
+.theme-light-init #themeIcon .ti-light {
+    display: block;
+}
+
+/* auto 主题：无论系统当前明暗，图标始终是「跟随系统」（显示器）。
+   规则后置：auto+系统暗色时 theme-dark-init 与 theme-auto-init 并存，
+   同权重下后来者胜出，确保首帧显示 auto 图标而非月亮 */
+.theme-auto-init #themeIcon .ti-dark,
+.theme-auto-init #themeIcon .ti-light {
+    display: none;
+}
+
+.theme-auto-init #themeIcon .ti-auto {
+    display: block;
+}
+
+.sidebar {
+    border: 1px solid var(--border-color);
+    width: var(--sidebar-width);
+    background-color: var(--sidebar-bg-light);
+    color: var(--sidebar-text-light);
+    padding: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    overflow: visible;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    transition: width var(--transition-speed) ease, background-color var(--transition-speed) ease, opacity 0.1s ease;
+}
+
+/* 展开时侧边栏内容区域需要滚动 */
+.sidebar:not(.collapsed) .sidebar-menu {
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* 侧边栏暗夜模式边框适配 */
+.sidebar.dark-theme {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-menu {
+    flex: 1;
+    padding: 10px 0;
+    scroll-behavior: auto;
+}
+
+.sidebar-menu::-webkit-scrollbar {
+    width: 6px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.sidebar-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar-menu::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 4px;
+    transition: background 0.3s ease;
+}
+
+.sidebar-menu:hover::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.sidebar-menu:hover::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.sidebar.dark-theme .sidebar-menu:hover::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.sidebar.dark-theme .sidebar-menu:hover::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.sidebar-menu {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+    transition: scrollbar-color 0.3s ease;
+}
+
+.sidebar-menu:hover {
+    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.sidebar.dark-theme .sidebar-menu:hover {
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.sidebar.collapsed {
+    width: var(--sidebar-collapsed-width);
+}
+
+.sidebar.dark-theme {
+    background-color: var(--sidebar-bg-dark);
+    color: var(--sidebar-text-dark);
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+    height: 57px;
+}
+
+.sidebar.dark-theme .sidebar-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 标题即前台首页链接（新窗口打开）：固定中性色与无下划线，
+   防止 common.css 的 body.dark-theme a 通用链接色把标题染成链接蓝 */
+.sidebar-title {
+    font-size: var(--font-size-md);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    color: inherit;
+    text-decoration: none;
+}
+
+.sidebar.collapsed .sidebar-title {
+    display: none;
+}
+
+.sidebar-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sidebar.collapsed .sidebar-header-actions {
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sidebar-toggle,
+.theme-btn {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 4px;
+    font-size: var(--font-size-md);
+    border-radius: 8px;
+    transition: background-color var(--transition-speed) ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-toggle:hover,
+.theme-btn:hover {
+    background-color: #f1f5f9;
+}
+
+.sidebar.dark-theme .sidebar-toggle:hover,
+.sidebar.dark-theme .theme-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar.collapsed .sidebar-toggle,
+.sidebar.collapsed .theme-btn {
+    margin: 0 auto;
+}
+
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.menu-item {
+    margin: 0;
+}
+
+/* 菜单项统一规格：左右 8px 内缩 + 6px 圆角的 40px 高条目，
+   悬停/选中态的底色都落在圆角矩形上（而非通栏直角） */
+.menu-item > a {
+    display: flex;
+    align-items: center;
+    margin: 2px 8px;
+    padding: 0 12px;
+    min-height: 40px;
+    border-radius: 6px;
+    color: inherit;
+    text-decoration: none;
+    transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease;
+    position: relative;
+}
+
+/* 悬停只做底色反馈、文字保持中性色（选中态才转主色） */
+.menu-item > a:hover,
+.menu-item > a:focus {
+    background-color: var(--sidebar-hover-light);
+    outline: none;
+}
+
+.sidebar.dark-theme .menu-item > a:hover,
+.sidebar.dark-theme .menu-item > a:focus {
+    background-color: var(--sidebar-hover-dark);
+}
+
+.menu-item > a.active {
+    color: var(--primary-color);
+}
+
+/* 选中叶子节点（可点击跳转的菜单项）：浅蓝底 + 主色字。
+   父级分组标题（.menu-toggle）带 active 只做文字主色提示、不加底色——
+   子项选中时父级保持白底，视觉层级与统一后台菜单规范一致 */
+.menu-item > a.active:not(.menu-toggle) {
+    background-color: var(--sidebar-selected-light);
+}
+
+.sidebar.dark-theme .menu-item > a.active:not(.menu-toggle) {
+    background-color: var(--sidebar-selected-dark);
+}
+
+/* 暗色下菜单文字颜色修复：common.css 的 body.dark-theme a（特异性 0,1,2）
+   高于 .menu-item > a 的 color:inherit（0,1,1），会把侧边栏菜单文字整体
+   染成链接蓝；此处提高特异性恢复继承，激活项仍保持主色 */
+body.dark-theme .sidebar .menu-item > a {
+    color: inherit;
+}
+
+body.dark-theme .sidebar .menu-item > a.active {
+    color: var(--primary-color);
+}
+
+/* 暗色悬停反馈与亮色一致：仅底色变化、文字保持中性 */
+body.dark-theme .sidebar .menu-item > a:hover,
+body.dark-theme .sidebar .menu-item > a:focus {
+    color: inherit;
+}
+
+.menu-icon {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+.svg-icon {
+    width: 16px;
+    height: 16px;
+    display: block;
+    stroke: currentColor;
+    opacity: 0.9;
+}
+
+/* 通用SVG图标样式（与svg-icon功能相同，支持不同类名） */
+.icon {
+    width: 18px;
+    height: 18px;
+    display: inline-block;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+    box-sizing: content-box;
+}
+
+.svg-icon-small {
+    width: 14px;
+    height: 14px;
+}
+
+.menu-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* 展开指示箭头旋转过渡（配合 active 态 180° 翻转） */
+    transition: transform var(--transition-speed) ease;
+}
+
+.sidebar.collapsed .menu-icon {
+    margin-right: 0;
+}
+
+.menu-text {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.sidebar.collapsed .menu-text {
+    display: none;
+}
+
+.menu-arrow {
+    font-size: var(--font-size-xs);
+}
+
+.sidebar.collapsed .menu-arrow {
+    display: none;
+}
+
+.menu-item.has-children > a.active .menu-arrow {
+    transform: rotate(180deg);
+}
+
+/* 子菜单：白底平铺（不再垫灰底色块），展开时淡入下滑过渡 */
+.sub-menu {
+    display: none;
+    background-color: transparent;
+}
+
+.sidebar.dark-theme .sub-menu {
+    background-color: transparent;
+}
+
+.sidebar.collapsed .sub-menu {
+    display: none !important;
+}
+
+.sub-menu.show {
+    display: block;
+}
+
+/* 展开/收起动画由 sidebar.js 的 animateSubmenu() 以内联 height 过渡驱动
+   （双向平滑高度动画，展开/收起均有过渡），此处不再使用关键帧 */
+
+/* ==================== 折叠态弹出菜单样式 ==================== */
+
+.collapsed-submenu-popup {
+    position: fixed;
+    min-width: 200px;
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-5px); /* 减少位移，让切换更自然 */
+    transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+    padding: 8px 0;
+}
+
+.collapsed-submenu-popup.active {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translateY(0) !important;
+}
+
+.collapsed-submenu-popup .menu-item a {
+    display: flex;
+    align-items: center;
+    margin: 2px 4px;
+    padding: 0 12px;
+    min-height: 36px;
+    border-radius: 4px;
+    color: #374151;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.collapsed-submenu-popup .menu-item a:hover {
+    background-color: var(--sidebar-hover-light);
+    color: var(--primary-color);
+}
+
+/* 去除列表标记 */
+.collapsed-submenu-popup ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.collapsed-submenu-popup li {
+    list-style: none;
+}
+
+/* 深色主题适配（配色随 --sidebar-* 暗色变量自动走全局中性暗色） */
+.sidebar.dark-theme .collapsed-submenu-popup {
+    background: var(--sidebar-bg-dark);
+    border-color: var(--border-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.sidebar.dark-theme .collapsed-submenu-popup .menu-item a {
+    color: var(--sidebar-text-dark);
+}
+
+.sidebar.dark-theme .collapsed-submenu-popup .menu-item a:hover {
+    background-color: var(--sidebar-hover-dark);
+    color: var(--primary-color);
+}
+
+/* 三级子菜单在弹出菜单中的适配 */
+.collapsed-submenu-popup .sub-menu {
+    display: block !important;
+    background-color: transparent !important;
+    padding: 0;
+}
+
+.collapsed-submenu-popup .sub-menu .menu-item a {
+    padding-left: 36px;
+}
+
+.collapsed-submenu-popup .sub-menu .sub-menu .menu-item a {
+    padding-left: 52px;
+}
+
+/* 二级子项：36px 紧凑条目，缩进对齐父级文字（8 边距 + 12 内距 + 24 图标 + 10 间隙） */
+.sub-menu .menu-item > a {
+    min-height: 36px;
+    padding-left: 44px;
+    font-size: var(--font-size-sm);
+}
+
+/* 三级子菜单（分组下的配置项）：白底延续，仅加深缩进与缩小字号 */
+.sub-menu .sub-menu {
+    background-color: transparent;
+}
+
+.sidebar.dark-theme .sub-menu .sub-menu {
+    background-color: transparent;
+}
+
+.sub-menu .sub-menu .menu-item > a {
+    padding-left: 60px;
+    font-size: var(--font-size-xs);
+}
+
+.sub-menu .sub-menu .menu-item > a:hover {
+    background-color: var(--sidebar-hover-light);
+}
+
+.sidebar.dark-theme .sub-menu .sub-menu .menu-item > a:hover {
+    background-color: var(--sidebar-hover-dark);
+}
+
+.sidebar.collapsed .sub-menu .sub-menu .menu-item > a {
+    padding-left: 20px;
+}
+
+
+
+.main-content {
+    flex: 1;
+    /* 允许 flex 子项收缩到内容宽以下：未设置时 min-width:auto 会让内部
+       表格（min-width）把主内容区撑破视口，导致横向溢出、筛选区错位 */
+    min-width: 0;
+    padding: 70px 15px 15px;
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    transition: margin-left var(--transition-speed) ease, background-color var(--transition-speed) ease;
+}
+
+.main-content.sidebar-collapsed {
+    margin-left: var(--sidebar-collapsed-width);
+}
+
+body.dark-theme .main-content {
+    background-color: var(--bg-layout);
+    color: var(--text-primary);
+}
+
+body.dark-theme .header {
+    background-color: var(--bg-container);
+    border-bottom-color: var(--border-color);
+}
+
+body.dark-theme .header h2 {
+    color: var(--text-primary);
+}
+
+body.dark-theme .header-actions .theme-btn,
+body.dark-theme .fullscreen-btn,
+body.dark-theme .home-btn {
+    color: var(--text-tertiary);
+}
+
+body.dark-theme .header-actions .theme-btn:hover,
+body.dark-theme .fullscreen-btn:hover,
+body.dark-theme .home-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+.menu-badge {
+    background-color: #ef4444;
+    color: #fff;
+    font-size: var(--font-size-2xs);
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 8px;
+}
+
+.sidebar.collapsed .menu-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    margin-left: 0;
+    font-size: 10px;
+    padding: 2px 4px;
+}
+
+
+
+/* ==================== 移动端响应式适配 ==================== */
+
+@media (max-width: 768px) {
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: var(--sidebar-width);
+        height: 100vh;
+        transform: translateX(-100%);
+        z-index: 1000;
+        transition: transform var(--transition-speed) ease;
+        box-shadow: 2px 0 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .sidebar.open {
+        transform: translateX(0);
+    }
+
+    .sidebar.collapsed {
+        width: var(--sidebar-width);
+        transform: translateX(-100%);
+    }
+
+    .sidebar.collapsed.open {
+        transform: translateX(0);
+    }
+
+    .main-content {
+        margin-left: 0;
+        /* 底部留白同步为返回顶部按钮预留空间（按钮在移动端缩小后占位约 60px） */
+        padding: 66px 10px 80px;
+        min-height: 100vh;
+    }
+
+    .header {
+        left: 0 !important;
+        padding: 16px;
+        /* 本文件在 common.css 之后加载，此处 padding 简写会覆盖其左内边距；
+           汉堡按钮已挂载到头部内，需为其预留左侧空间（与 common.css 保持一致） */
+        padding-left: 56px;
+    }
+
+    .main-content.sidebar-collapsed .header {
+        left: 0 !important;
+    }
+
+    .main-content.sidebar-collapsed {
+        margin-left: 0;
+    }
+
+    .mobile-menu-toggle {
+        display: flex;
+        /* 由 JS 挂载到头部栏内：相对头部（fixed 定位）绝对定位，
+           与标题同一行，不再作为悬浮圆钮游离于页面左上角 */
+        position: absolute;
+        top: 50%;
+        left: 10px;
+        transform: translateY(-50%);
+        z-index: 901;
+        background: none;
+        border: none;
+        border-radius: 8px;
+        width: 38px;
+        height: 38px;
+        padding: 0;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+
+    .mobile-menu-toggle:hover {
+        background-color: rgba(0, 0, 0, 0.06);
+    }
+
+    body.dark-theme .mobile-menu-toggle {
+        background-color: transparent;
+        color: var(--text-primary);
+    }
+
+    body.dark-theme .mobile-menu-toggle:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .mobile-menu-toggle svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 998;
+        transition: opacity 0.3s ease;
+    }
+
+    .sidebar-overlay.show {
+        display: block;
+    }
+
+    .sidebar.collapsed .sidebar-header-actions {
+        flex-direction: row;
+        gap: 8px;
+    }
+
+    .sidebar.collapsed .sidebar-title {
+        display: none;
+    }
+
+    .sidebar.collapsed .menu-text {
+        display: none;
+    }
+
+    .sidebar.collapsed .menu-icon {
+        margin-right: 0;
+    }
+
+    .sidebar.collapsed .menu-arrow {
+        display: none;
+    }
+
+    .sidebar.collapsed .sub-menu {
+        display: none !important;
+    }
+
+    .sidebar.collapsed .menu-badge {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        margin-left: 0;
+        font-size: 10px;
+        padding: 2px 4px;
+    }
+
+    .sidebar.collapsed .shortcut-hint-btn {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .sidebar {
+        width: 260px;
+    }
+
+    .main-content {
+        /* 底部留白同步为返回顶部按钮预留空间（超小屏按钮更小，占位约 55px） */
+        padding: 66px 8px 80px;
+    }
+
+    .mobile-menu-toggle {
+        width: 36px;
+        height: 36px;
+    }
+}
+
+/* 侧边栏底部 */
+.sidebar-footer {
+    padding: 10px 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+.sidebar.dark-theme .sidebar-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.shortcut-hint-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.shortcut-hint-btn:hover {
+    background-color: #f1f5f9;
+}
+
+.sidebar.dark-theme .shortcut-hint-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 快捷键提示弹窗：外壳（遮罩/标题栏/关闭按钮）已统一收拢至 components.css 的
+   .modal-overlay > .modal 体系，此处仅保留快捷键列表内容自身的样式 */
+
+.shortcut-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-split);
+}
+
+.shortcut-item:last-child {
+    border-bottom: none;
+}
+
+body.dark-theme .shortcut-item {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.shortcut-desc {
+    color: #334155;
+    font-size: var(--font-size-sm);
+}
+
+body.dark-theme .shortcut-desc {
+    color: var(--text-primary);
+}
+
+.shortcut-keys {
+    display: flex;
+    gap: 4px;
+}
+
+.shortcut-keys span {
+    background-color: #f1f5f9;
+    color: #334155;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: var(--font-size-xs);
+    font-family: var(--font-mono);
+}
+
+body.dark-theme .shortcut-keys span {
+    background-color: var(--bg-elevated) !important;
+    color: var(--text-primary) !important;
+}

@@ -1,0 +1,49 @@
+<?php
+/**
+ * 统一空状态组件（全后台列表/卡片/弹窗共用）
+ * ------------------------------------------------------------
+ * 用法：include 前设置以下变量（均需 htmlspecialchars 处理由本组件完成，调用方传原始文本即可）
+ *   $emptyTitle      (必填) 主文案，如「暂无文章」
+ *   $emptyIcon       (可选) 图标名：inbox(默认)/file/image/message/search/plugin
+ *   $emptyDesc       (可选) 次级说明文字
+ *   $emptyActionUrl  (可选) 引导按钮链接（需与 $emptyActionText 成对出现）
+ *   $emptyActionText (可选) 引导按钮文案，如「写文章」
+ *
+ * 示例：
+ *   <?php $emptyTitle = '暂无文章'; $emptyIcon = 'file'; $emptyActionUrl = 'admin.php?action=article&sub=add'; $emptyActionText = '写文章'; include 'components/empty_state.html'; ?>
+ *
+ * 样式：common.css 的 .empty-state 体系（含暗色主题与 empty-state-compact 紧凑变体）。
+ * 表格内使用时把本组件放入 <td colspan="N"> 中即可。
+ */
+
+// 图标可省略，默认通用「空盒子」图标
+$emptyIcon = isset($emptyIcon) ? $emptyIcon : 'inbox';
+// 主文案未设置时输出空串（避免 Notice），正常调用方均应传入
+$emptyTitle = isset($emptyTitle) ? $emptyTitle : '';
+
+// 线条图标集（与后台其他 SVG 图标同一绘制体系）
+$emptyIcons = [
+    'inbox' => '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path>',
+    'file' => '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line>',
+    'image' => '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline>',
+    'message' => '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>',
+    'search' => '<circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>',
+    'plugin' => '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>',
+];
+
+// 未知图标名回退到通用图标
+$emptyIconSvg = isset($emptyIcons[$emptyIcon]) ? $emptyIcons[$emptyIcon] : $emptyIcons['inbox'];
+?>
+<div class="empty-state">
+    <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?php echo $emptyIconSvg; ?></svg>
+    <p class="empty-state-title"><?php echo htmlspecialchars($emptyTitle, ENT_QUOTES, 'UTF-8'); ?></p>
+    <?php if (isset($emptyDesc) && $emptyDesc !== ''): ?>
+    <p class="empty-state-desc"><?php echo htmlspecialchars($emptyDesc, ENT_QUOTES, 'UTF-8'); ?></p>
+    <?php endif; ?>
+    <?php if (isset($emptyActionUrl, $emptyActionText) && $emptyActionUrl !== '' && $emptyActionText !== ''): ?>
+    <a href="<?php echo htmlspecialchars($emptyActionUrl, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-primary empty-state-action"><?php echo htmlspecialchars($emptyActionText, ENT_QUOTES, 'UTF-8'); ?></a>
+    <?php endif; ?>
+</div>
+<?php
+// 清理变量，避免残留影响同页后续 include（如插件页三个分区连续调用）
+unset($emptyIcon, $emptyIconSvg, $emptyIcons, $emptyTitle, $emptyDesc, $emptyActionUrl, $emptyActionText);

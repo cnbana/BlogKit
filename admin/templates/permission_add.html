@@ -1,0 +1,84 @@
+<?php  $currentAction = 'permission'; $pageTitle = '添加权限'; include 'components/page_wrapper.html'; ?>
+
+    <div class="form-container">
+        <form method="post" action="admin.php?action=permission&sub=add">
+            <!-- CSRF 令牌：控制器对写操作统一校验（与删除/批量删除同一标准） -->
+            <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+            <?php if (isset($error)): ?>
+            <!-- rb-error-alert：danger 红色浅底错误提示框（components.css，角色/权限表单页共用） -->
+            <div class="error-message rb-error-alert">
+                <?php echo $error; ?>
+            </div>
+            <?php endif; ?>
+            
+            <div class="form-group">
+                <label for="name">权限名称</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="code">权限编码</label>
+                <input type="text" id="code" name="code" required>
+                <small>唯一标识，用于代码中权限检查，建议使用小写字母和下划线</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="type">权限类型</label>
+                <select id="type" name="type" required>
+                    <?php foreach ($permissionTypes as $key => $name): ?>
+                    <option value="<?php echo $key; ?>"><?php echo $name; ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <small>菜单权限用于左侧导航，操作权限用于功能按钮</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="parent_id">父权限</label>
+                <select id="parent_id" name="parent_id">
+                    <option value="0">顶级权限</option>
+                    <?php foreach ($permissions as $permission): ?>
+                    <option value="<?php echo $permission['id']; ?>"><?php echo $permission['name']; ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <small>选择父权限后，将作为子权限显示</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="path">路径</label>
+                <input type="text" id="path" name="path">
+                <small>菜单权限必填，用于访问链接，如：admin.php?action=user</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="icon">图标</label>
+                <input type="text" id="icon" name="icon">
+                <small>菜单权限可选，用于左侧导航图标</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="sort">排序</label>
+                <input type="number" id="sort" name="sort" value="0" min="0">
+                <small>用于菜单排序，数字越小越靠前</small>
+            </div>
+            
+            <div class="form-group">
+                <!-- 二值开关统一使用滑动开关（与系统设置页一致），提交行为与原复选框相同 -->
+                <div class="switch-row">
+                    <div class="switch-row-text">
+                        <label for="status">状态</label>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="status" name="status" checked>
+                        <span class="switch-slider"></span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">保存</button>
+                <a href="admin.php?action=permission" class="btn btn-default drawer-cancel">取消</a>
+            </div>
+        </form>
+    </div>
+
+<?php include 'components/footer_wrapper.html'; ?>

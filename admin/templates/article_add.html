@@ -1,0 +1,193 @@
+<?php $currentAction = 'article'; $pageTitle = '添加文章'; include 'components/page_wrapper.html'; ?>
+
+    <?php if (isset($error)): ?>
+        <div class="error-message"><?php echo $error; ?></div>
+    <?php endif; ?>
+
+    <!-- ==================== 沉浸式编辑器布局 ====================
+         顶栏（sticky）：返回 / 无边框大标题 / 保存状态条 / 文章设置 / 发布
+         正文画布：内容区全宽白底卡片（.editor-canvas）
+         元信息：分类/标签/封面/别名/描述/置顶收纳进右侧抽屉（.editor-drawer），
+                 样式与开合逻辑见 forms.css 与 /admin/assets/js/article-editor.js -->
+    <form method="POST" enctype="multipart/form-data" id="article-form">
+
+        <!-- 顶栏：写作区滚动时标题与发布按钮常驻 -->
+        <div class="editor-topbar">
+            <!-- 返回文章列表 -->
+            <a href="admin.php?action=article" class="editor-back drawer-cancel" title="返回文章列表">
+                <?php echo admin_svg_icon('arrow-left'); ?>返回
+            </a>
+
+            <!-- 无边框大标题：相对定位容器内绝对定位字数计数 -->
+            <div class="editor-title-wrap">
+                <input type="text" id="title" name="title" value="<?php echo isset($_POST['title']) ? $_POST['title'] : ''; ?>" placeholder="请输入标题（1 - 60字）" required class="editor-title-input">
+                <span id="title-counter" class="editor-title-counter">0/60</span>
+                <!-- 挂载点：article.title.after，插件可在此注入标题下方的自定义 UI（如 AI 标题助手） -->
+                <?php Plugin::slot('article.title.after', ['mode' => 'add']); ?>
+            </div>
+
+            <!-- 保存状态条：本地草稿暂存后显示「已暂存 HH:MM」（article-editor.js 维护） -->
+            <span id="editor-save-status" class="editor-save-status"></span>
+
+            <!-- 文章设置：打开右侧元信息抽屉 -->
+            <button type="button" class="btn btn-default" id="btn-editor-drawer">文章设置</button>
+            <button type="button" class="btn btn-secondary" onclick="saveDraft()">存为草稿</button>
+            <button type="button" class="btn btn-primary" onclick="publishArticle()">发布文章</button>
+        </div>
+
+        <!-- 正文画布：全宽编辑区（textarea 保持原生形态，富文本编辑器插件
+             经 editor:register 协议接入后可整体替换呈现，本页不受影响） -->
+        <!-- 挂载点：article.editor.before，插件可在此注入编辑器容器上方的自定义 UI -->
+        <?php Plugin::slot('article.editor.before', ['mode' => 'add']); ?>
+        <div class="editor-canvas">
+            <textarea id="content" name="content" required class="editor-content-textarea" placeholder="开始写作…"><?php echo isset($_POST['content']) ? $_POST['content'] : ''; ?></textarea>
+        </div>
+
+        <!-- ==================== 元信息抽屉遮罩 + 抽屉 ====================
+             遮罩点击关闭；Esc 由 common.js 全局快捷键统一关闭 -->
+        <div id="editor-drawer-overlay" class="editor-drawer-overlay"></div>
+        <aside id="editor-drawer" class="editor-drawer" role="dialog" aria-label="文章设置">
+            <div class="editor-drawer-header">
+                <h3>文章设置</h3>
+                <button type="button" class="modal-close" id="editor-drawer-close" aria-label="关闭">&times;</button>
+            </div>
+            <div class="editor-drawer-body">
+
+                <!-- 1. 分类 -->
+                <div class="form-group">
+                    <label for="category_id">分类</label>
+                    <select id="category_id" name="category_id" required>
+                        <option value="">请选择分类</option>
+                        <?php foreach ($categories as $category): ?>
+                            <option value="<?php echo $category['id']; ?>"><?php echo $category['name']; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <!-- 2. 标签 -->
+                <div class="form-group">
+                    <label for="tags">标签</label>
+                    <input type="text" id="tags" name="tags" value="<?php echo isset($_POST['tags']) ? $_POST['tags'] : ''; ?>" placeholder="使用英文逗号、中文逗号或空格分隔多个标签都可以">
+                </div>
+
+                <!-- 3. 封面图 -->
+                <div class="form-group">
+                    <label>封面图</label>
+
+                    <!-- 当前封面图预览区（新建文章时默认为空） -->
+                    <?php $hasCover = false; ?>
+                    <div id="cover-preview-area" class="editor-cover-preview" style="display: none;">
+                        <div class="editor-cover-thumb-wrap">
+                            <img id="current-cover-img" src="" width="200" alt="当前封面图" class="editor-cover-thumb">
+                            <button type="button" id="btn-remove-cover" class="btn btn-sm btn-danger-ghost editor-cover-remove">移除封面图</button>
+                        </div>
+                        <p class="editor-cover-caption">当前封面图</p>
+                    </div>
+
+                    <!-- 未设置封面图：虚线卡片式上传触发器（
+                         点击触发下方隐藏 file input；选中图片后由 JS 切换到预览区，
+                         id 保留 no-cover-hint 供 showCoverPreview/hideCoverPreview 切换显隐） -->
+                    <button type="button" id="no-cover-hint" class="upload-card" title="上传封面图">
+                        <?php echo admin_svg_icon('upload', ''); ?>
+                        上传封面图
+                    </button>
+
+                    <!-- 设置方式按钮区（本地上传由上方虚线卡片承担，此处保留备选来源） -->
+                    <div class="editor-cover-actions">
+                        <button type="button" class="btn btn-secondary" id="btn-pick-from-content">从正文中选择图片</button>
+                        <button type="button" class="btn btn-secondary" id="btn-pick-from-media">从媒体库选择</button>
+                    </div>
+
+                    <!-- 隐藏的文件上传 input（点击按钮时触发） -->
+                    <input type="file" id="cover_image" name="cover_image" accept="image/*" class="editor-upload-input">
+
+                    <!-- 隐藏字段：从文章中选择的图片URL -->
+                    <input type="hidden" id="cover_image_url" name="cover_image_url" value="">
+
+                    <!-- 隐藏字段：标记是否移除封面图 -->
+                    <input type="hidden" id="remove_cover_image" name="remove_cover_image" value="0">
+
+                </div>
+
+                <!-- 4. 文章别名 -->
+                <div class="form-group">
+                    <label for="slug">文章别名</label>
+                    <input type="text" id="slug" name="slug" value="<?php echo isset($_POST['slug']) ? $_POST['slug'] : ''; ?>" placeholder="仅支持字母、数字、短横线和下划线，不能是纯数字">
+                </div>
+
+                <!-- 5. 文章描述 -->
+                <div class="form-group">
+                    <label for="description">文章描述</label>
+                    <div class="editor-desc-wrap">
+                        <div class="editor-desc-row">
+                            <textarea id="description" name="description" rows="3" placeholder="可作为列表页摘要以及SEO描述" class="editor-desc-textarea"><?php echo isset($_POST['description']) ? $_POST['description'] : ''; ?></textarea>
+                            <button type="button" class="btn btn-secondary editor-desc-btn" onclick="autoGenerateDescription()">自动生成</button>
+                        </div>
+                        <span id="description-counter" class="editor-desc-counter">0/200</span>
+                    </div>
+                </div>
+
+                <!-- 6. 置顶类型 -->
+                <div class="form-group">
+                    <label for="top_type">置顶类型</label>
+                    <select id="top_type" name="top_type">
+                        <option value="0" <?php echo isset($_POST['top_type']) && $_POST['top_type'] == 0 ? 'selected' : ''; ?>>正常（不置顶）</option>
+                        <option value="1" <?php echo isset($_POST['top_type']) && $_POST['top_type'] == 1 ? 'selected' : ''; ?>>全局置顶</option>
+                        <option value="2" <?php echo isset($_POST['top_type']) && $_POST['top_type'] == 2 ? 'selected' : ''; ?>>首页置顶</option>
+                        <option value="3" <?php echo isset($_POST['top_type']) && $_POST['top_type'] == 3 ? 'selected' : ''; ?>>分类置顶</option>
+                    </select>
+                </div>
+
+                <!-- 挂载点：article.panel.bottom，插件可在此注入元信息抽屉底部的自定义设置项 -->
+                <?php Plugin::slot('article.panel.bottom', ['mode' => 'add']); ?>
+            </div>
+        </aside>
+
+        <!-- 从正文中选择图片的弹窗：统一使用 components.css 的 .modal-overlay > .modal 体系（加 .show 显示） -->
+        <!-- 点击弹窗外部遮罩区域关闭弹窗（仅当点击目标是遮罩本身时才关闭，点击内部弹窗本体不触发） -->
+        <div id="image-picker-modal" class="modal-overlay" onclick="if (event.target === this) closeImagePicker();">
+            <div class="modal modal-lg" role="dialog" aria-modal="true">
+                <div class="modal-header">
+                    <h3 class="modal-title">从正文中选择图片作为封面图</h3>
+                    <button type="button" class="modal-close" onclick="closeImagePicker()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="image-picker-grid" class="editor-picker-grid"></div>
+                    <div id="image-picker-empty" class="editor-picker-note">文章内容中没有找到图片</div>
+                    <div id="image-picker-pagination" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 从媒体库选择图片的弹窗 -->
+        <!-- 图片列表不再由服务端渲染，而是在每次打开弹窗时通过 AJAX 请求
+             admin.php?action=article&sub=mediaList 实时加载（能看到编辑器刚上传的图片），
+             并由前端 JS 分页展示，避免图片过多时只能一直下滑 -->
+        <div id="media-picker-modal" class="modal-overlay" onclick="if (event.target === this) closeMediaPicker();">
+            <div class="modal modal-lg" role="dialog" aria-modal="true">
+                <div class="modal-header">
+                    <h3 class="modal-title">从媒体库选择图片作为封面图</h3>
+                    <button type="button" class="modal-close" onclick="closeMediaPicker()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="media-picker-loading" class="editor-picker-note">正在加载图片...</div>
+                    <div id="media-picker-grid" class="editor-picker-grid"></div>
+                    <div id="media-picker-empty" class="empty-state empty-state-compact" style="display: none;"><p class="empty-state-title">媒体库中暂无图片</p><p class="empty-state-desc">请先上传图片</p></div>
+                    <div id="media-picker-pagination" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+
+    </form>
+
+    <!-- 挂载点：article.form.after，插件可在此注入表单结尾之后的自定义 UI/脚本（新建文章页） -->
+    <?php Plugin::slot('article.form.after', ['mode' => 'add']); ?>
+
+<!-- 本地草稿暂存键：新建页固定键名（同一时刻只写一篇新文章） -->
+<script>window.ARTICLE_DRAFT_KEY = 'bk_article_draft_add';</script>
+<!-- 脚本经 admin_asset_url 附加 mtime 版本参数，避免强缓存使用旧脚本 -->
+<script src="<?php echo admin_asset_url('/admin/assets/js/article-description-helper.js'); ?>"></script>
+<!-- 编辑器公共脚本：元信息抽屉 / 本地草稿暂存 / 字符统计 / 发布与草稿提交 / 封面选图弹窗 -->
+<script src="<?php echo admin_asset_url('/admin/assets/js/article-editor.js'); ?>"></script>
+
+<?php include 'components/footer_wrapper.html'; ?>

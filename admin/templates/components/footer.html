@@ -1,0 +1,22 @@
+        </main>
+    </div>
+
+    <!-- 插件底部钩子 -->
+    <?php echo Plugin::triggerHook('admin_footer'); ?>
+
+    <!-- 挂载点：admin.footer，插件可在此注入 </body> 前的自定义脚本/组件（公共脚本区之后执行） -->
+    <?php Plugin::slot('admin.footer'); ?>
+
+    <script>
+    // 首屏防闪烁：原生 select 原先要等 DOMContentLoaded（common.js）才被
+    // 增强为自定义下拉，首帧会先以原生样式绘制再跳变（筛选区/分页条抖动）。
+    // 解析到此处时 DOM 已完整，立即执行换装可赶在首帧绘制之前；
+    // common.js 的 DOMContentLoaded 回调会再次调用，但单个 select 已带
+    // data-ui-select 标记、bindGlobalSelectClose 有防重复绑定守卫，均幂等
+    if (typeof initCustomSelects === 'function') {
+        initCustomSelects();
+        bindGlobalSelectClose();
+    }
+    </script>
+</body>
+</html>

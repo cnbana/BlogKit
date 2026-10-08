@@ -1,0 +1,287 @@
+<?php $currentAction = 'market'; $pageTitle = '应用市场';  include 'components/page_wrapper.html'; ?>
+
+<!-- ============ 应用市场（在线安装 + 内嵌完整市场体验） ============ -->
+<!-- 数据流：MarketController 服务端拉官网 /api/market/apps 全量（10 分钟缓存），
+     搜索/类型/分类筛选全部在主系统本地完成（与官网 /apps 同口径）；
+     安装走 do_install 一键管线（POST+CSRF）；详情走 op=detail 后台子页 -->
+
+<!-- 操作栏（检测应用更新：清列表缓存实时重拉官网，
+     按本地清单版本号比对后弹窗反馈；动作写 bk_config 缓存键，POST+CSRF 与安装同策略） -->
+<div class="action-section">
+    <a href="admin.php?action=market&op=settings" class="btn btn-info">市场设置</a>
+    <a href="<?php echo htmlspecialchars(Config::get('market_api_url', ''), ENT_QUOTES); ?>/apps" target="_blank" class="btn btn-default">访问官网应用市场</a>
+    <form method="post" action="admin.php?action=market&op=check_apps" class="mk-inline-form">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Security::generateCsrfToken(), ENT_QUOTES); ?>">
+        <button type="submit" class="btn btn-default">检测应用更新</button>
+    </form>
+</div>
+
+<?php if (!empty($notice)): ?>
+<div class="mk-notice">
+    <?php echo htmlspecialchars($notice, ENT_QUOTES); ?>
+</div>
+<?php endif; ?>
+
+<!-- 主程序新版本提示（官网 /api/latest-version 检测，结果缓存 10 分钟，静默降级不影响页面） -->
+<?php if (!empty($hasNewVersion)): ?>
+<div class="mk-version-banner">
+    发现新版本 BlogKit <?php echo htmlspecialchars($latestVersion, ENT_QUOTES); ?>，
+    <!-- 在线升级：跳转系统升级页确认后一键升级（执行动作在升级页 POST+CSRF，此处为纯导航） -->
+    <a href="admin.php?action=update" class="mk-banner-link">立即升级</a>
+    ｜ <a href="<?php echo htmlspecialchars(Config::get('market_api_url', ''), ENT_QUOTES); ?>/download" target="_blank">前往官网下载</a>
+</div>
+<?php endif; ?>
+
+<!-- 市场工具栏：搜索框（GET，保持当前 type/cat 状态）+ 类型 Tab -->
+<div class="mk-toolbar">
+    <!-- 搜索行：搜索组合框（输入框右侧内嵌清空/搜索图标）
+         + 右侧「刷新」按钮（两个独立表单并排，
+         POST 表单不可嵌套在 GET 表单内，故用外层 flex 行承载） -->
+    <div class="mk-search-row">
+        <form method="get" action="admin.php" class="mk-search-form">
+            <!-- 隐藏域保持路由与当前筛选状态（类型/分类随 Tab/chips 链接切换，搜索时沿用） -->
+            <input type="hidden" name="action" value="market">
+            <input type="hidden" name="type" value="<?php echo htmlspecialchars($type, ENT_QUOTES); ?>">
+            <input type="hidden" name="cat" value="<?php echo htmlspecialchars($catId, ENT_QUOTES); ?>">
+            <input type="text" name="kw" id="mk-kw-input" value="<?php echo htmlspecialchars($kw, ENT_QUOTES); ?>"
+                   placeholder="搜索应用名称 / 简介 / 作者"
+                   class="mk-search-input" autocomplete="off">
+            <!-- 清空图标：输入非空时显示（JS 维护 hidden 属性），点击清空并立即回列表 -->
+            <button type="button" id="mk-kw-clear" class="mk-search-clear" title="清空关键词" aria-label="清空关键词" hidden>
+                <?php echo admin_svg_icon('x-circle', ''); ?>
+            </button>
+            <!-- 搜索图标按钮：内嵌输入框右侧 -->
+            <button type="submit" class="mk-search-btn" title="搜索" aria-label="搜索">
+                <?php echo admin_svg_icon('search', ''); ?>
+            </button>
+        </form>
+        <!-- 右侧「刷新」按钮：重新获取官网最新应用列表（op=refresh_list：清列表缓存
+             + 实时重拉官网，不做本地版本比对——版本比对走顶部「检测应用更新」，
+             POST+CSRF；替代原「共 N 个应用」静态文字，结果由 Toast 反馈） -->
+        <form method="post" action="admin.php?action=market&op=refresh_list" class="mk-refresh-form">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Security::generateCsrfToken(), ENT_QUOTES); ?>">
+            <button type="submit" class="btn btn-default btn-sm mk-refresh-btn" title="重新获取官网最新应用列表">
+                <?php echo admin_svg_icon('refresh', ''); ?>刷新
+            </button>
+        </form>
+    </div>
+
+    <!-- 类型 Tab：全部 / 主题 / 插件（与官网 /apps 同口径；计数已按需求移除） -->
+    <div class="mk-tabs">
+        <?php
+        // Tab 链接与高亮在控制器数据基础上拼装（当前 type 标量比较在 PHP 层完成）
+        $tabs = [
+            ['type' => '', 'label' => '全部'],
+            ['type' => 'theme', 'label' => '主题'],
+            ['type' => 'plugin', 'label' => '插件'],
+        ];
+        foreach ($tabs as $tab):
+            $tabUrl = 'admin.php?action=market&type=' . urlencode($tab['type']) . '&cat=' . urlencode($catId);
+            if ($kw !== '') {
+                $tabUrl .= '&kw=' . urlencode($kw);
+            }
+            // 高亮态通过 .mk-tab-active 修饰类切换（常态样式由 .mk-tab 提供）
+            $tabClass = ($type === $tab['type']) ? 'mk-tab mk-tab-active' : 'mk-tab';
+            ?>
+        <a href="<?php echo $tabUrl; ?>" class="<?php echo $tabClass; ?>">
+            <?php echo $tab['label']; ?>
+        </a>
+        <?php endforeach; ?>
+    </div>
+</div>
+
+<!-- 分类 chips 行：行首常驻「全部」chip（清空分类筛选），右侧常驻「图文列表 / 图片卡片」
+     视图切换（无分类数据时本行仅渲染「全部」+ 切换按钮，保证行内入口始终存在） -->
+<div class="mk-cats">
+    <?php // 「全部」chip：cat 为空时的当前态高亮；链接保持当前类型与关键词
+    $allCatUrl = 'admin.php?action=market&type=' . urlencode($type);
+    if ($kw !== '') {
+        $allCatUrl .= '&kw=' . urlencode($kw);
+    } ?>
+    <a href="<?php echo $allCatUrl; ?>" class="mk-chip<?php echo $catId === '' ? ' mk-chip-active' : ''; ?>">
+        全部
+    </a>
+    <?php foreach ($cats as $c): ?>
+    <a href="admin.php?action=market&type=<?php echo urlencode($type); ?>&cat=<?php echo urlencode($c['name']); ?>&kw=<?php echo urlencode($kw); ?>"
+       class="mk-chip<?php echo $c['active'] !== '' ? ' mk-chip-active' : ''; ?>">
+        <?php echo $c['name']; ?>
+    </a>
+    <?php endforeach; ?>
+
+    <!-- 视图切换：Segmented 分段控制器（common.css 的 .seg 组件），图文列表 / 图片卡片
+         两段互斥；选中块 seg-active 由 JS 维护，偏好存 localStorage。
+         mk-view-toggle 仅保留推到行尾的定位职责（components.css） -->
+    <div class="mk-view-toggle seg" role="group" aria-label="视图切换">
+        <button type="button" id="mk-view-list" class="seg-item" title="图文列表">
+            <?php echo admin_svg_icon('list', ''); ?>
+        </button>
+        <button type="button" id="mk-view-card" class="seg-item" title="图片卡片">
+            <?php echo admin_svg_icon('grid', ''); ?>
+        </button>
+    </div>
+</div>
+
+<!-- 应用视图容器：卡片 / 列表两种布局同源渲染（同一份 $rows），
+     .mk-as-list 类由 JS 切换 + localStorage 记忆，默认图片卡片视图 -->
+<div class="mk-grid-wrap" id="mk-app-wrap">
+    <?php if (empty($rows)): ?>
+    <!-- 空状态：文案由控制器按有无关键词分支拼好（$emptyDesc），模板不嵌套判断 -->
+    <div class="mk-empty">
+        <p class="mk-empty-title">没有找到匹配的应用</p>
+        <p class="mk-empty-desc"><?php echo $emptyDesc; ?></p>
+    </div>
+    <?php else: ?>
+    <!-- ===== 图片卡片视图（默认） ===== -->
+    <div class="mk-grid">
+        <?php foreach ($rows as $row): ?>
+        <div class="mk-card">
+            <!-- 卡片图：主题封面 / 插件圆角图标容器（控制器预拼官网前缀）；无图输出占位块 -->
+            <a href="<?php echo $row['detail_url']; ?>" title="查看详情" class="mk-card-img">
+                <?php echo $row['image_html']; ?>
+            </a>
+            <div class="mk-card-body">
+                <div class="mk-card-head">
+                    <a href="<?php echo $row['detail_url']; ?>" class="mk-card-name">
+                        <?php echo $row['name']; ?>
+                    </a>
+                    <span class="mk-card-type"><?php echo $row['type_label']; ?></span>
+                </div>
+                <p class="mk-card-desc">
+                    <?php echo $row['description'] !== '' ? $row['description'] : '（暂无简介）'; ?>
+                </p>
+                <div class="mk-card-meta">
+                    <span><?php echo $row['author']; ?></span>
+                    <?php if ($row['category'] !== ''): ?>
+                    <span class="mk-card-cat"><?php echo $row['category']; ?></span>
+                    <?php endif; ?>
+                    <span>v<?php echo $row['latest']; ?></span>
+                    <span class="mk-card-installs"><?php echo (int)$row['installs']; ?> 次安装</span>
+                </div>
+                <div class="mk-card-foot">
+                    <?php echo $row['status_html']; ?>
+                    <?php echo $row['install_btn']; ?>
+                    <a href="<?php echo $row['detail_url']; ?>" class="btn btn-default btn-sm mk-card-more">详情</a>
+                </div>
+            </div>
+        </div>
+        <?php endforeach; ?>
+    </div>
+
+    <!-- ===== 图文列表视图（横向条目：缩略图 + 名称/简介 + 操作区） ===== -->
+    <div class="mk-list">
+        <?php foreach ($rows as $row): ?>
+        <div class="mk-list-row">
+            <a href="<?php echo $row['detail_url']; ?>" title="查看详情" class="mk-list-img">
+                <?php echo $row['image_html']; ?>
+            </a>
+            <div class="mk-list-main">
+                <div class="mk-list-head">
+                    <a href="<?php echo $row['detail_url']; ?>" class="mk-list-name"><?php echo $row['name']; ?></a>
+                    <span class="mk-card-type"><?php echo $row['type_label']; ?></span>
+                    <?php if ($row['category'] !== ''): ?>
+                    <span class="mk-card-cat"><?php echo $row['category']; ?></span>
+                    <?php endif; ?>
+                </div>
+                <p class="mk-list-desc"><?php echo $row['description'] !== '' ? $row['description'] : '（暂无简介）'; ?></p>
+                <div class="mk-card-meta">
+                    <span><?php echo $row['author']; ?></span>
+                    <span>v<?php echo $row['latest']; ?></span>
+                    <span><?php echo (int)$row['installs']; ?> 次安装</span>
+                </div>
+            </div>
+            <div class="mk-list-side">
+                <?php echo $row['status_html']; ?>
+                <?php echo $row['install_btn']; ?>
+                <a href="<?php echo $row['detail_url']; ?>" class="btn btn-default btn-sm">详情</a>
+            </div>
+        </div>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+</div>
+
+<?php if (!empty($rows)): ?>
+<!-- 缓存说明小字 -->
+<p class="mk-note">
+    「安装 / 更新」可在卡片、列表或详情页直接完成；列表数据缓存 10 分钟，安装后自动刷新状态。
+</p>
+
+<!-- 分页导航：公共分页组件（页码连体导航 + 统计/每页条数/跳页），
+     type/cat/kw 筛选参数随分页链接透传，翻页后视图偏好由 localStorage 保持 -->
+<div class="mk-pagination">
+    <?php
+        // 引入公共分页组件
+        $action = 'market';
+        $filters = $paginationFilters;
+        include ADMIN_PATH . '/templates/components/pagination.html';
+    ?>
+</div>
+<?php endif; ?>
+
+<!-- 搜索组合框的清空图标逻辑：输入非空时显示圆形叉号，
+     点击清空关键词并立即提交表单回无关键词列表（沿用当前 type/cat 隐藏域状态）；
+     无 JS 时图标保持 hidden，搜索/清空功能仍可经输入框手动清空后提交 -->
+<script>
+    (function () {
+        var input = document.getElementById('mk-kw-input');
+        var clearBtn = document.getElementById('mk-kw-clear');
+        if (!input || !clearBtn) return;
+
+        // 按输入框是否有值同步清空图标显隐
+        function sync() {
+            clearBtn.hidden = (input.value === '');
+        }
+
+        // 输入过程实时同步显隐
+        input.addEventListener('input', sync);
+
+        // 点击清空：就地清值 + 同步显隐 + 焦点回到输入框（不提交表单、不刷新页面，
+        // 搜索仍由回车或搜索按钮触发；清空图标只负责清文本）
+        clearBtn.addEventListener('click', function () {
+            input.value = '';
+            sync();
+            input.focus();
+        });
+
+        // 页面载入时（关键词回填场景）初始化一次显隐
+        sync();
+    })();
+</script>
+
+<!-- 视图切换逻辑：读写 localStorage（bk_admin_market_view），
+     在容器上切换 .mk-as-list 类实现两种布局的显隐（CSS 控制），默认图片卡片 -->
+<script>
+    (function () {
+        var KEY = 'bk_admin_market_view';
+        var wrap = document.getElementById('mk-app-wrap');
+        var btnList = document.getElementById('mk-view-list');
+        var btnCard = document.getElementById('mk-view-card');
+        if (!wrap || !btnList || !btnCard) return;
+
+        // 读取本地视图偏好（隐私模式等 localStorage 不可用时静默回退默认卡片）
+        var saved = 'card';
+        try { saved = localStorage.getItem(KEY) || 'card'; } catch (e) {}
+
+        function apply(view) {
+            var isList = view === 'list';
+            wrap.classList.toggle('mk-as-list', isList);
+            // 选中态类为 .seg 组件的通用选中类（common.css 定义浮起样式）
+            btnList.classList.toggle('seg-active', isList);
+            btnCard.classList.toggle('seg-active', !isList);
+        }
+
+        btnList.addEventListener('click', function () {
+            apply('list');
+            try { localStorage.setItem(KEY, 'list'); } catch (e) {}
+        });
+        btnCard.addEventListener('click', function () {
+            apply('card');
+            try { localStorage.setItem(KEY, 'card'); } catch (e) {}
+        });
+
+        apply(saved);
+    })();
+</script>
+
+
+<?php include 'components/footer_wrapper.html'; ?>

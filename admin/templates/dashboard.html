@@ -1,0 +1,443 @@
+<?php $currentAction = 'dashboard'; $pageTitle = '仪表盘';  include 'components/page_wrapper.html'; ?>
+
+    <!-- ============================================================
+         问候行：时段问候 + 一句动态概况，右侧唯一主按钮「写文章」。
+         替代原独立快捷动作区（写文章/管理评论两个按钮）——
+         评论入口由待办行与右列「全部」链接承载，减少一层按钮堆叠。
+         昵称复用登录会话数据（与顶栏用户菜单同源），缺失时兜底「站长」
+         ============================================================ -->
+    <div class="dash-head">
+        <div class="dash-greet-wrap">
+            <div class="dash-greet"><?php echo $greeting; ?>，<?php echo htmlspecialchars($_SESSION['admin']['nickname'] ?? '站长', ENT_QUOTES); ?></div>
+            <!-- 概况副文案：待办优先提示 → 其次更新提醒 → 全部就绪的正向文案 -->
+            <div class="dash-greet-sub">
+                <?php if ($total_pending > 0): ?>
+                    有 <?php echo $total_pending; ?> 条待办需要处理
+                <?php elseif ($appUpdates > 0 || $hasNewVersion == 1): ?>
+                    有可用更新，抽空看看
+                <?php else: ?>
+                    一切就绪，今天写点什么？
+                <?php endif; ?>
+            </div>
+        </div>
+        <a href="admin.php?action=article&sub=add" class="btn btn-primary">写文章</a>
+    </div>
+
+    <!-- 挂载点：dashboard.quick.links，插件可在此注入仪表盘快捷入口卡片（问候行与待办行之间）。
+         包装节点承载 4 列网格排布（components.css .plugin-quick-row）；
+         无插件订阅时为空节点，配合 :has 守卫整体隐藏，页面零残留 -->
+    <div class="plugin-quick-row">
+        <?php Plugin::slot('dashboard.quick.links'); ?>
+    </div>
+
+    <!-- ============================================================
+         待办行：仅有待办时渲染的一行链接式清单（有事才出现、无事不打扰），
+         替代原独立待办卡片与空态鼓励行；主系统新版本提醒也合并至此
+         （替代原 .version-notice 信息条，同属「待处理」语义）。
+         项目间分隔线由 CSS 相邻兄弟选择器绘制（.todo-item + .todo-item），
+         JS 清零移除某项后相邻选择器自动重排，无需维护分隔符节点
+         ============================================================ -->
+    <?php if ($total_pending > 0 || $appUpdates > 0 || $hasNewVersion == 1): ?>
+    <div class="todo-strip" id="todo-strip">
+        <span class="todo-label">待办</span>
+        <?php if ($hasNewVersion == 1): ?>
+        <!-- 主系统新版本：数据复用 DashboardController 已检测的 checkNewVersion() 结果（10 分钟缓存） -->
+        <a href="admin.php?action=update" class="todo-item" title="前往升级页更新主系统">BlogKit v<?php echo htmlspecialchars($latestVersion, ENT_QUOTES); ?> 可升级</a>
+        <?php endif; ?>
+        <?php if ($appUpdates > 0): ?>
+        <!-- 应用升级提醒：点击直达应用市场（提醒语义，不计入待处理统计数） -->
+        <a href="admin.php?action=market" class="todo-item" title="前往应用市场查看可更新的插件/主题">应用更新 <b class="todo-count"><?php echo (int)$appUpdates; ?></b></a>
+        <?php endif; ?>
+        <?php if ($pending_items['pending_comments'] > 0): ?>
+        <!-- data-kind 供页尾脚本在行内通过评论后递减计数（与数据条「待处理」联动） -->
+        <a href="admin.php?action=comment" class="todo-item" data-kind="comments">待审评论 <b class="todo-count"><?php echo (int)$pending_items['pending_comments']; ?></b></a>
+        <?php endif; ?>
+        <?php if ($pending_items['pending_articles'] > 0): ?>
+        <a href="admin.php?action=article&status=0" class="todo-item" data-kind="articles">草稿文章 <b class="todo-count"><?php echo (int)$pending_items['pending_articles']; ?></b></a>
+        <?php endif; ?>
+        <?php if ($pending_items['pending_users'] > 0): ?>
+        <a href="admin.php?action=user" class="todo-item" data-kind="users">待审核用户 <b class="todo-count"><?php echo (int)$pending_items['pending_users']; ?></b></a>
+        <?php endif; ?>
+        <?php if ($pending_items['pending_friendlinks'] > 0): ?>
+        <a href="admin.php?action=friendlink" class="todo-item" data-kind="friendlinks">友链待审 <b class="todo-count"><?php echo (int)$pending_items['pending_friendlinks']; ?></b></a>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
+
+    <!-- ============================================================
+         数据行：一行关键指标，等宽数字 + 灰色标签，整项可点击下钻。
+         精简口径：浏览总量/文章/评论/用户/待处理五项（页面等低频入口
+         由侧栏承载）；待处理项大于 0 时数字红色警示并平滑滚动到待办行
+         ============================================================ -->
+    <div class="metrics-bar">
+        <!-- 浏览总量：所有未删除文章浏览量之和，纯展示不可点击 -->
+        <div class="metric metric-static" title="所有未删除文章的浏览量之和">
+            <span class="metric-num"><?php echo number_format($stats['total_views']); ?></span>
+            <span class="metric-label">浏览总量</span>
+        </div>
+        <!-- 文章总数：点击进入文章列表 -->
+        <a href="admin.php?action=article" class="metric" title="查看文章列表">
+            <span class="metric-num"><?php echo $stats['articles']; ?></span>
+            <span class="metric-label">文章</span>
+        </a>
+        <!-- 评论总数（全量列表，含已审核与待审核） -->
+        <a href="admin.php?action=comment" class="metric" title="管理评论">
+            <span class="metric-num"><?php echo $stats['comments']; ?></span>
+            <span class="metric-label">评论</span>
+        </a>
+        <!-- 用户总数 -->
+        <a href="admin.php?action=user" class="metric" title="管理用户">
+            <span class="metric-num"><?php echo $stats['users']; ?></span>
+            <span class="metric-label">用户</span>
+        </a>
+        <!-- 标签总数：点击进入标签管理 -->
+        <a href="admin.php?action=tag" class="metric" title="管理标签">
+            <span class="metric-num"><?php echo $stats['tags']; ?></span>
+            <span class="metric-label">标签</span>
+        </a>
+        <?php if ($total_pending > 0): ?>
+        <!-- 待处理事项：待审评论+草稿文章+待审用户+待审友链合计
+             （口径与上方待办行聚合一致，数据复用 $total_pending，零新增查询）；
+             行内通过评论后由页尾脚本递减计数、归零自动解除警示色 -->
+        <a href="#todo-strip" data-action="scroll-todo" class="metric metric-alert" title="查看待处理事项明细">
+            <span class="metric-num metric-num-alert" id="metric-pending-num"><?php echo $total_pending; ?></span>
+            <span class="metric-label">待处理</span>
+        </a>
+        <?php else: ?>
+        <!-- 待处理为 0：纯展示（不渲染为 a 标签），红色警示随计数归零自动消失 -->
+        <div class="metric metric-static" title="暂无待处理事项">
+            <span class="metric-num" id="metric-pending-num"><?php echo $total_pending; ?></span>
+            <span class="metric-label">待处理</span>
+        </div>
+        <?php endif; ?>
+    </div>
+
+    <!-- ============================================================
+         主内容区：最新文章 | 最新评论 双列时间流（左 7 右 5，内容为主），
+         全页统一一种行组件（状态点 + 标题 + 时间），修复原两套行样式
+         高度失衡的问题；排行数据折叠收纳到下方 details
+         ============================================================ -->
+    <div class="dashboard-main">
+        <!-- 左列：最新文章（点击直接进入编辑页，省一层列表跳转） -->
+        <div class="section-box">
+            <div class="section-head">
+                <h3 class="section-title">最新文章</h3>
+                <a href="admin.php?action=article" class="section-more">全部</a>
+            </div>
+            <!-- 内容区统一滚动容器：与右列同高，超出内部滚动 -->
+            <div class="dash-scroll">
+                <?php if (empty($recent_articles)): ?>
+                    <!-- 空态：独立 .dash-empty（不复用排行区 .rank-empty），flex 撑底保持双列同高 -->
+                    <div class="dash-empty">暂无文章，点击右上角「写文章」开始创作</div>
+                <?php else: ?>
+                    <?php foreach ($recent_articles as $article): ?>
+                    <a href="admin.php?action=article&sub=edit&id=<?php echo $article['id']; ?>" class="dash-row">
+                        <!-- 状态点：绿点=已发布，灰点=草稿（色彩即语义，仅状态用色） -->
+                        <span class="dot-status <?php echo $article['status'] == 1 ? 'dot-ok' : 'dot-idle'; ?>" title="<?php echo $article['status'] == 1 ? '已发布' : '草稿'; ?>"></span>
+                        <span class="dash-title"><?php echo htmlspecialchars($article['title']); ?></span>
+                        <?php if ($article['status'] != 1): ?><span class="dash-flag">草稿</span><?php endif; ?>
+                        <!-- created_at 为 int 时间戳：直接传入 date()，不能用 strtotime()（对 int 解析失败会显示 01-01） -->
+                        <span class="dash-time"><?php echo date('m-d H:i', $article['created_at']); ?></span>
+                    </a>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- 右列：最新评论（与左列对称的时间维度互动流） -->
+        <div class="section-box">
+            <div class="section-head">
+                <h3 class="section-title">最新评论</h3>
+                <a href="admin.php?action=comment" class="section-more">全部</a>
+            </div>
+            <!-- 内容区统一滚动容器：与左列同高，超出内部滚动 -->
+            <div class="dash-scroll">
+                <?php if (empty($recent_comments)): ?>
+                    <!-- 空态：独立 .dash-empty，flex 撑底保持双列同高 -->
+                    <div class="dash-empty">暂无评论</div>
+                <?php else: ?>
+                    <?php foreach ($recent_comments as $comment): ?>
+                    <div class="dash-cmt">
+                        <!-- 元信息行：状态点 + 评论者（点击跳评论管理按文章过滤）+ 待审标记 + 时间 -->
+                        <div class="dash-cmt-meta">
+                            <span class="dot-status <?php echo $comment['status'] == 1 ? 'dot-ok' : 'dot-pending'; ?>" title="<?php echo $comment['status'] == 1 ? '已审核' : '待审核'; ?>"></span>
+                            <a href="admin.php?action=comment&article_id=<?php echo $comment['article_id']; ?>" class="dash-author" title="所属文章：<?php echo htmlspecialchars($comment['article_title'] ?? '[已删除]'); ?>">
+                                <?php echo htmlspecialchars($comment['nickname'] ?: $comment['username'] ?: '未知用户'); ?>
+                            </a>
+                            <?php if ($comment['status'] == 0): ?><span class="dash-flag">待审</span><?php endif; ?>
+                            <span class="dash-time"><?php echo date('m-d H:i', $comment['created_at']); ?></span>
+                        </div>
+                        <!-- 评论内容摘要 -->
+                        <span class="dash-cmt-text"><?php echo htmlspecialchars(mb_substr($comment['content'], 0, 30, 'utf-8')) . (mb_strlen($comment['content'], 'utf-8') > 30 ? '...' : ''); ?></span>
+                        <!-- 待审评论行内操作：不离开仪表盘即可通过/删除。
+                             data-action 属性驱动，页尾脚本以 document 级事件委托统一处理，
+                             AJAX 提交到评论管理同款接口（CommentController::toggleStatus / delete） -->
+                        <?php if ($comment['status'] == 0): ?>
+                        <div class="dash-actions">
+                            <button type="button" class="dash-action-btn" data-action="approve" data-id="<?php echo $comment['id']; ?>">通过</button>
+                            <button type="button" class="dash-action-btn" data-action="delete" data-id="<?php echo $comment['id']; ?>">删除</button>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         内容数据排行（折叠收纳，common.css 通用组件 .collapse-panel）：
+         阅读/点赞/收藏/热门评论四个低频查看的排行块统一收进 details，
+         默认折叠不占据首屏；展开后为 2×2 分栏直排行（无嵌套边框卡片，
+         消除原「卡中卡」的展开跳变）；展开/收起高度动画由通用组件提供
+         ============================================================ -->
+    <details class="collapse-panel dash-fold">
+        <summary>内容数据排行</summary>
+        <div class="rank-grid">
+            <!-- 阅读量排行：标题跳转前台文章内容页（Router 支持 ?c=home&m=article&id=X，兼容伪静态开关） -->
+            <div class="rank-cell">
+                <h3 class="section-title">阅读量排行</h3>
+                <div class="rank-list">
+                    <?php if (empty($top_articles_views)): ?>
+                        <div class="rank-empty">暂无数据</div>
+                    <?php else: ?>
+                        <?php foreach ($top_articles_views as $index => $article): ?>
+                        <div class="rank-row">
+                            <span class="rank-num<?php echo $index < 3 ? ' rank-num-top' : ''; ?>"><?php echo $index + 1; ?></span>
+                            <a href="index.php?c=home&m=article&id=<?php echo $article['id']; ?>" class="rank-title" target="_blank" title="查看前台文章"><?php echo htmlspecialchars($article['title']); ?></a>
+                            <span class="rank-val"><?php echo number_format($article['view_count']); ?></span>
+                        </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- 点赞量排行：标题跳转前台文章内容页 -->
+            <div class="rank-cell">
+                <h3 class="section-title">点赞量排行</h3>
+                <div class="rank-list">
+                    <?php if (empty($top_articles_likes)): ?>
+                        <div class="rank-empty">暂无数据</div>
+                    <?php else: ?>
+                        <?php foreach ($top_articles_likes as $index => $article): ?>
+                        <div class="rank-row">
+                            <span class="rank-num<?php echo $index < 3 ? ' rank-num-top' : ''; ?>"><?php echo $index + 1; ?></span>
+                            <a href="index.php?c=home&m=article&id=<?php echo $article['id']; ?>" class="rank-title" target="_blank" title="查看前台文章"><?php echo htmlspecialchars($article['title']); ?></a>
+                            <span class="rank-val"><?php echo number_format($article['like_count']); ?></span>
+                        </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- 热门收藏排行：标题跳转前台文章内容页 -->
+            <div class="rank-cell">
+                <h3 class="section-title">热门收藏排行</h3>
+                <div class="rank-list">
+                    <?php if (empty($top_favorites)): ?>
+                        <div class="rank-empty">暂无数据</div>
+                    <?php else: ?>
+                        <?php foreach ($top_favorites as $index => $article): ?>
+                        <div class="rank-row">
+                            <span class="rank-num<?php echo $index < 3 ? ' rank-num-top' : ''; ?>"><?php echo $index + 1; ?></span>
+                            <a href="index.php?c=home&m=article&id=<?php echo $article['id']; ?>" class="rank-title" target="_blank" title="查看前台文章"><?php echo htmlspecialchars($article['title']); ?></a>
+                            <span class="rank-val"><?php echo number_format($article['favorite_count']); ?></span>
+                        </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- 热门评论排行：标题跳前台文章，评论内容跳评论管理按文章过滤 -->
+            <div class="rank-cell">
+                <h3 class="section-title">热门评论排行</h3>
+                <div class="rank-list">
+                    <?php if (empty($top_comments)): ?>
+                        <div class="rank-empty">暂无数据</div>
+                    <?php else: ?>
+                        <?php foreach ($top_comments as $index => $comment): ?>
+                        <div class="rank-row">
+                            <span class="rank-num<?php echo $index < 3 ? ' rank-num-top' : ''; ?>"><?php echo $index + 1; ?></span>
+                            <div class="rank-comment">
+                                <a href="index.php?c=home&m=article&id=<?php echo $comment['article_id']; ?>#comments" class="rank-title" target="_blank" title="查看前台文章及评论"><?php echo htmlspecialchars($comment['article_title'] ?? '[已删除]'); ?></a>
+                                <a href="admin.php?action=comment&article_id=<?php echo $comment['article_id']; ?>" class="rank-comment-text" title="在评论管理中查看该文章的全部评论"><?php echo htmlspecialchars(mb_substr($comment['content'], 0, 30, 'utf-8')) . (mb_strlen($comment['content'], 'utf-8') > 30 ? '...' : ''); ?></a>
+                            </div>
+                            <span class="rank-val"><?php echo number_format($comment['like_count']); ?></span>
+                        </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </details>
+
+    <!-- ============================================================
+         系统状态：描述列表（common.css 通用组件 .desc-grid：
+         灰底标签 + 白底值 + 表格线分组），桌面每行 3 组、
+         窄屏自动降为 2 组/1 组，长值自动换行不截断
+         ============================================================ -->
+    <div class="section-box sys-status-box">
+        <h3 class="section-title">系统状态</h3>
+        <div class="desc-grid">
+            <div class="desc-grid-item">
+                <span class="desc-grid-label">系统版本</span>
+                <span class="desc-grid-value">v<?php echo htmlspecialchars($system_basic['version']); ?></span>
+            </div>
+            <div class="desc-grid-item">
+                <span class="desc-grid-label">运行环境</span>
+                <span class="desc-grid-value"><?php echo htmlspecialchars($system_basic['environment']); ?></span>
+            </div>
+            <div class="desc-grid-item">
+                <span class="desc-grid-label">操作系统</span>
+                <span class="desc-grid-value"><?php echo htmlspecialchars($system_basic['os']); ?></span>
+            </div>
+            <div class="desc-grid-item">
+                <span class="desc-grid-label">Web 服务器</span>
+                <span class="desc-grid-value"><?php echo htmlspecialchars($system_basic['web_server']); ?></span>
+            </div>
+            <div class="desc-grid-item">
+                <span class="desc-grid-label">PHP 版本</span>
+                <span class="desc-grid-value"><?php echo htmlspecialchars($system_basic['php_version']); ?></span>
+            </div>
+            <div class="desc-grid-item">
+                <span class="desc-grid-label">MySQL 版本</span>
+                <span class="desc-grid-value"><?php echo htmlspecialchars($system_basic['mysql_version']); ?></span>
+            </div>
+            <div class="desc-grid-item">
+                <span class="desc-grid-label">运行时长</span>
+                <span class="desc-grid-value"><?php echo htmlspecialchars($system_basic['uptime']); ?></span>
+            </div>
+            <div class="desc-grid-item">
+                <span class="desc-grid-label">安装时间</span>
+                <span class="desc-grid-value"><?php echo htmlspecialchars($system_basic['install_time']); ?></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         官方信息版权条：独立区块，居中两行
+         （第一行官方链接，第二行版权文字；信息均来自 core/config/version.php）
+         ============================================================ -->
+    <div class="dash-copy-bar">
+        <div class="dash-copy-links">
+            <a href="<?php echo htmlspecialchars($system_basic['official_site']); ?>" target="_blank" rel="noopener">官网</a>
+            <a href="<?php echo htmlspecialchars($system_basic['docs_url']); ?>" target="_blank" rel="noopener">文档</a>
+            <a href="<?php echo htmlspecialchars($system_basic['feedback_url']); ?>" target="_blank" rel="noopener">反馈</a>
+        </div>
+        <div class="dash-copy-text">© 2025 - <?php echo date('Y'); ?> <?php echo htmlspecialchars($system_basic['author']); ?></div>
+    </div>
+
+
+<script>
+// ==================== 仪表盘脚本：data-action 事件委托统一处理行内交互 ====================
+// 本页模板不使用任何内联 onclick 属性，全部交互由 document 级点击委托按
+// data-action 属性分发，共三类动作：
+//   1. data-action="scroll-todo"  数据条「待处理」指标 → 平滑滚动到待办行（#todo-strip）
+//   2. data-action="approve"      最新评论中待审评论行内「通过」（AJAX，低风险免确认）
+//   3. data-action="delete"       最新评论中待审评论行内「删除」（确认弹层 + AJAX）
+// AJAX 接口与评论管理页完全同款（GET 兼容，返回 JSON：{code, msg}）：
+//   通过 → admin.php?action=comment&sub=toggleStatus&id=X&status=1
+//   删除 → admin.php?action=comment&sub=delete&id=X
+// 处理成功后：右上 Toast 反馈 → 移除对应行（无需整页刷新）→
+//             同步递减待办行「待审评论」计数与数据条「待处理」总数
+(function() {
+    // ---- 工具：递减待办行指定类别计数（data-kind 定位；归零移除该项，
+    //      全部清零后整行移除——「有事才出现、无事不打扰」）----
+    function decrementTodo(kind) {
+        var item = document.querySelector('.todo-item[data-kind="' + kind + '"]');
+        if (item) {
+            var counter = item.querySelector('.todo-count');
+            if (counter) {
+                var next = Math.max(0, (parseInt(counter.textContent, 10) || 0) - 1);
+                counter.textContent = next;
+                if (next === 0) item.remove();
+            }
+        }
+        // 数据条「待处理」同步递减；归零后解除红色警示并就绪态化问候副文案
+        var num = document.getElementById('metric-pending-num');
+        if (num) {
+            var metricNext = Math.max(0, (parseInt(num.textContent, 10) || 0) - 1);
+            num.textContent = metricNext;
+            var metric = num.closest('.metric');
+            if (metric) metric.classList.toggle('metric-alert', metricNext > 0);
+            if (metricNext === 0) {
+                var strip = document.getElementById('todo-strip');
+                if (strip) strip.remove();
+                var sub = document.querySelector('.dash-greet-sub');
+                if (sub) sub.textContent = '一切就绪，今天写点什么？';
+            }
+        }
+    }
+
+    // ---- 工具：发送行内处理请求（toggleStatus / delete 接口均返回 JSON）----
+    function request(url, done) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== 4) return;
+            var res = null;
+            try { res = JSON.parse(xhr.responseText); } catch (e) {}
+            done(res && res.code === 200, res ? res.msg : '请求失败，请检查网络后重试');
+        };
+        xhr.send();
+    }
+
+    // ---- 全局点击委托：凡是带 data-action 的元素统一到这里分发 ----
+    document.addEventListener('click', function(e) {
+        var el = e.target.closest('[data-action]');
+        if (!el) return;
+        var action = el.getAttribute('data-action');
+
+        // 动作一：「待处理」指标锚点 → 平滑滚动到待办行
+        // （待办行已因计数清零被移除时静默跳过）
+        if (action === 'scroll-todo') {
+            var strip = document.getElementById('todo-strip');
+            if (strip) {
+                e.preventDefault(); // 阻断原生锚点瞬跳，改用平滑滚动
+                strip.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                e.preventDefault();
+            }
+            return;
+        }
+
+        // 动作二/三：待审评论行内「通过 / 删除」
+        if (action === 'approve' || action === 'delete') {
+            var id = el.getAttribute('data-id');
+            if (!id) return;
+            var isDelete = action === 'delete';
+            var url = isDelete
+                ? 'admin.php?action=comment&sub=delete&id=' + id
+                : 'admin.php?action=comment&sub=toggleStatus&id=' + id + '&status=1';
+
+            var doRequest = function() {
+                // 防重复点击：请求期间禁用按钮
+                el.disabled = true;
+                request(url, function(ok, msg) {
+                    if (ok) {
+                        showToast(msg || (isDelete ? '删除成功' : '已通过审核'), 'success');
+                        var row = el.closest('.dash-cmt');
+                        if (row) row.remove();
+                        if (!isDelete) decrementTodo('comments');
+                    } else {
+                        el.disabled = false;
+                        showToast(msg || '请求失败，请检查网络后重试', 'error');
+                    }
+                });
+            };
+
+            if (isDelete) {
+                // 删除为危险操作：统一确认弹层（common.js showConfirmDialog）
+                showConfirmDialog('确定要删除这条评论吗？', { type: 'danger', confirmText: '删除' }).then(function(ok) {
+                    if (ok) doRequest();
+                });
+            } else {
+                // 通过审核为低风险操作：直接执行，不做二次确认
+                doRequest();
+            }
+        }
+    });
+})();
+</script>
+
+<?php include 'components/footer_wrapper.html'; ?>

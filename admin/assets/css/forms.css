@@ -1,0 +1,1347 @@
+/* ============================================================
+   BlogKit Admin - Forms CSS
+   统一表单样式：布局、控件、验证、筛选、暗色主题适配
+   ============================================================ */
+
+/* 统一表单样式 */
+.form-horizontal {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.form-horizontal .form-group {
+    flex: 1;
+    min-width: 250px;
+    margin-bottom: 0;
+}
+
+.form-horizontal .form-group label {
+    margin-bottom: 4px;
+    font-weight: 500;
+    color: #495057;
+}
+
+/* 统一按钮组样式 */
+/* .btn-group 保留在 common.css，下拉菜单和表单按钮组共用同名但有不同上下文 */
+
+/* 筛选区域样式（规格 3.6：底 --bg-subtle，内边距 12px 16px） */
+.filter-section {
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background-color: var(--bg-subtle);
+    border: 1px solid var(--border-split);
+    border-radius: 8px;
+}
+
+/* 表单样式 */
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: bold;
+}
+
+/* ============================================================
+   表单多列布局（.form-row / .form-col）
+   ------------------------------------------------------------
+   各设置页与插件表单的并排布局容器：行内各列默认等分剩余宽度，
+   基准 220px——容器放不下时列自动换行/堆叠，移动端可用性优先；
+   列内纵向间距由 .form-group 的下外边距承担，行自身不叠加。
+   固定/自适应宽度的修饰列（components.css 定义，本文件后加载）：
+   - .sec-col-fill / .sec-col-auto（IP 规则「输入框 + 按钮」行）
+   - .cap-preview-col（验证码实时预览固定列）
+   三者的 flex 基准在此显式钉住，避免被本文件的基础 flex-basis
+   覆盖（flex 布局中 basis 优先级高于 width）。
+   ============================================================ */
+.form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 16px; /* 仅列间距；行间距交给列内 .form-group 外边距 */
+}
+
+.form-col {
+    flex: 1 1 220px; /* 等分剩余宽度，窄屏自动换行堆叠 */
+    min-width: 0;    /* 允许收缩，防止长内容撑破行 */
+}
+
+/* 修饰列协调：定宽列的宽度决定权交还 width（components.css 定义了
+   width 但未设 flex-basis，此处不钉会被上方基础 flex-basis 覆盖） */
+.form-row .sec-col-auto,
+.form-row .cap-preview-col {
+    flex: 0 0 auto;
+}
+
+/* 窄屏：所有列退化为整行堆叠，固定预览列取消左间距 */
+@media (max-width: 768px) {
+    .form-col {
+        flex: 1 1 100%;
+    }
+
+    .form-row .cap-preview-col {
+        margin-left: 0;
+    }
+}
+
+/* ============================================================
+   输入控件元素级基础样式（全后台生效，不依赖类名）
+   覆盖 423 个表单控件，统一规格：6px 圆角、hover 边框加深、
+   focus 主题光环、0.2s 过渡；规格全部引用 common.css 的 --input-* 变量。
+   排除 checkbox/radio/range/file 及各类按钮，它们有各自的外观体系。
+   ============================================================ */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="image"]),
+select,
+textarea {
+    width: 100%;
+    padding: var(--input-padding);
+    border: 1px solid var(--input-border);
+    border-radius: var(--input-radius);
+    background-color: var(--input-bg);
+    font-family: inherit;
+    font-size: var(--font-size-sm);
+    line-height: 1.1;
+    color: var(--input-text);
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+/* 悬停：边框加深反馈 */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="image"]):hover,
+select:hover,
+textarea:hover {
+    border-color: var(--input-border-hover);
+}
+
+/* 聚焦：主题边框 + 淡蓝光环 */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="image"]):focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--input-border-focus);
+    box-shadow: var(--input-focus-shadow);
+}
+
+/* 多行文本域：保留纵向缩放 */
+textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+/* 占位符颜色弱化 */
+input::placeholder,
+textarea::placeholder {
+    color: #b0b0b0;
+}
+
+/* ===== 密码输入框显隐切换（由 common.js initPasswordVisibility() 自动包裹生成）=====
+   结构：.password-input-wrap（定位锚点）> input[type=password] + .password-toggle-btn（眼睛按钮）
+   眼睛图标为 eye / eye-invisible SVG（1em 缩放），颜色随主题变量切换 */
+.password-input-wrap {
+    position: relative;
+}
+
+.password-input-wrap input[type="password"],
+.password-input-wrap input[type="text"] {
+    padding-right: 36px;   /* 右侧预留眼睛按钮空间，防止长密码文字压到图标 */
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: var(--font-size-md);       /* 眼睛 SVG 按 1em 缩放 */
+    color: var(--text-tertiary);
+    border-radius: 4px;
+    transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.password-toggle-btn:hover {
+    color: var(--primary);
+    background-color: rgba(0, 122, 255, 0.08);
+}
+
+/* ===== 可清空输入框（textarea + url 输入框的行内「清空输入」按钮）=====
+   结构：.clearable-wrap（定位锚点）> 控件 + .clearable-btn（行内 × 按钮）
+   由 common.js initClearableInputs() 自动包裹生成（白名单与排除规则见该函数注释）。
+   交互：控件有值且悬停/聚焦时 × 浮现，点击清空并派发 input+change
+   联动值快照 dirty 检测；平时隐藏，零视觉噪音 */
+.clearable-wrap {
+    position: relative;
+}
+
+/* 控件右侧/右上角预留 × 按钮空间，防止内容压到图标 */
+.clearable-wrap input[type="url"],
+.clearable-wrap textarea {
+    padding-right: 32px;
+}
+
+.clearable-btn {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-tertiary);
+    border-radius: 4px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease, visibility 0.15s ease, color 0.15s ease;
+}
+
+/* textarea 的 × 固定右上角（多行内容时右侧居中会飘在文字中间） */
+.clearable-wrap textarea ~ .clearable-btn {
+    top: 6px;
+    transform: none;
+}
+
+/* 浮现时机：有值且悬停包裹区（含按钮自身）或控件聚焦 */
+.clearable-wrap.is-filled:hover .clearable-btn,
+.clearable-wrap.is-filled input:focus ~ .clearable-btn,
+.clearable-wrap.is-filled textarea:focus ~ .clearable-btn {
+    opacity: 1;
+    visibility: visible;
+}
+
+.clearable-btn:hover {
+    color: var(--danger-color);
+    background-color: var(--hover-bg);
+}
+
+/* ============================================================
+   步进器（Stepper，common.js initSteppers 自动增强）
+   结构：.stepper-wrap（定位锚点）> input[type=number] + .stepper-btns
+   （「− / +」按钮组内嵌控件右侧）。原生 spin 小箭头在包裹内隐藏，
+   避免出现双 UI；边界禁用态由 JS 同步（到 min 禁 −、到 max 禁 +），
+   步进后派发 input + change，设置页的值快照 dirty 检测实时联动。
+   ============================================================ */
+.stepper-wrap {
+    position: relative;
+}
+
+/* 包裹内的 number 控件：右侧预留按钮组空间；隐藏原生 spinner（Firefox/WebKit）。
+   特异性说明（同 .input-narrow 先例）：元素级基础规则含 8 个 :not 属性选择器
+   （0,8,1）会压过普通类选择器，此处携带相同 :not 链并叠加 .stepper-input
+   标记类（JS 包裹时添加，0,10,1）确保 padding-right 能覆盖 width/padding 基线 */
+.stepper-wrap input.stepper-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="image"]) {
+    padding-right: 74px;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.stepper-wrap input[type="number"]::-webkit-outer-spin-button,
+.stepper-wrap input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* 按钮组：内嵌控件右侧，浅底圆角胶囊，中缝 0.5px hairline */
+.stepper-btns {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: stretch;
+    border-radius: 6px;
+    background-color: var(--bg-subtle);
+    overflow: hidden;
+}
+
+.stepper-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 26px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+    font-size: var(--font-size-md);
+    cursor: pointer;
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+/* 中缝 hairline：box-shadow 模拟 0.5px 细线（1px 边框视觉偏重） */
+.stepper-btn + .stepper-btn {
+    box-shadow: 0.5px 0 0 var(--border-split);
+}
+
+.stepper-btn:hover {
+    color: var(--primary);
+    background-color: var(--hover-bg);
+}
+
+.stepper-btn:active {
+    background-color: var(--border-split);
+}
+
+/* 边界禁用态：弱化到占位灰，光标禁用 */
+.stepper-btn:disabled {
+    color: var(--text-tertiary);
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: none;
+}
+
+/* 暗色主题：按钮组底色随变量加深 */
+body.dark-theme .stepper-btns {
+    background-color: var(--hover-bg);
+}
+
+/* .form-group 内控件沿用元素级规格（保留分组语义，样式已由上方元素级统一提供） */
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+/* .form-control 组件类：引用统一变量（与元素级规格一致，供显式标注的控件使用） */
+.form-control {
+    width: 100%;
+    padding: var(--input-padding);
+    border: 1px solid var(--input-border);
+    border-radius: var(--input-radius);
+    box-sizing: border-box;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--input-border-focus);
+    box-shadow: var(--input-focus-shadow);
+}
+
+.form-group input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+/* ===== 单选框/复选框统一规格（元素级全后台生效）=====
+   16px 尺寸：复选为 4px 圆角方块、选中主色填充 + 白色对勾；
+   单选为圆形、选中主色描边 + 主色圆点；悬停描边变主色。
+   颜色全部引用 --input-* / --primary 变量，暗色主题自动适配 */
+input[type="checkbox"],
+input[type="radio"] {
+    appearance: none;
+    -webkit-appearance: none;
+    position: relative;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    flex-shrink: 0;
+    border: 1px solid var(--input-border);
+    background-color: var(--input-bg);
+    cursor: pointer;
+    transition: all 0.2s;
+    vertical-align: -3px;
+}
+
+/* 复选框：4px 圆角 */
+input[type="checkbox"] {
+    border-radius: 4px;
+}
+
+/* 单选框：正圆 */
+input[type="radio"] {
+    border-radius: 50%;
+}
+
+/* 悬停：描边变主色 */
+input[type="checkbox"]:hover,
+input[type="radio"]:hover {
+    border-color: var(--primary);
+}
+
+/* 复选框选中：主色填充 */
+input[type="checkbox"]:checked {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+/* 复选框对勾：白色旋转边框绘制 */
+input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    top: 1px;
+    left: 4px;
+    width: 5px;
+    height: 9px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+/* 复选框半选态（用于「全选」子项部分选中）：主色填充 + 白色横杠 */
+input[type="checkbox"]:indeterminate {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+input[type="checkbox"]:indeterminate::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 8px;
+    height: 2px;
+    border-radius: 1px;
+    background: #fff;
+    transform: translate(-50%, -50%);
+}
+
+/* 单选框选中：主色描边 + 主色圆点 */
+input[type="radio"]:checked {
+    border-color: var(--primary);
+}
+
+input[type="radio"]:checked::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+    transform: translate(-50%, -50%);
+}
+
+/* 禁用态：未选中灰底、选中降透明度，光标禁用 */
+input[type="checkbox"]:disabled,
+input[type="radio"]:disabled {
+    cursor: not-allowed;
+}
+
+input[type="checkbox"]:disabled:not(:checked),
+input[type="radio"]:disabled:not(:checked) {
+    background-color: var(--hover-bg);
+    border-color: var(--input-border);
+}
+
+input[type="checkbox"]:checked:disabled,
+input[type="radio"]:checked:disabled {
+    opacity: 0.4;
+}
+
+/* ===== 表单组内的单选/复选选项行 =====
+   块级 flex 行：圆圈与文字垂直居中，多个选项纵向排列时圆圈左缘严格对齐。
+   修复旧行内 label 换行后（第二个选项带 margin-left）选项圆圈水平错位的问题，
+   典型场景：页面新增/编辑的「发布状态」（立即发布 / 保存草稿） */
+.option-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-group .option-row + .option-row {
+    margin-top: 10px;
+}
+
+/* 表单操作按钮组 */
+.form-actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+}
+
+/* 表单操作按钮组加大间距变体（页面新增/编辑的保存行） */
+.form-actions-lg {
+    margin-top: 30px;
+}
+
+.form-actions button,
+.form-actions a {
+    cursor: pointer;
+}
+
+/* 表单输入错误样式（错误光环引用统一变量） */
+.form-control.error {
+    border-color: var(--danger-color) !important;
+    box-shadow: var(--input-error-shadow) !important;
+}
+
+.form-control.error:focus {
+    border-color: #bd2130 !important;
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.5) !important;
+}
+
+/* 表单验证反馈 */
+.form-feedback {
+    margin-top: 4px;
+    font-size: var(--font-size-xs);
+    color: var(--danger-color);
+}
+
+/* 表单提示文字：输入框下方的说明文字（如 URL 格式提示、排序说明），
+   替代模板散布的内联 style（颜色统一走主题 Token，暗色自动切换） */
+.form-hint {
+    display: block;
+    margin-top: 5px;
+    color: var(--text-secondary);
+}
+
+/* 表单说明文字统一规格：模板中以裸 <small> 或 hint 类散布在各表单页，
+   此处显式钉住字号（替代浏览器 smaller 相对值，各内核渲染存在 ±0.5px 差异）
+   与颜色，全后台所有表单说明文字视觉一致；带类的（.form-hint 等）同样命中本规则 */
+.form-group small {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+/* 表单必填标记：label 内的红色星号 */
+.form-required {
+    color: var(--danger-color);
+}
+
+/* 表单操作按钮组右对齐变体：单按钮保存场景（替代内联 text-align:right） */
+.form-actions-right {
+    justify-content: flex-end;
+}
+
+/* 窄输入框：排序等短数值字段（替代内联 width:100px）。
+   元素级基础规则含 8 个 :not([type]) 属性选择器（特异性 0,8,1），
+   此处携带相同 :not 链并叠加 .input-narrow 类（0,9,1）确保能覆盖 width:100% */
+input.input-narrow:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="image"]) {
+    width: 100px;
+}
+
+/* 筛选表单样式（通常位于 .table-container 上方独立容器内） */
+.filter-form {
+    padding: 12px 16px;
+    background-color: var(--bg-container);
+    border-radius: 8px;
+}
+
+.filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* 防止筛选组被全局 select{width:100%} 撑爆后挤压标签竖排断行 */
+    min-width: 0;
+    /* 空间不足时整组换行而非挤压控件（配合下方 .ui-select 的不收缩规则） */
+    flex-wrap: wrap;
+}
+
+.filter-group label {
+    color: var(--text-secondary);
+    /* 标签永不折行（此前"分类/状态/置顶状态"被挤成竖排字） */
+    white-space: nowrap;
+}
+
+/* 筛选组控件：视觉规格已由文件顶部元素级基础样式统一提供（--input-* 变量），
+   此处仅保留尺寸微调；旧硬编码（#ddd/4px 圆角）已移除避免覆盖统一规格 */
+.filter-group input,
+.filter-group select {
+    box-sizing: border-box;
+}
+
+/* 筛选行内的下拉：覆盖全局 select{width:100%}，按内容自适应宽度 */
+.filter-group select {
+    width: auto;
+    min-width: 96px;
+}
+
+/* 筛选行内的自定义下拉（.ui-select）恢复原生 select 的「不收缩」语义：
+   无固有宽度的 flex item 会被同行 flex:1 的搜索框压缩，触发器文字
+   （如"全部角色"）被截成省略号；flex-shrink:0 保持内容全宽，
+   空间不足时由 .filter-group 的换行规则整组换行而非挤压控件 */
+.filter-group .ui-select {
+    flex-shrink: 0;
+    min-width: 96px;
+}
+
+/* 筛选行搜索框：伸展占满剩余空间 */
+.filter-group .filter-input {
+    width: auto;
+    flex: 1 1 180px;
+    min-width: 160px;
+}
+
+/* 加宽搜索组（filter-group-wide），让其优先伸展 */
+.filter-group-wide {
+    flex: 2 1 260px;
+}
+
+/* 日期范围：同一行内对齐，输入框固定宽避免被挤变形 */
+.date-range {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+.date-range .date-picker-input {
+    width: 150px;   /* 原生 type="date" 控件完整显示日期所需宽度 */
+}
+
+/* 筛选操作按钮：靠右对齐，与控件同行（空间不足时自然换行） */
+.filter-actions {
+    display: flex;
+    gap: 10px;
+    margin-left: auto;
+}
+
+/* ==================== 筛选条件折叠机制 ==================== */
+/* 适用场景：筛选条件过多的页面（如文章/用户列表），将次要条件标记为 .filter-extra，
+   默认收起保证「高频条件 + 搜索/重置按钮」始终同一行；点击「展开筛选」后
+   （.filter-row 获得 .filter-expanded 类）显示全部条件。
+   页面接入方式：次要条件的 filter-group 加 filter-extra 类 + 按钮组末尾放切换按钮 */
+
+/* 收起状态：隐藏次要条件 */
+.filter-row .filter-extra {
+    display: none;
+}
+
+/* 展开状态：恢复筛选组的横向布局 */
+.filter-row.filter-expanded .filter-extra {
+    display: flex;
+    /* 入场动画：display 由 none 切换为 flex 时自动播放，
+       200ms 轻微下落淡入（与下拉菜单的 dropdownIn 同一套节奏），消除瞬现的生硬感 */
+    animation: filterExtraIn 0.2s ease-out;
+}
+
+/* 筛选次要条件入场关键帧：从上方 4px 淡入到位 */
+@keyframes filterExtraIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 展开/收起切换按钮：文字随状态切换，箭头展开时旋转 180 度 */
+.filter-toggle-btn .filter-toggle-arrow {
+    transition: transform 0.2s ease;
+}
+.filter-toggle-btn.open .filter-toggle-arrow {
+    transform: rotate(180deg);
+}
+
+/* 下拉选择框样式（规格引用 --input-* 变量，箭头图形保留） */
+select {
+    width: 100%;
+    padding: var(--input-padding);
+    border: 1px solid var(--input-border);
+    border-radius: var(--input-radius);
+    font-size: var(--font-size-sm);
+    background-color: var(--input-bg);
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 16px;
+    appearance: none;
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+select:hover {
+    border-color: var(--input-border-hover);
+}
+
+select:focus {
+    border-color: var(--input-border-focus);
+    box-shadow: var(--input-focus-shadow);
+    outline: none;
+}
+
+/* 表单区域样式 */
+.form-section {
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.form-section:last-child {
+    border-bottom: none;
+    margin-bottom: 20px;
+    padding-bottom: 0;
+}
+
+.form-section h4 {
+    margin: 0 0 16px 0;
+    padding: 10px 0;
+    font-size: var(--font-size-md);
+    font-weight: 600;
+    color: #2c3e50;
+    border-bottom: 2px solid var(--primary);
+    display: inline-block;
+}
+
+/* 表单容器样式 */
+.form-container {
+    background-color: white;
+    padding: 20px;
+    border-radius: 4px;
+    border: 1px solid #e2e8f0;
+}
+
+/* ==================== 暗色主题表单适配 ==================== */
+
+/* 输入控件的暗色配色由 common.css 的 body.dark-theme token 覆盖统一提供
+   （--input-* 变量整体切换），此处不再重复定义变量 */
+
+body.dark-theme .form-group label,
+body.dark-theme .form-horizontal .form-group label {
+    color: var(--text-primary);
+}
+
+body.dark-theme .form-control::placeholder,
+body.dark-theme input::placeholder,
+body.dark-theme textarea::placeholder {
+    color: var(--text-secondary);
+}
+
+/* 暗色下 select 箭头图形改用浅色描边
+   （箭头为内嵌 SVG 图片，描边色无法引用 CSS 变量，保留固定色值） */
+body.dark-theme select {
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+/* 筛选区域深色主题 */
+body.dark-theme .filter-section,
+body.dark-theme .filter-form {
+    /* background-color: var(--bg-elevated); */
+}
+
+body.dark-theme .filter-group label {
+    color: var(--text-primary);
+}
+
+/* 筛选组控件的暗色视觉已由上方 --input-* 变量覆盖统一提供 */
+
+/* 操作栏深色主题 */
+body.dark-theme .action-section {
+    background-color: var(--bg-elevated);
+}
+
+/* 表单区域深色主题 */
+body.dark-theme .form-section h4 {
+    color: var(--text-primary);
+    border-bottom-color: var(--primary);
+}
+
+body.dark-theme .form-section {
+    border-bottom-color: var(--border-color);
+}
+
+/* 表单容器深色主题 */
+body.dark-theme .form-container,
+body.dark-theme .edit-form {
+    background-color: var(--bg-container);
+    border-color: var(--border-color);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+/* 表单容器深色主题增强 */
+body.dark-theme .form-container {
+    background-color: var(--bg-container) !important;
+    border-color: var(--border-color) !important;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* 表单部分深色主题 */
+body.dark-theme .form-section {
+    border-bottom-color: var(--border-color) !important;
+}
+
+body.dark-theme .form-section h4 {
+    color: var(--text-primary) !important;
+    border-bottom-color: var(--primary) !important;
+}
+
+/* 表单行深色主题 */
+body.dark-theme .form-row {
+    color: var(--text-primary) !important;
+}
+
+/* 表单列深色主题 */
+body.dark-theme .form-col {
+    color: var(--text-primary) !important;
+}
+
+body.dark-theme .form-col h5 {
+    color: var(--text-primary) !important;
+}
+
+/* 帮助文本深色主题 */
+body.dark-theme .help-text,
+body.dark-theme p.help-text {
+    color: var(--text-tertiary) !important;
+}
+
+/* 多选框深色主题 */
+body.dark-theme select[multiple] {
+    background-color: var(--bg-elevated) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+}
+
+/* 多选框焦点/选项深色主题 */
+body.dark-theme select[multiple]:focus {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.25) !important;
+}
+
+body.dark-theme select[multiple] option {
+    background-color: var(--bg-elevated) !important;
+    color: var(--text-primary) !important;
+}
+
+body.dark-theme select[multiple] option:checked {
+    /* 选中项高亮改引品牌主色 Token（原 #3b82f6 为板外蓝） */
+    background-color: var(--primary) !important;
+    color: #ffffff !important;
+}
+
+body.dark-theme select[multiple] option:hover {
+    background-color: var(--bg-elevated) !important;
+}
+
+/* 表单分组标签深色主题 */
+body.dark-theme .form-group label {
+    color: var(--text-primary) !important;
+}
+
+/* 按钮容器深色主题 */
+body.dark-theme .buttons {
+    color: var(--text-primary) !important;
+}
+
+/* 帮助文本深色主题补充 */
+body.dark-theme .help-text {
+    color: var(--text-secondary);
+}
+
+/* 表单反馈深色主题 */
+body.dark-theme .form-feedback {
+    color: #fca5a5;
+}
+
+/* 筛选容器深色主题 */
+body.dark-theme .filter-container {
+    background-color: var(--bg-container) !important;
+    color: var(--text-primary) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* .filter-form 的暗色底色由 --bg-subtle Token 自动切换，无需额外覆盖 */
+
+/* 系统设置表单容器增强 */
+body.dark-theme .config-content .form-container {
+    background-color: var(--bg-container) !important;
+}
+
+/* ========================================
+ * 文章编辑器（沉浸式布局）
+ * 顶栏：返回 + 无边框大标题 + 保存状态条 + 文章设置/发布按钮
+ * 正文画布：全宽白底卡片
+ * 元信息抽屉：分类/标签/封面等收纳进右侧抽屉
+ * 全部颜色引用 Token，暗色主题自动适配，无需单独覆盖块
+ * ======================================== */
+
+/* 顶栏（sticky：写作区滚动时标题与发布按钮常驻） */
+.editor-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    background: var(--bg-container);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+/* 返回列表按钮（图标 + 文字） */
+.editor-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: var(--font-size-sm);
+    padding: 8px;
+    border-radius: 8px;
+    white-space: nowrap;
+    transition: color 0.15s, background-color 0.15s;
+}
+
+.editor-back:hover {
+    color: var(--primary);
+    background: var(--primary-subtle);
+}
+
+/* 标题容器：相对定位锚点，字数计数绝对定位在输入框右侧 */
+.editor-title-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* 无边框大标题输入（20px，聚焦不加边框仅弱化占位） */
+.editor-title-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    padding: 8px 56px 8px 0;   /* 右侧预留字数计数位置，长标题不压到计数 */
+}
+
+.editor-title-input::placeholder {
+    color: var(--text-tertiary);
+    font-weight: 500;
+}
+
+/* 标题字数计数（12px 等宽，超限变红；锚定在 .editor-title-wrap 右侧） */
+.editor-title-counter {
+    position: absolute;
+    right: 10px;
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.editor-title-counter.counter-over {
+    color: var(--danger-color);
+}
+
+/* ===== 封面图设置区（article_add / article_edit 元信息抽屉共用） ===== */
+
+/* 当前封面图预览区（初始显隐由模板按有无封面输出，JS 维护后续切换） */
+.editor-cover-preview {
+    margin-bottom: 10px;
+}
+
+/* 封面缩略图定位容器（移除按钮 absolute 锚点） */
+.editor-cover-thumb-wrap {
+    position: relative;
+    display: inline-block;
+}
+
+/* 封面缩略图圆角 */
+.editor-cover-thumb {
+    border-radius: 6px;
+}
+
+/* 移除封面图按钮（悬浮在缩略图右上角） */
+.editor-cover-remove {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+}
+
+/* 封面缩略图下方说明文字 */
+.editor-cover-caption {
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+    margin-top: 5px;
+}
+
+/* 封面设置方式按钮区（从正文选择 / 从媒体库选择；本地上传由虚线卡片承担） */
+.editor-cover-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 5px;
+    flex-wrap: wrap;
+}
+
+/* 隐藏的文件上传 input（点击“本地上传图片”按钮时触发） */
+.editor-upload-input {
+    display: none;
+}
+
+/* 同上：统一上传组件配套的隐藏 input 别名（上传卡片/按钮点击时触发） */
+.upload-hidden-input {
+    display: none;
+}
+
+/* ============================================================
+   统一上传触发器
+   1) .upload-card 虚线卡片式：文章封面 / LOGO / Favicon 等图片位
+   2) .upload-btn  描边按钮式：CSV 导入 / 主题导入 / 媒体上传等
+   全部引用 common.css Token，暗色主题自动适配；均为 <button type="button">
+   或带 onclick 的触发器，点击后触发同区域内隐藏的 <input type="file">
+   ============================================================ */
+
+/* 虚线卡片式触发器（+ Upload） */
+.upload-card {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 96px;
+    height: 96px;
+    padding: 0;
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius);
+    background: var(--bg-subtle);
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
+    cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+}
+
+/* 悬停/拖拽悬停：边框与文字转主色（上传悬停反馈） */
+.upload-card:hover,
+.upload-card.is-dragover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-subtle);
+}
+
+.upload-card svg {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* 描边按钮式触发器（Click to Upload：上传图标 + 主色描边） */
+.upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 14px;
+    height: var(--btn-height-md);
+    border: 1px solid var(--primary);
+    border-radius: var(--radius);
+    background: var(--bg-container);
+    color: var(--primary);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.upload-btn:hover {
+    background: var(--primary);
+    color: #ffffff;
+}
+
+.upload-btn svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex-shrink: 0;
+}
+
+/* 已选文件名回显（描边按钮式配套） */
+.upload-filename {
+    margin-left: 10px;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-xs);
+}
+
+/* ===== 文章描述区（字数计数悬浮在输入框内右下角） ===== */
+
+/* 相对定位容器：计数的 absolute 锚点 */
+.editor-desc-wrap {
+    position: relative;
+}
+
+/* 描述输入框与自动生成按钮的横向排布 */
+.editor-desc-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+/* 描述输入框（底部预留字数计数空间） */
+.editor-desc-textarea {
+    flex: 1;
+    padding-bottom: 28px;
+}
+
+/* 自动生成按钮（与三行输入框等高、不换行） */
+.editor-desc-btn {
+    white-space: nowrap;
+    height: 72px;
+}
+
+/* 描述字数计数（悬浮在输入框右下角，避开按钮列） */
+.editor-desc-counter {
+    position: absolute;
+    right: 130px;
+    bottom: 8px;
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+}
+
+/* ===== 封面选图弹窗（从正文选择 / 从媒体库选择共用） ===== */
+
+/* 图片网格：4 列自适应（初始隐藏，JS 渲染后内联 display:grid 覆盖） */
+.editor-picker-grid {
+    display: none;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+/* 弹窗内提示文字（加载中 / 无图片，初始隐藏） */
+.editor-picker-note {
+    display: none;
+    text-align: center;
+    color: var(--text-tertiary);
+    padding: 40px;
+}
+
+/* 保存状态条（13px 等宽小字：「已暂存 HH:MM」/「正在编辑…」） */
+.editor-save-status {
+    font-size: var(--font-size-desc);
+    font-family: var(--font-mono);
+    color: var(--text-tertiary);
+    white-space: nowrap;
+}
+
+/* 正文画布：内容区全宽白底卡片 */
+.editor-canvas {
+    margin: 20px 0 20px 0;
+    padding: 20px;
+    background: var(--bg-container);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+/* 正文编辑域：铺满画布、无边框（视觉上与画布一体） */
+.editor-canvas .editor-content-textarea {
+    width: 100%;
+    min-height: 60vh;
+    border: none;
+    outline: none;
+    background: transparent;
+    resize: vertical;
+    font-size: var(--font-size-body-lg);
+    line-height: 1.8;
+    color: var(--text-primary);
+    font-family: inherit;
+    display: block;
+}
+
+.editor-canvas .editor-content-textarea::placeholder {
+    color: var(--text-tertiary);
+}
+
+/* 元信息抽屉遮罩 */
+.editor-drawer-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.35);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 1000;
+}
+
+.editor-drawer-overlay.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* 元信息抽屉（右侧滑入面板） */
+.editor-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 380px;
+    max-width: 92vw;
+    background: var(--bg-container);
+    border-left: 1px solid var(--border-color);
+    box-shadow: var(--shadow-overlay);
+    transform: translateX(100%);
+    transition: transform 0.2s ease;
+    z-index: 1001;
+    display: flex;
+    flex-direction: column;
+}
+
+.editor-drawer.show {
+    transform: translateX(0);
+}
+
+.editor-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-split);
+}
+
+.editor-drawer-header h3 {
+    margin: 0;
+    font-size: var(--font-size-body-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.editor-drawer-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+/* 编辑器弹窗图片网格单元格（从正文选图 / 从媒体库选图共用） */
+.picker-cell {
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.picker-cell:hover {
+    border-color: var(--primary);
+}
+
+.picker-cell img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    display: block;
+}
+
+/* 媒体库单元格的文件名说明行 */
+.picker-cell-caption {
+    padding: 4px;
+    font-size: var(--font-size-2xs);
+    color: var(--text-secondary);
+    text-align: center;
+    background: var(--bg-subtle);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 选图弹窗分页条 */
+.picker-pagination {
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+}
+
+.picker-page-btn {
+    padding: 4px 10px;
+    font-size: var(--font-size-desc);
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    background: var(--bg-container);
+    color: var(--text-primary);
+}
+
+.picker-page-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.picker-page-btn-current {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: #fff;
+}
+
+/* 编辑器移动端适配：顶栏折行、抽屉全屏 */
+@media (max-width: 768px) {
+    .editor-topbar {
+        flex-wrap: wrap;
+        padding: 8px 12px;
+        gap: 8px;
+    }
+
+    .editor-title-input {
+        /* 标题独占一行：基础字号占满宽度（flex-basis 100% 前置按钮/状态折到其他行） */
+        flex-basis: 100%;
+        order: -1;
+        font-size: var(--font-size-title);
+    }
+
+    .editor-save-status {
+        margin-left: auto;
+    }
+
+    .editor-canvas {
+        margin: 12px;
+        padding: 16px;
+    }
+
+    .editor-drawer {
+        width: 100vw;
+        max-width: 100vw;
+    }
+}
+
+/* 侧边栏折叠仅影响固定定位元素；编辑器顶栏随内容区文档流布局，无需额外处理 */
+
+/* .btn-lg 尺寸档已收拢至 common.css（与 .btn/.btn-sm 集中定义） */
+
+@media (max-width: 768px) {
+    .form-actions-bottom {
+        flex-direction: column;
+        padding-bottom: 120px;
+    }
+
+    .form-actions-bottom .btn {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+}

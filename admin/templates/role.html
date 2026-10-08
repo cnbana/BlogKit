@@ -1,0 +1,240 @@
+<?php  $currentAction = 'role'; $pageTitle = '角色管理'; include 'components/page_wrapper.html'; ?>
+    
+
+    
+    <!-- ==================== 筛选区（对齐用户/文章列表页三段式结构） ==================== -->
+    <!-- filter-section-flat：白底变体 + 底部分割线（components.css） -->
+    <div class="filter-section filter-section-flat">
+        <!-- GET 表单规范：提交时表单数据会整体替换 action 地址的 query string，
+             因此 action 只写 admin.php，路由参数 action/sub 由隐藏域随表单数据提交
+             （否则筛选后跳回仪表盘），与文章/用户等列表页同款写法 -->
+        <form method="get" action="admin.php" class="filter-form">
+            <input type="hidden" name="action" value="role">
+            <input type="hidden" name="sub" value="list">
+            <div class="filter-row">
+                <div class="filter-group filter-group-wide">
+                    <label for="role_search">搜索</label>
+                    <input type="text" id="role_search" name="search" class="filter-input" placeholder="角色名称或描述" value="<?php echo isset($search) ? $search : ''; ?>">
+                </div>
+                <div class="filter-group">
+                    <label for="role_status">状态</label>
+                    <select id="role_status" name="status" class="filter-select">
+                        <option value="">所有状态</option>
+                        <option value="1" <?php echo isset($status) && $status == 1 ? 'selected' : ''; ?>>启用</option>
+                        <option value="0" <?php echo isset($status) && $status == 0 ? 'selected' : ''; ?>>禁用</option>
+                    </select>
+                </div>
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <?php echo admin_svg_icon('search', ''); ?>搜索
+                    </button>
+                    <a href="admin.php?action=role" class="btn btn-default">
+                        <?php echo admin_svg_icon('refresh', ''); ?>重置
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- ==================== 工具栏（对齐用户/文章列表页） ==================== -->
+    <!-- 添加角色：在右侧抽屉内打开表单（common.js 通用 openEntityDrawer，保存成功后自动关抽屉并刷新列表），href 保留支持中键新窗口 -->
+    <div class="list-toolbar list-toolbar-flat">
+        <a href="admin.php?action=role&sub=add" class="btn btn-primary" onclick="openEntityDrawer(this.href, '添加角色'); return false;">
+            <?php echo admin_svg_icon('plus', ''); ?>添加角色
+        </a>
+
+        <!-- 批量操作下拉菜单：菜单项通过 data-batch 属性分发（见底部脚本） -->
+        <div class="btn-group">
+            <!-- rb-toolbar-toggle：下拉触发按钮 flex 居中（components.css） -->
+            <a href="javascript:void(0)" class="btn btn-default dropdown-toggle rb-toolbar-toggle">
+                批量操作<span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu batch-menu">
+                <li><a href="javascript:void(0)" data-batch="delete" class="menu-item-danger">批量删除</a></li>
+            </ul>
+        </div>
+
+        <!-- 批量选中计数提示：勾选行复选框后显示「已选 N 项」（common.js initBatchSelectedInfo 自动维护） -->
+        <span id="batch-selected-info" class="batch-selected-info"></span>
+    </div>
+
+    <!-- 角色列表 -->
+    <div class="table-container">
+        <table class="table">
+                <thead>
+                    <tr>
+                        <!-- 复选框列：表头为全选开关（id=select_all，见底部批量脚本） -->
+                        <th class="col-check"><input type="checkbox" id="select_all"></th>
+                        <th>ID</th>
+                        <th>角色名称</th>
+                        <th>描述</th>
+                        <th>父角色</th>
+                        <th>状态</th>
+                        <th>创建时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (empty($roles)): ?>
+                    <tr>
+                        <td colspan="8">
+                            <?php $emptyTitle = '暂无角色数据'; $emptyIcon = 'inbox'; $emptyActionUrl = 'admin.php?action=role&sub=add'; $emptyActionText = '添加角色'; include 'components/empty_state.html'; ?>
+                        </td>
+                    </tr>
+                    <?php else: ?>
+                    <?php foreach ($roles as $role): ?>
+                    <tr>
+                        <!-- 行复选框：name=ids[] 供批量操作收集；
+                             内置保护角色（ID 1/2/3）勾选后由后端跳过并在消息中说明数量 -->
+                        <td class="col-check"><input type="checkbox" name="ids[]" value="<?php echo $role['id']; ?>" class="role_checkbox"></td>
+                        <td><?php echo $role['id']; ?></td>
+                        <td><?php echo $role['name']; ?></td>
+                        <td><?php echo $role['description']; ?></td>
+                        <td><?php echo $role['parent_name']; ?></td>
+                        <td>
+                            <span class="status-badge <?php echo $role['status'] == 1 ? 'active' : 'inactive'; ?>">
+                                <?php echo $role['status_name']; ?>
+                            </span>
+                        </td>
+                        <td><?php echo date('Y-m-d H:i:s', $role['created_at']); ?></td>
+                        <td>
+                            <!-- 操作列：文字链接式（对齐用户/文章列表页）。
+                                 内置角色（ID 1/2/3）受保护：仅可编辑，不可分配权限/禁用/删除 -->
+                            <?php if (!in_array($role['id'], [1, 2, 3])): ?>
+                            <a href="admin.php?action=role&sub=permission&id=<?php echo $role['id']; ?>" class="table-link">权限分配</a>
+                            <span class="table-action-divider"></span>
+                            <?php endif; ?>
+                            <a href="admin.php?action=role&sub=edit&id=<?php echo $role['id']; ?>" class="table-link" onclick="openEntityDrawer(this.href, '编辑角色'); return false;">编辑</a>
+                            <?php if (!in_array($role['id'], [1, 2, 3])): ?>
+                            <span class="table-action-divider"></span>
+                            <!-- rb-action-dropdown：操作下拉组行内块布局（components.css） -->
+                            <div class="btn-group rb-action-dropdown">
+                                <!-- 开合逻辑由 common.js initDropdowns() 统一事件委托处理 -->
+                                <a href="javascript:void(0)" class="table-link dropdown-toggle">
+                                    操作<span class="caret"></span>
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a href="admin.php?action=role&sub=toggleStatus&id=<?php echo $role['id']; ?>&status=<?php echo $role['status'] == 1 ? 0 : 1; ?>">
+                                            <?php echo $role['status'] == 1 ? '禁用' : '启用'; ?>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="admin.php?action=role&sub=delete&id=<?php echo $role['id']; ?>" onclick="return confirmLink(this, '确定要删除这个角色吗？', { type: 'danger', confirmText: '删除' });" class="menu-item-danger">删除</a>
+                                    </li>
+                                </ul>
+                            </div>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+
+    <!-- 分页：放在表格容器之外，避免贴着表格边框显得拥挤 -->
+    <?php if (isset($totalPages) && $totalPages > 1): ?>
+    <?php
+        // 分页参数构造（对齐 article/comment 列表页写法）：把当前筛选条件
+        // 并入分页链接，搜索关键词/状态在翻页时不丢失；仅非空值才入数组，
+        // 保证分页 URL 干净（不携带空参数）
+        $action = 'role';
+        $filters = [];
+        if (isset($_GET['search']) && $_GET['search'] !== '') $filters['search'] = $_GET['search'];
+        if (isset($_GET['status']) && $_GET['status'] !== '') $filters['status'] = $_GET['status'];
+    ?>
+    <!-- rb-pagination-mt：分页容器与表格拉开间距（components.css） -->
+    <div class="pagination-container rb-pagination-mt">
+        <?php include 'components/pagination.html'; ?>
+    </div>
+    <?php endif; ?>
+
+<script>
+/**
+ * 批量操作脚本（对齐文章列表页交互）：
+ * 1. 表头全选/取消全选，并同步行选中高亮；
+ * 2. 行复选框变化时同步该行 .selected 高亮；
+ * 3. 批量菜单点击分发：批量删除为危险操作，先弹确认框，确认后以
+ *    POST + ids[] + csrf_token 提交到 batchDelete（后端逐条跳过内置保护角色并汇总数量）。
+ * 「已选 N 项」计数徽标由 common.js 的 initBatchSelectedInfo 全局自动维护，无需在此处理。
+ */
+(function () {
+    // 收集当前勾选的角色 ID 列表
+    var getSelectedIds = function () {
+        return Array.prototype.map.call(
+            document.querySelectorAll('.role_checkbox:checked'),
+            function (cb) { return cb.value; }
+        );
+    };
+
+    // 统一构建 POST 表单并提交（ids[] + 额外参数 + CSRF 令牌）
+    var submitBatchForm = function (url, params) {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = url;
+        getSelectedIds().forEach(function (id) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'ids[]';
+            input.value = id;
+            form.appendChild(input);
+        });
+        Object.keys(params || {}).forEach(function (key) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = params[key];
+            form.appendChild(input);
+        });
+        // CSRF 令牌：由会话生成，后端 Security::validateCsrfToken 校验
+        var tokenInput = document.createElement('input');
+        tokenInput.type = 'hidden';
+        tokenInput.name = 'csrf_token';
+        tokenInput.value = '<?php echo $_SESSION['csrf_token']; ?>';
+        form.appendChild(tokenInput);
+        document.body.appendChild(form);
+        form.submit();
+    };
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // 全选/取消全选：表头复选框同步所有行复选框的选中状态与行高亮
+        var selectAll = document.getElementById('select_all');
+        if (selectAll) {
+            selectAll.addEventListener('change', function () {
+                document.querySelectorAll('.role_checkbox').forEach(function (checkbox) {
+                    checkbox.checked = selectAll.checked;
+                    checkbox.closest('tr').classList.toggle('selected', selectAll.checked);
+                });
+            });
+        }
+
+        // 单个复选框变化时同步该行高亮
+        document.querySelectorAll('.role_checkbox').forEach(function (cb) {
+            cb.addEventListener('change', function (e) {
+                e.target.closest('tr').classList.toggle('selected', e.target.checked);
+            });
+        });
+
+        // 批量菜单点击分发（下拉开合由 common.js initDropdowns 统一事件委托处理）
+        document.querySelectorAll('.batch-menu a[data-batch]').forEach(function (item) {
+            item.addEventListener('click', function (e) {
+                e.preventDefault();
+                if (getSelectedIds().length === 0) {
+                    showToast('请先选择角色', 'error');
+                    return;
+                }
+                // 批量删除：统一确认弹窗（危险操作红色样式），确认后提交；
+                // 内置保护角色（管理员/游客/普通用户）由后端跳过并在返回消息中说明
+                showConfirmDialog('确定要删除选中的角色吗？', { type: 'danger', confirmText: '删除' }).then(function (ok) {
+                    if (ok) {
+                        submitBatchForm('admin.php?action=role&method=batchDelete', {});
+                    }
+                });
+            });
+        });
+    });
+})();
+</script>
+
+<?php include 'components/footer_wrapper.html'; ?>

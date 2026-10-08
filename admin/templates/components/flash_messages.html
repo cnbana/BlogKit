@@ -1,0 +1,116 @@
+<?php
+/**
+ * 统一闪存消息组件 (v3.0)
+ * 
+ * 将分散的 4 种 session key 统一为一个入口，所有模板只需 include 此文件即可。
+ * 
+ * 新标准（推荐）：
+ *   $_SESSION['flash'] = ['success' => '...', 'error' => '...', ...]
+ *   echo flash_display();
+ * 
+ * 向后兼容：
+ *   同时读取旧版 $_SESSION['error'] / $_SESSION['error_message'] / 
+ *   $_SESSION['log_error'] / $_SESSION['log_success'] 等 key，
+ *   并合并到 flash 渲染中。
+ */
+
+/**
+ * 收集所有待显示的消息
+ */
+function flash_collect(): array
+{
+    $messages = [];
+
+    // 1. 新标准：$_SESSION['flash'] 数组
+    if (!empty($_SESSION['flash']) && is_array($_SESSION['flash'])) {
+        foreach ($_SESSION['flash'] as $type => $msg) {
+            $messages[] = ['type' => $type, 'message' => $msg];
+        }
+        unset($_SESSION['flash']);
+    }
+
+    // 2. 向后兼容：$_SESSION['error'] / $_SESSION['success']
+    if (!empty($_SESSION['error'])) {
+        $messages[] = ['type' => 'error', 'message' => $_SESSION['error']];
+        unset($_SESSION['error']);
+    }
+    if (!empty($_SESSION['success'])) {
+        $messages[] = ['type' => 'success', 'message' => $_SESSION['success']];
+        unset($_SESSION['success']);
+    }
+
+    // 3. 向后兼容：$_SESSION['error_message'] / $_SESSION['success_message']
+    if (!empty($_SESSION['error_message'])) {
+        $messages[] = ['type' => 'error', 'message' => $_SESSION['error_message']];
+        unset($_SESSION['error_message']);
+    }
+    if (!empty($_SESSION['success_message'])) {
+        $messages[] = ['type' => 'success', 'message' => $_SESSION['success_message']];
+        unset($_SESSION['success_message']);
+    }
+
+    // 4. 向后兼容：$_SESSION['log_error'] / $_SESSION['log_success']
+    if (!empty($_SESSION['log_error'])) {
+        $messages[] = ['type' => 'error', 'message' => $_SESSION['log_error']];
+        unset($_SESSION['log_error']);
+    }
+    if (!empty($_SESSION['log_success'])) {
+        $messages[] = ['type' => 'success', 'message' => $_SESSION['log_success']];
+        unset($_SESSION['log_success']);
+    }
+
+    // 5. 向后兼容：$_SESSION['message'] + $_SESSION['message_type']
+    if (!empty($_SESSION['message'])) {
+        $type = $_SESSION['message_type'] ?? 'info';
+        $messages[] = ['type' => $type, 'message' => $_SESSION['message']];
+        unset($_SESSION['message'], $_SESSION['message_type']);
+    }
+
+    return $messages;
+}
+
+/**
+ * 渲染所有闪存消息
+ *
+ * 输出为统一 Toast 提示（common.js 的 showToast，顶部居中堆叠样式），
+ * 替代旧版页面顶部静态 alert 横幅，使重定向后展示的闪存消息与
+ * 控制器内 respondWithToast 输出的提示保持同一视觉风格。
+ *
+ * 实现方式：生成一段 <script>，在页面就绪后调用全局 showToast 函数；
+ * 各后台页面均通过 header.html 加载 common.js（定义了 showToast），
+ * 故此处可直接依赖该全局函数。消息文本经 json_encode 转义，
+ * 防止内容中的引号/换行破坏 JS 字符串。
+ */
+function flash_render(): string
+{
+    $messages = flash_collect();
+    if (empty($messages)) {
+        return '';
+    }
+
+    $html = '';
+    foreach ($messages as $msg) {
+        // 类型白名单：仅允许 Toast 支持的四种类型，其余归为 info
+        $type = in_array($msg['type'], ['success', 'error', 'warning', 'info'], true) ? $msg['type'] : 'info';
+        // json_encode 同时完成 JS 字符串引号转义与 Unicode 保留
+        $text = json_encode($msg['message'], JSON_UNESCAPED_UNICODE);
+
+        // 页面就绪后弹出 Toast（脚本位于 main-content 顶部时 DOM 可能尚未完整，
+        // 统一挂 DOMContentLoaded 最稳妥；若已加载完成则直接弹出）
+        $html .= '<script>(function(){var show=function(){showToast(' . $text . ', "' . $type . '");};'
+               . 'if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", show); }'
+               . 'else { show(); }})();</script>';
+    }
+
+    return $html;
+}
+
+/**
+ * 快捷帮助函数：设置闪存消息（给 Controller 使用）
+ */
+if (!function_exists('flash_set')) {
+    function flash_set(string $type, string $message): void
+    {
+        $_SESSION['flash'][$type] = $message;
+    }
+}

@@ -1,0 +1,36 @@
+{assign var="page_title" value="标签列表"}
+{include file="header"}
+    <main>
+        <div class="container">
+            <div class="content-area">
+                <div class="content">
+                    {if theme_show_breadcrumb}{breadcrumb}{/if}
+                    <h2 class="tags-title">所有标签</h2>
+                    
+                    {if tags}
+                        <div class="tags-list">
+                            {loop name="tags"}
+                                <div class="tag-item">
+                                    <a href="{url:tag:id}" class="tag-link">
+                                        <span class="tag-name">{field name="name"}</span>
+                                        <span class="tag-count">{field name="article_count" filter="cn_number"} 篇文章</span>
+                                    </a>
+                                </div>
+                            {/loop}
+                        </div>
+                    {else}
+                        <!-- 空状态 -->
+                        <div class="empty-state">
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="8" y1="12" x2="16" y2="12"></line>
+                            </svg>
+                            <p>暂无标签，敬请期待！</p>
+                        </div>
+                    {/if}
+                </div>
+                {include file="sidebar"}
+            </div>
+        </div>
+    </main>
+{include file="footer"}
