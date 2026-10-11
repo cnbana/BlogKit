@@ -8,7 +8,7 @@
 [![PHP](https://img.shields.io/badge/PHP-%3E%3D7.4-8892BF?logo=php&logoColor=white)](https://www.php.net)
 [![MySQL](https://img.shields.io/badge/MySQL-%3E%3D5.7-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com)
 [![License](https://img.shields.io/badge/license-GPL--3.0-green)](LICENSE)
-[![Release](https://img.shields.io/badge/version-1.0.0-blue)](https://github.com/cnbana/BlogKit/releases)
+[![Release](https://img.shields.io/badge/version-1.1.0-blue)](https://github.com/cnbana/BlogKit/releases)
 [![Gitee Star](https://gitee.com/slinbo/blogkit/badge/star.svg?theme=dark)](https://gitee.com/slinbo/blogkit/stargazers)
 [![Gitee Fork](https://gitee.com/slinbo/blogkit/badge/fork.svg?theme=dark)](https://gitee.com/slinbo/blogkit/members)
 

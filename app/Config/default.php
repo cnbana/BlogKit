@@ -48,7 +48,7 @@ return [
     'site_closed_message'                => '网站暂时关闭，请稍后再来。',
     'site_timezone'                      => 'Asia/Shanghai',
     'site_charset'                       => 'UTF-8',
-    'system_version'                     => '1.0.0',
+    'system_version'                     => '1.1.0',
     'pagination_count'                   => 10,
     'pagination_followers_count'         => 10,
     'pagination_following_count'         => 10,

@@ -424,7 +424,7 @@ INSERT INTO `bk_config` (`name`, `value`, `description`, `type`) VALUES
 ('site_keywords', 'BlogKit,博客系统,轻量级博客,个人网站,内容管理系统,CMS系统,建站工具,博客系统推荐,博客管理系统,个人博客搭建,博客网站建设', '网站关键词', 'string'),
 ('site_url', 'http://localhost', '网站URL', 'string'),
 ('site_charset', 'UTF-8', '网站字符集', 'string'),
-('system_version', '1.0.0', '系统版本', 'string'),
+('system_version', '1.1.0', '系统版本', 'string'),
 ('install_time', UNIX_TIMESTAMP(), '系统安装时间', 'integer'),
 ('last_update', UNIX_TIMESTAMP(), '系统最后更新时间', 'integer'),
 -- 伪静态设置
