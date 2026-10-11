@@ -215,6 +215,40 @@ if (!AuthMiddleware::isPublicAction($action)) {
 }
 
 // ========================================
+// 后台写操作统一 CSRF 校验
+// ========================================
+// 所有非公开页面的 POST 请求必须携带有效 CSRF 令牌，作为全后台写操作的
+// 统一兜底防线（此前各控制器零散校验，存在遗漏；令牌生成与校验逻辑见
+// core/lib/Security.php，模板侧通过隐藏域 csrf_token 携带）。
+// 令牌来源：表单隐藏域 csrf_token（优先），或 AJAX 请求头 X-CSRF-Token。
+// 豁免范围（维持原有防护口径，不重复校验）：
+//   1. 公开页面（登录/找回密码等）——无登录态，本就不受登录态 CSRF 影响，
+//      其表单验证码等机制独立运作；
+//   2. 插件后台页面（plugin.{slug}.{page}）——由插件自行管理令牌，
+//      主系统不强校验，避免影响已发布插件的表单提交；
+//   3. 编辑器上传接口（uploadimage/uploadfile/uploadvideo/uploadscrawl）——
+//      上传请求 URL 由编辑器插件配置驱动、登录态与 media 权限双重保护，
+//      且为 multipart 表单由编辑器内核发起，无法无侵入埋点。
+const CSRF_ENFORCE_EXEMPT_ACTIONS = [
+    'uploadimage', 'uploadfile', 'uploadvideo', 'uploadscrawl',
+];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST'
+    && !AuthMiddleware::isPublicAction($action)
+    && strpos($action, 'plugin.') !== 0
+    && !in_array($action, CSRF_ENFORCE_EXEMPT_ACTIONS, true)) {
+    // 优先取表单隐藏域，其次取 AJAX 请求头（供 fetch/XHR 场景使用）
+    $csrfToken = isset($_POST['csrf_token']) ? $_POST['csrf_token'] : '';
+    if ($csrfToken === '' && isset($_SERVER['HTTP_X_CSRF_TOKEN'])) {
+        $csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'];
+    }
+    if (!Security::validateCsrfToken($csrfToken)) {
+        // 令牌缺失/过期/不匹配：拒绝执行写操作（403 页面）
+        ExceptionHandler::handle403();
+    }
+}
+
+// ========================================
 // 插件后台页面分发（action 形如 plugin.{slug}.{page}）
 // ========================================
 // 命中已激活插件在 plugin.json admin_routes 中注册的页面时，

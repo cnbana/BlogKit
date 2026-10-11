@@ -13,6 +13,7 @@
             </div>
             <div class="card-body">
                 <form method="post" action="admin.php?action=friendlink&sub=save_add">
+                    <?php echo Security::getCsrfField(); // CSRF 令牌：随统一校验层验证 ?>
                     <div class="form-group">
                         <label for="name">链接名称 <span class="form-required">*</span></label>
                         <input type="text" id="name" name="name" required>

@@ -101,9 +101,10 @@
                     <td>
                         <!-- 操作列：文字链接式（对齐用户/文章列表页）；
                              恢复为普通确认，永久删除为危险确认（不可恢复） -->
-                        <a href="admin.php?action=user&method=restore&id=<?php echo $user['id']; ?>" class="table-link" onclick="return confirmLink(this, '确定要恢复这个用户吗？恢复后账号为禁用状态，需手动启用。', { type: 'info', title: '恢复确认', confirmText: '恢复' });">恢复</a>
+                        <!-- 写操作链接改走 postLink：确认后以 POST + CSRF 令牌提交（原 GET 跳转） -->
+                        <a href="admin.php?action=user&method=restore&id=<?php echo $user['id']; ?>" class="table-link" onclick="return postLink(this, '确定要恢复这个用户吗？恢复后账号为禁用状态，需手动启用。', { type: 'info', title: '恢复确认', confirmText: '恢复' });">恢复</a>
                         <span class="table-action-divider"></span>
-                        <a href="admin.php?action=user&method=permanentlyDelete&id=<?php echo $user['id']; ?>" class="table-link table-link-danger" onclick="return confirmLink(this, '确定要永久删除这个用户吗？此操作不可恢复。', { type: 'danger', confirmText: '永久删除' });">永久删除</a>
+                        <a href="admin.php?action=user&method=permanentlyDelete&id=<?php echo $user['id']; ?>" class="table-link table-link-danger" onclick="return postLink(this, '确定要永久删除这个用户吗？此操作不可恢复。', { type: 'danger', confirmText: '永久删除' });">永久删除</a>
                     </td>
                 </tr>
                 <?php endforeach; ?>
@@ -151,13 +152,27 @@
             if (group) group.classList.remove('show');
         });
 
+        // 批量写操作统一以 POST + CSRF 令牌提交（原 GET 跳转已废弃）
+        function submitBatchWrite(url) {
+            const form = document.createElement('form');
+            form.action = url;
+            form.method = 'post';
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = 'csrf_token';
+            tokenInput.value = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+            form.appendChild(tokenInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+
         if (action === 'batch-restore') {
             showConfirmDialog('确定要恢复选中的' + selected.length + '个用户吗？恢复后账号为禁用状态。', { type: 'info', title: '批量操作', confirmText: '恢复' }).then(function(ok) {
-                if (ok) window.location.href = 'admin.php?action=user&method=batchRestore&user_ids=' + userIds;
+                if (ok) submitBatchWrite('admin.php?action=user&method=batchRestore&user_ids=' + userIds);
             });
         } else if (action === 'batch-force-delete') {
             showConfirmDialog('确定要永久删除选中的' + selected.length + '个用户吗？名下有文章的用户将被跳过。此操作不可恢复。', { type: 'danger', title: '批量操作', confirmText: '永久删除' }).then(function(ok) {
-                if (ok) window.location.href = 'admin.php?action=user&method=batchForceDelete&user_ids=' + userIds;
+                if (ok) submitBatchWrite('admin.php?action=user&method=batchForceDelete&user_ids=' + userIds);
             });
         }
     }

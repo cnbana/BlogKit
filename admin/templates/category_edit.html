@@ -2,6 +2,7 @@
             
         <div class="form-container">
             <form action="admin.php?action=category&sub=edit&id=<?php echo $category['id']; ?>" method="post">
+                <?php echo Security::getCsrfField(); // CSRF 令牌：随统一校验层验证 ?>
                 <div class="form-group">
                     <label for="name">分类名称</label>
                     <input type="text" id="name" name="name" value="<?php echo $category['name']; ?>" required>

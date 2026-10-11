@@ -52,7 +52,8 @@
                         <!-- 操作列：文字链接式（对齐用户/文章列表页）；编辑走右侧抽屉 -->
                         <a href="admin.php?action=tag&sub=edit&id=<?php echo $tag['id']; ?>" class="table-link" onclick="openEntityDrawer(this.href, '编辑标签'); return false;">编辑</a>
                         <span class="table-action-divider"></span>
-                        <a href="admin.php?action=tag&sub=delete&id=<?php echo $tag['id']; ?>" class="table-link table-link-danger" onclick="return confirmLink(this, '确定要删除这个标签吗？', { type: 'danger', confirmText: '删除' });">删除</a>
+                        <!-- 写操作链接改走 postLink：确认后以 POST + CSRF 令牌提交（原 GET 跳转） -->
+                        <a href="admin.php?action=tag&sub=delete&id=<?php echo $tag['id']; ?>" class="table-link table-link-danger" onclick="return postLink(this, '确定要删除这个标签吗？', { type: 'danger', confirmText: '删除' });">删除</a>
                     </td>
                 </tr>
                 <?php endforeach; ?>

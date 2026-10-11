@@ -536,55 +536,13 @@ class ThemeController {
     }
     
     /**
-     * 导入主题设置
+     * 【已下线】导入主题设置（原独立导入页 + POST 入库逻辑已删除）：
+     * 导入配置现统一为「前端填充表单 → 用户检查 → 点保存设置入库」模式，
+     * 与插件设置页（getPluginConfigForm）交互同构——导入不直接写库，
+     * 入库前经人工审查与表单统一校验。旧入口 sub=import_settings
+     * 因方法不存在由 handleSubAction 落入「操作不存在」提示，无需兼容层。
      */
-    public function import_settings() {
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $theme = $_POST['theme'];
-            
-            // 验证主题是否存在
-            $themesPath = ROOT_PATH . '/themes';
-            if (!is_dir($themesPath . '/' . $theme)) {
-                $this->showMessage('主题不存在', 'admin.php?action=theme');
-                return;
-            }
-            
-            if (isset($_FILES['settings_file']) && $_FILES['settings_file']['error'] == UPLOAD_ERR_OK) {
-                $file = $_FILES['settings_file'];
-                $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-                
-                if ($ext != 'json') {
-                    $this->showMessage('只支持JSON格式的设置文件', 'admin.php?action=theme&sub=settings&theme=' . $theme);
-                    return;
-                }
-                
-                $settings = json_decode(file_get_contents($file['tmp_name']), true);
-                if (!$settings) {
-                    $this->showMessage('设置文件格式错误', 'admin.php?action=theme&sub=settings&theme=' . $theme);
-                    return;
-                }
-                
-                // 保存设置到数据库
-                $db = Database::getInstance();
-                $result = $db->update('theme', 
-                    array('settings' => json_encode($settings)), 
-                    array('slug' => $theme)
-                );
-                
-                if ($result !== false) {
-                    $this->showMessage('主题设置导入成功', 'admin.php?action=theme&sub=settings&theme=' . $theme);
-                } else {
-                    $this->showMessage('主题设置导入失败', 'admin.php?action=theme&sub=settings&theme=' . $theme);
-                }
-            } else {
-                $this->showMessage('文件上传失败', 'admin.php?action=theme&sub=settings&theme=' . $theme);
-            }
-        } else {
-            $theme = $_GET['theme'];
-            include ADMIN_PATH . '/templates/theme_import_settings.html';
-        }
-    }
-    
+
     /**
      * 获取主题设置的当前值
      * @param string $theme 主题名称

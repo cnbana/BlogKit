@@ -58,10 +58,19 @@
                     
                     <!-- 验证码组件 -->
                     {if captcha_enabled && captcha_register_enabled}
+                    {if geetest_active}
+                    <!-- 极验接管分支：插件就绪时渲染行为验证容器（场景 register），由插件脚本初始化 -->
+                    <div class="form-group">
+                        <label>验证码</label>
+                        <div class="geetest-wrapper" data-geetest-scene="register"></div>
+                    </div>
+                    {else}
+                    <!-- 内置验证码分支：插件未就绪时按原样渲染图形验证码 -->
                     <div class="form-group">
                         <label>验证码</label>
                         <div class="captcha-wrapper" data-captcha-width="{echo value="captcha_width"}" data-captcha-height="{echo value="captcha_height"}" data-captcha-font-size="{echo value="captcha_font_size"}"></div>
                     </div>
+                    {/if}
                     {endif}
 
                     <!-- 蜜罐字段：对人类用户隐藏，机器人会自动填写 -->

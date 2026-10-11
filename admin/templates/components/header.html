@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CSRF 令牌：供公共 JS（postLink 等）动态构建 POST 表单时读取；
+         关闭 CSRF 防护开关时输出空串，postLink 提交的请求由后端开关放行 -->
+    <meta name="csrf-token" content="<?php echo Security::generateCsrfToken(); ?>">
     <title><?php echo isset($pageTitle) ? $pageTitle . ' - ' : ''; ?>BlogKit</title>
     <!-- 公共CSS（带文件修改时间版本参数，更新后浏览器自动拉取新文件） -->
     <link rel="stylesheet" href="<?php echo admin_asset_url(ADMIN_ASSETS_URL . '/css/common.css'); ?>">

@@ -323,6 +323,35 @@ function confirmLink(el, message, options) {
     return false;
 }
 
+// 写操作链接 POST 提交辅助（CSRF 加固）：
+// 写操作（删除/状态切换/恢复等）不得以 GET 跳转执行，统一改走本助手——
+// 确认弹层通过后，动态构建携带 csrf_token 隐藏域的表单，以 POST 提交到
+// 原 href 地址（保留查询参数），由后台统一 CSRF 校验层验证令牌。
+// 用法：<a href="admin.php?action=x&sub=delete&id=1"
+//         onclick="return postLink(this, '确定删除吗？', { type: 'danger', confirmText: '删除' })">
+function postLink(el, message, options) {
+    const url = el ? el.getAttribute('href') : '';
+    if (!url) return false;
+    showConfirmDialog(message, options).then((ok) => {
+        if (!ok) return;
+        const form = document.createElement('form');
+        form.action = url;
+        form.method = 'post';
+        // 从 <head> 的 meta 标签读取 CSRF 令牌（header.html 统一输出）
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        const token = document.createElement('input');
+        token.type = 'hidden';
+        token.name = 'csrf_token';
+        token.value = meta ? meta.getAttribute('content') : '';
+        form.appendChild(token);
+        document.body.appendChild(form);
+        // 提交前补等待反馈，与 confirmLink 的慢动作体验一致
+        showPageLoading();
+        form.submit();
+    });
+    return false;
+}
+
 // 表单确认辅助：替代 onsubmit="return confirm(...)"。
 // 用法：<form onsubmit="return confirmForm(this, '确定提交吗？', { beforeSubmit: fn })">
 // 确认后可选执行 beforeSubmit 回调（如禁用提交按钮）再提交表单；
@@ -1211,138 +1240,6 @@ function initClearableInputs(root) {
 }
 
 /* ============================================================
-   步进器（Stepper，input[type=number] 自动增强）
-   原理：自动增强 —— 包裹定位容器并在右侧内嵌「− / +」按钮组，
-   尊重控件原生 min / max / step 属性，到达边界自动禁用对应按钮；
-   步进后派发 input + change 事件，因此设置页的值快照 dirty 检测
-   （initFormSectionNav）实时联动；键盘 ↑/↓ 仍走原生行为。
-   交互细节：
-   - 长按 − / + 连续步进（500ms 起步延迟，之后 120ms/步）；
-   - 原生 spin 小箭头在包裹内隐藏（避免双 UI，见 forms.css）。
-   排除（不增强，保持原生）：
-   - .input-narrow：排序等 100px 窄输入框放不下按钮组；
-   - readonly / disabled 控件。
-   幂等：无全局守卫，靠 .stepper-wrap 包裹检查保证可重复调用——
-   全局守卫会阻止带 root 参数的二次调用（动态增强盲区）。
-   动态内容：@param root 缺省 document；向 DOM 动态插入含数字输入框
-   的表单后，手动调用 initSteppers(container) 增量增强（与
-   initCustomSelects 同款用法）。
-   样式见 forms.css 的 .stepper-wrap 组件区。
-   ============================================================ */
-const STEPPER_MINUS_ICON = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"></path></svg>';
-const STEPPER_PLUS_ICON = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>';
-
-function initSteppers(root) {
-    root = root || document;
-
-    root.querySelectorAll('input[type="number"]').forEach(function(input) {
-        // 窄排序框放不下按钮组；只读/禁用无步进意义
-        if (input.classList.contains('input-narrow')) return;
-        if (input.readOnly || input.disabled) return;
-        // 已包裹的防重复处理（动态/二次初始化场景）
-        if (input.parentElement && input.parentElement.classList.contains('stepper-wrap')) return;
-
-        // 数值边界：min/max 属性缺省视为无界
-        function bounds() {
-            return {
-                min: input.min === '' ? -Infinity : parseFloat(input.min),
-                max: input.max === '' ? Infinity : parseFloat(input.max)
-            };
-        }
-
-        // 单步进：值 + dir*step，并夹取到 [min, max] 区间；步进结果按 step
-        // 的小数位数取整，规避 0.1+0.2 之类的浮点误差（0.30000000000000004）
-        function stepBy(dir) {
-            const step = parseFloat(input.step);
-            const safeStep = (!isNaN(step) && step > 0) ? step : 1;
-            const b = bounds();
-            const cur = parseFloat(input.value);
-            // 空值起步：从最近的有限边界开始（无边界则 0），避免「空 + 1 = NaN」
-            let next = isNaN(cur)
-                ? (dir > 0 ? (b.min === -Infinity ? 0 : b.min) : (b.max === Infinity ? 0 : b.max))
-                : cur + dir * safeStep;
-            next = Math.min(b.max, Math.max(b.min, next));
-            const decimals = (String(safeStep).split('.')[1] || '').length;
-            input.value = next.toFixed(decimals);
-            // 派发 input + change：联动值快照 dirty 检测与既有 change 监听
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-            input.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-
-        // 边界禁用同步：到下界禁 −、到上界禁 +（min/max 缺省视为无界）
-        function syncDisabled() {
-            const cur = parseFloat(input.value);
-            const b = bounds();
-            minusBtn.disabled = !isNaN(cur) && cur <= b.min;
-            plusBtn.disabled = !isNaN(cur) && cur >= b.max;
-        }
-
-        // 创建单个步进按钮：单击一步；按住 500ms 后连续步进（120ms/步）。
-        // 用 pointer 事件统一鼠标/触屏；长按重复在 pointerdown 启动，抬起即停
-        function createBtn(dir, icon, label) {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'stepper-btn';
-            btn.setAttribute('aria-label', label);
-            btn.title = label;
-            btn.innerHTML = icon;
-            let holdTimer = null;
-            let repeatTimer = null;
-            const stopHold = function() {
-                clearTimeout(holdTimer);
-                clearInterval(repeatTimer);
-                holdTimer = null;
-                repeatTimer = null;
-            };
-            btn.addEventListener('pointerdown', function(e) {
-                if (btn.disabled) return;
-                e.preventDefault(); // 防触屏长按选中文字/弹出系统菜单
-                stepBy(dir);
-                syncDisabled();
-                holdTimer = setTimeout(function() {
-                    repeatTimer = setInterval(function() {
-                        stepBy(dir);
-                        syncDisabled();
-                    }, 120);
-                }, 500);
-            });
-            ['pointerup', 'pointerleave', 'pointercancel'].forEach(function(evt) {
-                btn.addEventListener(evt, stopHold);
-            });
-            // 键盘可达性：Enter/Space 触发的 click 无 pointer 前置（e.detail=0），
-            // 此处补步进；指针点击的 click（detail≥1）已在 pointerdown 步进过，跳过防双步
-            btn.addEventListener('click', function(e) {
-                if (btn.disabled || e.detail !== 0) return;
-                stepBy(dir);
-                syncDisabled();
-            });
-            return btn;
-        }
-
-        const minusBtn = createBtn(-1, STEPPER_MINUS_ICON, '减少');
-        const plusBtn = createBtn(1, STEPPER_PLUS_ICON, '增加');
-        const btnGroup = document.createElement('div');
-        btnGroup.className = 'stepper-btns';
-        btnGroup.appendChild(minusBtn);
-        btnGroup.appendChild(plusBtn);
-
-        // 包裹容器：定位锚点，按钮组内嵌于控件右侧（同 .clearable-wrap 模式）
-        const wrap = document.createElement('div');
-        wrap.className = 'stepper-wrap';
-        input.parentNode.insertBefore(wrap, input);
-        wrap.appendChild(input);
-        // 标记类：驱动 forms.css 的高特异性 padding 规则（预留按钮组空间，
-        // 压过元素级 8-:not 基线的 0,8,1 特异性，同 .input-narrow 先例）
-        input.classList.add('stepper-input');
-        wrap.appendChild(btnGroup);
-
-        // 输入时同步边界禁用态（手动输入也可能触界）
-        input.addEventListener('input', syncDisabled);
-        syncDisabled();
-    });
-}
-
-/* ============================================================
    自定义下拉选择器
    原理：自动增强 —— 扫描全后台原生 <select>，在原位置生成
    「触发器 + 弹出面板」自定义结构，原生 select 视觉隐藏但保留在
@@ -1992,10 +1889,6 @@ window.addEventListener('DOMContentLoaded', function() {
     // 初始化密码显隐眼睛按钮（全后台 input[type="password"] 自动生效）
     initPasswordVisibility();
     initClearableInputs();
-
-    // 初始化步进器（input[type=number] 自动增强 −/+ 按钮组，
-    // 尊重原生 min/max/step，边界自动禁用；见函数上方说明）
-    initSteppers();
 
     // 初始化自定义下拉（全后台原生 select 自动增强为统一面板，见函数上方说明）
     initCustomSelects();

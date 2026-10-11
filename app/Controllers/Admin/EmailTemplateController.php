@@ -294,12 +294,18 @@ class EmailTemplateController {
      * 删除模板
      */
     public function delete() {
+        // 写操作仅接受 POST 提交（GET 链接已在前端统一改走 POST+CSRF 提交）
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: admin.php?action=email_template');
+            exit;
+        }
+
         $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
         if (!$id) {
             header('Location: admin.php?action=email_template');
             exit;
         }
-        
+
         $templateModel = new EmailTemplateModel();
         $template = $templateModel->find($id);
         $result = $templateModel->deleteTemplate($id);
@@ -376,6 +382,12 @@ class EmailTemplateController {
      * 设置默认模板
      */
     public function setDefault() {
+        // 写操作仅接受 POST 提交（GET 链接已在前端统一改走 POST+CSRF 提交）
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: admin.php?action=email_template');
+            exit;
+        }
+
         $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
         if (!$id) {
             header('Location: admin.php?action=email_template');

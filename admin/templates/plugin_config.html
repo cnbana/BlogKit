@@ -1,13 +1,33 @@
-<?php $currentAction = 'plugin'; $pageTitle = '插件配置'; include 'components/page_wrapper.html'; ?>
-    
+<?php $currentAction = 'plugin'; $pageTitle = '插件设置'; include 'components/page_wrapper.html'; ?>
+
+    <!-- 顶部操作栏：返回插件列表（左）+ 导出/导入配置（右）。
+         导出/导入按钮与 $configForm 底部配套 JS 通过 id 联动（serializeArray 收集表单值、
+         按 name 回填字段，均不依赖按钮位于 form DOM 内） -->
+    <div class="action-section config-import-export">
+        <div class="row">
+            <a href="admin.php?action=plugin" class="btn btn-secondary">返回插件列表</a>
+            <div class="row-actions">
+                <button type="button" class="btn btn-secondary" id="export-config">导出配置</button>
+                <input type="file" id="import-config" accept=".json" class="upload-hidden-input">
+                <button type="button" class="upload-btn" onclick="document.getElementById('import-config').click();">
+                    <?php echo admin_svg_icon('upload', ''); ?>
+                    选择 JSON 文件
+                </button>
+                <span class="upload-filename" id="import-config-name">未选择文件</span>
+                <button type="button" class="btn btn-secondary" id="import-config-btn" disabled>导入配置</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 表单卡片容器：插件扩展区块（挂载点）与配置表单同处一张卡片 -->
     <div class="form-container">
-        <div class="plugin-config-form">
-            <?php echo $configForm; ?>
+        <!-- 挂载点：plugin.config.before_form，插件可在表单上方注入说明/扩展区块（容器内）；
+             外层容器提供与表单的呼吸间距（样式见 components.css） -->
+        <div class="plugin-config-before-form">
+            <?php Plugin::slot('plugin.config.before_form'); ?>
         </div>
-        
-        <div class="form-actions">
-            <a href="admin.php?action=plugin" class="btn btn-secondary drawer-cancel">返回插件列表</a>
-        </div>
+
+        <?php echo $configForm; ?>
     </div>
 
 <?php include 'components/footer_wrapper.html'; ?>

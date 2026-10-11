@@ -200,12 +200,14 @@
                             </a>
                             <ul class="dropdown-menu">
                                 <li>
-                                    <a href="admin.php?action=user&sub=toggleStatus&id=<?php echo $user['id']; ?>&status=<?php echo $user['status'] == 1 ? 0 : 1; ?>" onclick="return confirmLink(this, '确定<?php echo $user['status'] == 1 ? '禁用' : '解封'; ?>这个用户吗？', { type: 'warning', title: '账号状态', confirmText: '<?php echo $user['status'] == 1 ? '禁用' : '解封'; ?>' });">
+                                    <!-- 写操作链接改走 postLink：确认后以 POST + CSRF 令牌提交（原 GET 跳转） -->
+                                    <a href="admin.php?action=user&sub=toggleStatus&id=<?php echo $user['id']; ?>&status=<?php echo $user['status'] == 1 ? 0 : 1; ?>" onclick="return postLink(this, '确定<?php echo $user['status'] == 1 ? '禁用' : '解封'; ?>这个用户吗？', { type: 'warning', title: '账号状态', confirmText: '<?php echo $user['status'] == 1 ? '禁用' : '解封'; ?>' });">
                                         <?php echo $user['status'] == 1 ? '禁用' : '解封'; ?>
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="admin.php?action=user&sub=delete&id=<?php echo $user['id']; ?>" onclick="return confirmLink(this, '确定要将这个用户移至回收站吗？', { type: 'danger', confirmText: '移入回收站' });" class="menu-item-danger">
+                                    <!-- 写操作链接改走 postLink：确认后以 POST + CSRF 令牌提交（原 GET 跳转） -->
+                                    <a href="admin.php?action=user&sub=delete&id=<?php echo $user['id']; ?>" onclick="return postLink(this, '确定要将这个用户移至回收站吗？', { type: 'danger', confirmText: '移入回收站' });" class="menu-item-danger">
                                         删除
                                     </a>
                                 </li>
@@ -287,17 +289,32 @@
                 if (group) group.classList.remove('show');
             });
 
+            // 批量写操作统一以 POST + CSRF 令牌提交（原 GET 跳转已废弃）：
+            // 令牌从 <head> 的 meta 标签读取，URL 查询参数原样保留
+            function submitBatchWrite(url) {
+                const writeForm = document.createElement('form');
+                writeForm.action = url;
+                writeForm.method = 'post';
+                const tokenInput = document.createElement('input');
+                tokenInput.type = 'hidden';
+                tokenInput.name = 'csrf_token';
+                tokenInput.value = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+                writeForm.appendChild(tokenInput);
+                document.body.appendChild(writeForm);
+                writeForm.submit();
+            }
+
             if (action === 'batch-disable') {
                 showConfirmDialog('确定要禁用选中的' + selectedUsers.length + '个用户吗？', { type: 'warning', title: '批量操作', confirmText: '禁用' }).then(ok => {
-                    if (ok) window.location.href = 'admin.php?action=user&sub=batchToggleStatus&status=0&user_ids=' + userIds;
+                    if (ok) submitBatchWrite('admin.php?action=user&sub=batchToggleStatus&status=0&user_ids=' + userIds);
                 });
             } else if (action === 'batch-enable') {
                 showConfirmDialog('确定要启用选中的' + selectedUsers.length + '个用户吗？', { type: 'warning', title: '批量操作', confirmText: '启用' }).then(ok => {
-                    if (ok) window.location.href = 'admin.php?action=user&sub=batchToggleStatus&status=1&user_ids=' + userIds;
+                    if (ok) submitBatchWrite('admin.php?action=user&sub=batchToggleStatus&status=1&user_ids=' + userIds);
                 });
             } else if (action === 'batch-delete') {
                 showConfirmDialog('确定要将选中的' + selectedUsers.length + '个用户移至回收站吗？', { type: 'danger', title: '批量操作', confirmText: '移入回收站' }).then(ok => {
-                    if (ok) window.location.href = 'admin.php?action=user&sub=batchDelete&user_ids=' + userIds;
+                    if (ok) submitBatchWrite('admin.php?action=user&sub=batchDelete&user_ids=' + userIds);
                 });
             } else if (action === 'batch-role') {
                 openBatchRoleModal();
@@ -333,7 +350,17 @@
             }
             const userIds = Array.from(selectedUsers).map(cb => cb.value).join(',');
             closeBatchRoleModal();
-            window.location.href = 'admin.php?action=user&sub=batchUpdateRole&user_ids=' + userIds + '&role_id=' + roleId;
+            // 批量修改角色为写操作：改以 POST + CSRF 令牌提交（原 GET 跳转已废弃）
+            const batchForm = document.createElement('form');
+            batchForm.action = 'admin.php?action=user&sub=batchUpdateRole&user_ids=' + userIds + '&role_id=' + roleId;
+            batchForm.method = 'post';
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = 'csrf_token';
+            tokenInput.value = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+            batchForm.appendChild(tokenInput);
+            document.body.appendChild(batchForm);
+            batchForm.submit();
             return false;
         }
         
@@ -356,6 +383,7 @@
                 <button type="button" class="modal-close" onclick="closeBatchRoleModal()" aria-label="关闭">&times;</button>
             </div>
             <form onsubmit="return submitBatchRole(event);">
+                <?php echo Security::getCsrfField(); // CSRF 令牌：随统一校验层验证 ?>
                 <div class="modal-body">
                     <!-- ul-batch-role-form-group / ul-batch-role-select：弹窗内表单组去下边距、
                          下拉撑满宽度（components.css，替代原内联样式） -->

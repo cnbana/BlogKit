@@ -104,7 +104,8 @@ class CategoryController
     
     public function edit()
     {
-        $id = $_GET['id'];
+        // 分类 ID（无 isset 兜底会报未定义索引，缺 id 时由下方"分类不存在"分支兜底）
+        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
         $categoryModel = new CategoryModel();
         
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -182,6 +183,11 @@ class CategoryController
     
     public function delete()
     {
+        // 写操作仅接受 POST 提交（GET 链接已在前端统一改走 POST+CSRF 提交）
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            respondFlash(false, '非法请求', 'admin.php?action=category');
+        }
+
         // 行内删除链接操作：统一走闪存 + 重定向（PRG），无中间提示页，
         // 回到列表页后由 flash_render 以统一 Toast 弹出结果
         $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;

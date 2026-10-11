@@ -46,7 +46,13 @@ class ConfigController {
         
         // 处理邮箱设置
         if ($subPage == 'email') {
-            // 这里只处理邮箱设置，邮件模板管理已经移到独立模块
+            // 邮箱配置已迁移至独立控制器（action=email 邮箱设置 / action=email_template 邮件模板）。
+            // 本包装页路由不再渲染页面：若在此渲染 config_email.html，因 $config 未加载，
+            // 表单全部字段为空值，管理员一旦误保存会清空已配置的 SMTP 信息。
+            // 此处统一重定向，兼容系统设置左侧导航及历史遗留的 sub=email 链接。
+            $target = ($emailSubPage === 'email_template') ? 'admin.php?action=email_template' : 'admin.php?action=email';
+            header('Location: ' . $target);
+            exit;
         } else {
             // 获取系统配置
                 $db = Database::getInstance();

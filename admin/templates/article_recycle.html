@@ -113,9 +113,10 @@
                     <td>
                         <!-- 操作列：文字链接式（对齐评论/用户回收站页）；
                              恢复为普通确认，永久删除为危险确认（不可恢复） -->
-                        <a href="admin.php?action=article&method=restore&id=<?php echo $article['id']; ?>" class="table-link" onclick="return confirmLink(this, '确定要恢复这篇文章吗？', { type: 'info', title: '恢复确认', confirmText: '恢复' });">恢复</a>
+                        <!-- 写操作链接改走 postLink：确认后以 POST + CSRF 令牌提交（原 GET 跳转） -->
+                        <a href="admin.php?action=article&method=restore&id=<?php echo $article['id']; ?>" class="table-link" onclick="return postLink(this, '确定要恢复这篇文章吗？', { type: 'info', title: '恢复确认', confirmText: '恢复' });">恢复</a>
                         <span class="table-action-divider"></span>
-                        <a href="admin.php?action=article&method=permanentlyDelete&id=<?php echo $article['id']; ?>" class="table-link table-link-danger" onclick="return confirmLink(this, '确定要永久删除这篇文章吗？此操作不可恢复。', { type: 'danger', confirmText: '永久删除' });">永久删除</a>
+                        <a href="admin.php?action=article&method=permanentlyDelete&id=<?php echo $article['id']; ?>" class="table-link table-link-danger" onclick="return postLink(this, '确定要永久删除这篇文章吗？此操作不可恢复。', { type: 'danger', confirmText: '永久删除' });">永久删除</a>
                     </td>
                 </tr>
                 <?php endforeach; ?>

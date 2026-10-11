@@ -118,10 +118,11 @@
                     <td><?php echo $comment['status'] == 1 ? '<span class="badge badge-success">已审核</span>' : '<span class="badge badge-warning">待审核</span>'; ?></td>
                     <td><?php echo $comment['created_at']; ?></td>
                     <td>
-                        <!-- 操作列：文字链接式（确认弹窗由 confirmLink 统一处理） -->
-                        <a href="admin.php?action=comment&sub=restore&id=<?php echo $comment['id']; ?>" class="table-link" onclick="return confirmLink(this, '确定要恢复这条评论吗？', { type: 'info', title: '恢复确认', confirmText: '恢复' });">恢复</a>
+                        <!-- 操作列：文字链接式（确认弹窗由 postLink 统一处理，POST + CSRF 提交） -->
+                        <!-- 写操作链接改走 postLink：确认后以 POST + CSRF 令牌提交（原 GET 跳转） -->
+                        <a href="admin.php?action=comment&sub=restore&id=<?php echo $comment['id']; ?>" class="table-link" onclick="return postLink(this, '确定要恢复这条评论吗？', { type: 'info', title: '恢复确认', confirmText: '恢复' });">恢复</a>
                         <span class="table-action-divider"></span>
-                        <a href="admin.php?action=comment&sub=forceDelete&id=<?php echo $comment['id']; ?>" class="table-link table-link-danger" onclick="return confirmLink(this, '确定要彻底删除这条评论吗？此操作不可恢复。', { type: 'danger', confirmText: '彻底删除' });">彻底删除</a>
+                        <a href="admin.php?action=comment&sub=forceDelete&id=<?php echo $comment['id']; ?>" class="table-link table-link-danger" onclick="return postLink(this, '确定要彻底删除这条评论吗？此操作不可恢复。', { type: 'danger', confirmText: '彻底删除' });">彻底删除</a>
                     </td>
                 </tr>
                 <?php endforeach; ?>

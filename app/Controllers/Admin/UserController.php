@@ -226,6 +226,11 @@ class UserController {
     }
     
     public function delete() {
+        // 写操作仅接受 POST 提交（GET 链接已在前端统一改走 POST+CSRF 提交）
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            respondFlash(false, '非法请求', 'admin.php?action=user');
+        }
+
         // 检查用户是否有删除用户的权限
         $currentUser = $_SESSION['admin'];
         if (!RoleModel::checkUserPermission($currentUser['id'], 'user_delete')) {
@@ -288,6 +293,11 @@ class UserController {
      * 从回收站恢复用户
      */
     public function restore() {
+        // 写操作仅接受 POST 提交（GET 链接已在前端统一改走 POST+CSRF 提交）
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            respondFlash(false, '非法请求', 'admin.php?action=user&method=recycle');
+        }
+
         // 恢复属于回收站管理操作，与删除共用 user_delete 权限
         $currentUser = $_SESSION['admin'];
         if (!RoleModel::checkUserPermission($currentUser['id'], 'user_delete')) {
@@ -309,6 +319,11 @@ class UserController {
      * 永久删除用户（物理删除，仅限回收站中的用户）
      */
     public function permanentlyDelete() {
+        // 写操作仅接受 POST 提交（GET 链接已在前端统一改走 POST+CSRF 提交）
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            respondFlash(false, '非法请求', 'admin.php?action=user&method=recycle');
+        }
+
         // 永久删除属于高危回收站操作，与删除共用 user_delete 权限
         $currentUser = $_SESSION['admin'];
         if (!RoleModel::checkUserPermission($currentUser['id'], 'user_delete')) {
@@ -350,6 +365,11 @@ class UserController {
 
     // 批量恢复用户——从回收站恢复（与单个 restore() 一致的软删除反转逻辑）
     public function batchRestore() {
+        // 写操作仅接受 POST 提交（GET 链接已在前端统一改走 POST+CSRF 提交）
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            respondFlash(false, '非法请求', 'admin.php?action=user&method=recycle');
+        }
+
         // 恢复属于回收站管理操作，与删除共用 user_delete 权限
         $currentUser = $_SESSION['admin'];
         if (!RoleModel::checkUserPermission($currentUser['id'], 'user_delete')) {
@@ -384,6 +404,11 @@ class UserController {
 
     // 批量永久删除用户——物理删除（与单个 permanentlyDelete() 一致的安全检查逻辑）
     public function batchForceDelete() {
+        // 写操作仅接受 POST 提交（GET 链接已在前端统一改走 POST+CSRF 提交）
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            respondFlash(false, '非法请求', 'admin.php?action=user&method=recycle');
+        }
+
         // 永久删除属于高危回收站操作，与删除共用 user_delete 权限
         $currentUser = $_SESSION['admin'];
         if (!RoleModel::checkUserPermission($currentUser['id'], 'user_delete')) {
@@ -444,6 +469,12 @@ class UserController {
     
     // 禁用/解封用户
     public function toggleStatus() {
+        // 写操作仅接受 POST 提交（GET 链接已在前端统一改走 POST+CSRF 提交）
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: admin.php?action=user');
+            exit;
+        }
+
         // 获取用户ID和状态
         $id = $_GET['id'] ?? 0;
         $status = $_GET['status'] ?? 0;
@@ -533,6 +564,12 @@ class UserController {
     
     // 批量切换用户状态
     public function batchToggleStatus() {
+        // 写操作仅接受 POST 提交（GET 链接已在前端统一改走 POST+CSRF 提交）
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: admin.php?action=user');
+            exit;
+        }
+
         // 获取参数
         $status = $_GET['status'] ?? 0;
         $userIdsStr = $_GET['user_ids'] ?? '';
@@ -580,6 +617,11 @@ class UserController {
     
     // 批量删除用户——移入回收站（与单个 delete() 一致的软删除逻辑）
     public function batchDelete() {
+        // 写操作仅接受 POST 提交（GET 链接已在前端统一改走 POST+CSRF 提交）
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            respondFlash(false, '非法请求', 'admin.php?action=user');
+        }
+
         // 检查当前用户是否有删除用户的权限
         $currentUser = $_SESSION['admin'];
         if (!RoleModel::checkUserPermission($currentUser['id'], 'user_delete')) {
@@ -630,6 +672,12 @@ class UserController {
     
     // 批量修改角色
     public function batchUpdateRole() {
+        // 写操作仅接受 POST 提交（GET 链接已在前端统一改走 POST+CSRF 提交）
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: admin.php?action=user');
+            exit;
+        }
+
         $userIdsStr = $_GET['user_ids'] ?? '';
         $roleId = $_GET['role_id'] ?? 0;
         

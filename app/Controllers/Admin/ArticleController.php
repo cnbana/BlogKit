@@ -162,6 +162,10 @@ class ArticleController {
     
     public function add() {
         // 实例化模型
+        // 注意：$articleModel 必须在此处实例化——下方表单校验链中
+        // isSlugExists()（文章别名重复检查）依赖该对象，若延迟到保存分支才创建，
+        // 填写了别名的提交会在校验阶段触发未定义变量致命错误
+        $articleModel = new ArticleModel();
         $categoryModel = new CategoryModel();
         $tagModel = new TagModel();
         
@@ -242,10 +246,7 @@ class ArticleController {
                     'tags' => $tags
                 ];
                 
-                // 实例化文章模型
-                $articleModel = new ArticleModel();
-                
-                // 创建文章
+                // 创建文章（$articleModel 已在方法开头实例化，直接复用）
                 $articleId = $articleModel->createArticle($articleData);
                 
                 if ($articleId) {
@@ -401,6 +402,12 @@ class ArticleController {
     
     // 删除文章（移到回收站）
     public function delete() {
+        // 写操作仅接受 POST 提交（GET 链接已在前端统一改走 POST+CSRF 提交）
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: admin.php?action=article');
+            exit;
+        }
+
         // 获取文章ID
         $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
         
@@ -472,6 +479,12 @@ class ArticleController {
     
     // 恢复文章
     public function restore() {
+        // 写操作仅接受 POST 提交（GET 链接已在前端统一改走 POST+CSRF 提交）
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: admin.php?action=article&method=recycle');
+            exit;
+        }
+
         // 获取文章ID
         $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
         
@@ -501,6 +514,12 @@ class ArticleController {
     
     // 永久删除文章
     public function permanentlyDelete() {
+        // 写操作仅接受 POST 提交（GET 链接已在前端统一改走 POST+CSRF 提交）
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: admin.php?action=article&method=recycle');
+            exit;
+        }
+
         // 获取文章ID
         $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
         

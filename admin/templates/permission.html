@@ -137,7 +137,8 @@
                             $html .= '<a href="admin.php?action=permission&sub=edit&id=' . $permission['id'] . '" class="table-link" onclick="openEntityDrawer(this.href, \'编辑权限\'); return false;">编辑</a>';
                             $html .= '<span class="table-action-divider"></span>';
                             // 禁用/启用互斥切换：链接文案随当前状态变化
-                            $html .= '<a href="admin.php?action=permission&sub=toggleStatus&id=' . $permission['id'] . '&status=' . ($permission['status'] == 1 ? 0 : 1) . '" class="table-link">' . ($permission['status'] == 1 ? '禁用' : '启用') . '</a>';
+                            // 写操作链接改走 postLink：确认后以 POST + CSRF 令牌提交（原 GET 跳转；本链接原无确认弹窗）
+                            $html .= '<a href="admin.php?action=permission&sub=toggleStatus&id=' . $permission['id'] . '&status=' . ($permission['status'] == 1 ? 0 : 1) . '" class="table-link" onclick="return postLink(this, \'确定要切换该权限的启用状态吗？\', { confirmText: \'确定\' });">' . ($permission['status'] == 1 ? '禁用' : '启用') . '</a>';
                             // 删除：仅非内置权限渲染；改为 POST 行内小表单 + CSRF 令牌 + 确认弹窗
                             //（对齐批量删除标准，防 GET 链接误触发/跨站伪造）
                             if (!$isSystem) {

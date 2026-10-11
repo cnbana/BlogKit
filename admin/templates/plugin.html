@@ -112,7 +112,7 @@
                         <div class="plugin-actions">
                             <?php if ($plugin['state'] === 'enabled'): ?>
                                 <?php if (isset($plugin['has_settings']) && $plugin['has_settings']): ?>
-                                <a href="admin.php?action=plugin&sub=config&slug=<?php echo $plugin['slug']; ?>" class="btn btn-info btn-sm">配置</a>
+                                <a href="admin.php?action=plugin&sub=config&slug=<?php echo $plugin['slug']; ?>" class="btn btn-info btn-sm">设置</a>
                                 <?php endif; ?>
                                 <a href="admin.php?action=plugin&sub=detail&slug=<?php echo $plugin['slug']; ?>" class="btn btn-default btn-sm">详情</a>
                                 <!-- 禁用：POST + CSRF + 二次确认 -->

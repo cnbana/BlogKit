@@ -30,9 +30,11 @@ class TagModel {
     }
     
     // 创建标签
+    // 注意：created_at 字段在表结构中为 NOT NULL 且无默认值，
+    // 插入时必须显式传入当前时间戳，否则 MySQL 严格模式下会报 1364 字段缺省错误
      public function createTag($name) {
-         $sql = "INSERT INTO {$this->prefix}tag (name) VALUES (?)";
-         return $this->db->query($sql, [$name]);
+         $sql = "INSERT INTO {$this->prefix}tag (name, created_at) VALUES (?, ?)";
+         return $this->db->query($sql, [$name, time()]);
      }
      
      // 更新标签
@@ -94,6 +96,18 @@ class TagModel {
     public function getTagById($id) {
         $sql = "SELECT * FROM {$this->prefix}tag WHERE id = ?";
         return $this->db->fetch($sql, [$id]);
+    }
+
+    // 按名称查询标签（$excludeId 用于编辑场景排除自身记录）
+    // 用途：控制器保存前的重名预检——bk_tag.name 有唯一索引，
+    // 不预检直接 INSERT/UPDATE 会因唯一键冲突抛出 PDO 异常，表现为 500
+    public function getTagByName($name, $excludeId = null) {
+        if ($excludeId !== null) {
+            $sql = "SELECT * FROM {$this->prefix}tag WHERE name = ? AND id != ?";
+            return $this->db->fetch($sql, [$name, $excludeId]);
+        }
+        $sql = "SELECT * FROM {$this->prefix}tag WHERE name = ?";
+        return $this->db->fetch($sql, [$name]);
     }
     
     // 根据标签名获取或创建标签，并返回标签ID

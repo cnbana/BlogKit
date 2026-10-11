@@ -156,7 +156,10 @@ class EmailSettingsController
                 if ($sendOk) {
                     // —— 发送成功后，把本次提交的配置持久化到数据库
                     //    注意：若 password 字段为 "__KEEP__"，则保留数据库原值（由 collectEmailConfig 处理）
+                    //    必须携带 sub_page=email：ConfigService::save() 按设置子页门控收集器，
+                    //    缺失时不会执行邮箱字段收集，配置将无法持久化
                     $persistPost = [
+                        'sub_page' => 'email',
                         'email_smtp_host' => $smtpHost,
                         'email_smtp_port' => $smtpPort,
                         'email_smtp_username' => $smtpUsername,

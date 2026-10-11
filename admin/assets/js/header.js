@@ -463,12 +463,15 @@ function getNotificationIcon(type) {
 
 /**
  * HTML转义
+ * 转义 &, <, >, ", ' 五类字符：单引号同样必须转义，
+ * 否则拼入单引号包裹的 HTML 属性（如 onclick='...'）时存在注入隐患
  */
 function htmlEscape(str) {
-    return str.replace(/&/g, '&amp;')
+    return String(str).replace(/&/g, '&amp;')
               .replace(/</g, '&lt;')
               .replace(/>/g, '&gt;')
-              .replace(/"/g, '&quot;');
+              .replace(/"/g, '&quot;')
+              .replace(/'/g, '&#39;');
 }
 
 /**

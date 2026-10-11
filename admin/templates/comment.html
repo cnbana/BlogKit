@@ -99,9 +99,19 @@
                         e.preventDefault();
                         // 统一确认弹窗（common.js 的 showConfirmDialog，按钮文案 = 具体动作）
                         showConfirmDialog(message, { confirmText: confirmText }).then(function(confirmed) {
-                            if (confirmed) {
-                                window.location.href = url;
-                            }
+                            if (!confirmed) return;
+                            // 写操作统一以 POST + CSRF 令牌提交（原 GET 跳转已废弃）：
+                            // 令牌从 <head> 的 meta 标签读取，URL 查询参数原样保留
+                            const writeForm = document.createElement('form');
+                            writeForm.action = url;
+                            writeForm.method = 'post';
+                            const tokenInput = document.createElement('input');
+                            tokenInput.type = 'hidden';
+                            tokenInput.name = 'csrf_token';
+                            tokenInput.value = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+                            writeForm.appendChild(tokenInput);
+                            document.body.appendChild(writeForm);
+                            writeForm.submit();
                         });
                     }
                 }

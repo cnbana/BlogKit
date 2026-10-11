@@ -8592,8 +8592,8 @@ input.tx-sort-input:not([type="checkbox"]):not([type="radio"]):not([type="range"
    ============================================================ */
 /* ============================================================
    BlogKit 主题设置页面专属样式（theme_settings.css）
-   供 theme_settings.html（主题参数设置）与 theme_import_settings.html
-   （导入主题设置）两个页面共用，经 $pageCss 机制按需加载。
+   供 theme_settings.html（主题参数设置，含顶部内联导入操作栏）使用，
+   经 $pageCss 机制按需加载。（原独立导入页已下线，导入功能内联至设置页）
    约定：后台模板禁止内嵌 <style> 块与静态内联 style——
    页面专属样式统一收入本文件，经 header.html 输出 link 标签挂载。
    颜色全部引用后台主题 CSS 变量（common.css 定义），暗色主题自动切换。
@@ -9223,3 +9223,12 @@ input[type="checkbox"].ts-check {
     opacity: 0.45;
     cursor: not-allowed;
 }
+
+/* ============================================================
+   插件设置页专属样式（plugin_config）
+   ============================================================ */
+/* 挂载点扩展区块容器：插件注入的说明/自检区块与下方配置表单之间的呼吸间距 */
+.plugin-config-before-form {
+    margin-bottom: 20px;
+}
+

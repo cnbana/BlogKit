@@ -160,6 +160,20 @@ class Hook {
     const ADMIN_CONFIG_COLLECT_CUSTOM = 'admin_config_collect_custom'; // 后台保存配置时：插件可在此把自定义字段注入 $configData
     const SYSTEM_ERROR = 'system_error';
     const SYSTEM_CRON = 'system_cron';
+
+    /**
+     * 安全相关钩子
+     */
+    // 验证码校验过滤器（第三方验证码插件统一接入点）：每个启用的插件回调收到
+    // ['code' => 用户提交的验证码原文, 'config' => 内置验证码配置]，返回 true/false
+    // 表示接管本次校验裁决（以其布尔值为最终结果），返回 null 表示不接管
+    // （内置明文码、后台预览码等场景），继续走核心内置校验逻辑
+    const CAPTCHA_CHECK_FILTER = 'captcha_check_filter';
+    // CSP 追加片段过滤器（脚本类插件扩展点：行为验证/统计/客服/支付 SDK 等）：
+    // 每个启用的插件回调返回 ['directive' => '来源列表'] 数组，核心在输出
+    // Content-Security-Policy 头之前按 directive 归并追加到既有来源之后，
+    // 无插件返回时 CSP 头与默认策略完全一致
+    const SECURITY_CSP_EXTRA = 'security_csp_extra';
     
     /**
      * 文件上传相关钩子

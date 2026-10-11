@@ -1,10 +1,27 @@
 <?php  $currentAction = 'theme'; $pageTitle = '主题设置'; include 'components/page_wrapper.html'; ?>
     
-    <!-- 操作栏 -->
-    <div class="action-section">
-        <a href="admin.php?action=theme" class="btn btn-secondary drawer-cancel">返回主题列表</a>
-        <a href="admin.php?action=theme&sub=export_settings&theme=<?php echo $theme; ?>" class="btn btn-info">导出设置</a>
-        <a href="admin.php?action=theme&sub=import_settings&theme=<?php echo $theme; ?>" class="btn btn-warning">导入设置</a>
+    <!-- 顶部操作栏：与插件设置页（plugin_config.html）同构——返回（左）+ 导出/导入（右）。
+         导入为前端填充行为：解析 JSON 后按 name 回填下方设置表单字段（不直接入库），
+         用户检查后点「保存设置」统一入库（含必填校验），两页交互完全一致 -->
+    <div class="action-section config-import-export">
+        <div class="row">
+            <a href="admin.php?action=theme" class="btn btn-secondary drawer-cancel">返回主题列表</a>
+            <div class="row-actions">
+                <a href="admin.php?action=theme&sub=export_settings&theme=<?php echo $theme; ?>" class="btn btn-secondary">导出配置</a>
+                <input
+                    type="file"
+                    id="settings-file"
+                    accept=".json"
+                    class="upload-hidden-input"
+                >
+                <button type="button" class="upload-btn" onclick="document.getElementById('settings-file').click();">
+                    <?php echo admin_svg_icon('upload', ''); ?>
+                    选择 JSON 文件
+                </button>
+                <span id="settings-file-name" class="upload-filename">未选择文件</span>
+                <button type="button" class="btn btn-secondary" id="import-config-btn" disabled>导入配置</button>
+            </div>
+        </div>
     </div>
     
 
@@ -95,4 +112,59 @@
             </div>
         </form>
     </div>
+    <script>
+    // 顶部操作栏导入逻辑：与插件设置页（getPluginConfigForm）同构
+    // 1) 已选 JSON 文件名回显 + 导入按钮激活（原生 file input 已隐藏，作为回显数据源）
+    // 2) 点「导入配置」→ FileReader 解析 JSON → 按 name="settings[key]" 回填下方表单字段
+    //    （不直接入库，用户检查后点「保存设置」统一提交，入库前经表单统一校验）
+    document.getElementById('settings-file').addEventListener('change', function() {
+        var fileName = this.files.length > 0 ? this.files[0].name : '';
+        document.getElementById('settings-file-name').textContent = fileName || '未选择文件';
+        document.getElementById('import-config-btn').disabled = this.files.length === 0;
+    });
+
+    document.getElementById('import-config-btn').addEventListener('click', function() {
+        var fileInput = document.getElementById('settings-file');
+        if (fileInput.files.length === 0) {
+            showToast('请选择要导入的配置文件', 'warning');
+            return;
+        }
+
+        var file = fileInput.files[0];
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                var importedConfig = JSON.parse(e.target.result);
+
+                // 按 settings[key] 字段名回填：与导出 JSON（key => value 平铺结构）一一对应
+                Object.keys(importedConfig).forEach(function(key) {
+                    var fieldName = 'settings[' + key + ']';
+                    var field = document.querySelectorAll('[name="' + fieldName + '"]');
+                    if (!field.length) {
+                        return; // 配置文件中存在但当前主题模板未定义的字段，静默跳过
+                    }
+                    var value = importedConfig[key];
+                    if (field[0].type === 'checkbox') {
+                        // 滑动开关：'1'/true/'true' 均视为勾选（兼容历史导出格式）
+                        field[0].checked = (value === '1' || value === true || value === 'true');
+                    } else if (field[0].type === 'radio') {
+                        field.forEach(function(radio) {
+                            radio.checked = (radio.value == value);
+                        });
+                    } else {
+                        // text/textarea/select/color 统一按值回填
+                        field[0].value = value;
+                    }
+                });
+
+                // 导入为前端填充行为（不直接入库），用页面内 toast 提示成功，
+                // 不跳转不刷新以保留已填充的表单内容，待用户确认后再点「保存设置」入库
+                showToast('配置导入成功，请检查后点击保存设置', 'success');
+            } catch (error) {
+                showToast('配置文件格式错误', 'error');
+            }
+        };
+        reader.readAsText(file);
+    });
+    </script>
 <?php include 'components/footer_wrapper.html'; ?>

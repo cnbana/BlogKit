@@ -424,22 +424,52 @@ class MediaController {
     }
     
     /**
+     * 校验并归一化媒体文件路径（安全加固：路径穿越防护）
+     *
+     * 传入的 path 参数为站内相对路径（形如 /uploads/articles/xx.jpg）。
+     * 此前仅校验 "/uploads/" 前缀，构造 "/uploads/../config.php" 类路径
+     * 可穿越到 Web 根目录之外；现改为 realpath() 归一化后校验真实路径
+     * 必须位于上传目录（UPLOADS_PATH）之内，杜绝目录回溯与符号链接逃逸。
+     *
+     * @param string $path 前端传入的站内相对路径
+     * @return string|false 归一化后的绝对路径；校验失败返回 false
+     */
+    private function resolveMediaPath($path) {
+        // 限定必须是 /uploads/ 开头的站内相对路径（类型与空值双重检查）
+        if (!is_string($path) || $path === '' || strpos($path, '/uploads/') !== 0) {
+            return false;
+        }
+
+        // realpath() 归一化真实路径（不存在的文件返回 false）
+        $fullPath = realpath(ROOT_PATH . $path);
+        if ($fullPath === false) {
+            return false;
+        }
+
+        // 归一化后的路径必须位于上传目录之内（含目录分隔符，防止同前缀目录名误判）
+        $uploadsRoot = realpath(UPLOADS_PATH);
+        if ($uploadsRoot === false || strpos($fullPath, $uploadsRoot . DIRECTORY_SEPARATOR) !== 0) {
+            return false;
+        }
+
+        return $fullPath;
+    }
+
+    /**
      * 删除媒体文件
      */
     public function delete() {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $path = isset($_POST['path']) ? $_POST['path'] : '';
-            
-            // 验证路径
-            if (empty($path) || strpos($path, '/uploads/') !== 0) {
+
+            // 路径安全校验：归一化后必须位于上传目录之内（防路径穿越）
+            $fullPath = $this->resolveMediaPath($path);
+            if ($fullPath === false) {
                 $_SESSION['error_message'] = '无效的文件路径';
                 header('Location: admin.php?action=media');
                 exit;
             }
-            
-            // 构建完整路径
-            $fullPath = ROOT_PATH . $path;
-            
+
             // 检查文件是否存在
             if (file_exists($fullPath)) {
                 // 删除文件，并级联清理其自动生成的衍生文件（尺寸变体、webp 转换副本）
@@ -478,15 +508,14 @@ class MediaController {
             $errorCount = 0;
             
             foreach ($paths as $path) {
-                // 验证路径
-                if (empty($path) || strpos($path, '/uploads/') !== 0) {
+                // 路径安全校验：归一化后必须位于上传目录之内（防路径穿越），
+                // 单个路径不合法时计入失败数并跳过，不中断整批
+                $fullPath = $this->resolveMediaPath($path);
+                if ($fullPath === false) {
                     $errorCount++;
                     continue;
                 }
-                
-                // 构建完整路径
-                $fullPath = ROOT_PATH . $path;
-                
+
                 // 检查文件是否存在
                 if (file_exists($fullPath)) {
                     // 删除文件，并级联清理其自动生成的衍生文件（尺寸变体、webp 转换副本）
@@ -523,22 +552,30 @@ class MediaController {
             $path = isset($_POST['path']) ? $_POST['path'] : '';
             $newName = isset($_POST['new_name']) ? trim($_POST['new_name']) : '';
             
-            // 验证路径
-            if (empty($path) || strpos($path, '/uploads/') !== 0) {
+            // 路径安全校验：归一化后必须位于上传目录之内（防路径穿越）
+            $fullPath = $this->resolveMediaPath($path);
+            if ($fullPath === false) {
                 $_SESSION['error_message'] = '无效的文件路径';
                 header('Location: admin.php?action=media');
                 exit;
             }
-            
+
             // 验证新文件名
             if (empty($newName)) {
                 $_SESSION['error_message'] = '新文件名不能为空';
                 header('Location: admin.php?action=media');
                 exit;
             }
-            
-            // 构建完整路径
-            $fullPath = ROOT_PATH . $path;
+
+            // 新文件名安全校验：只允许作为文件名使用（不含任何路径成分），
+            // 拒绝目录分隔符与目录回溯符号，防止 "../xxx" 类新名把文件移出上传目录
+            if (strpos($newName, '/') !== false || strpos($newName, '\\') !== false || strpos($newName, '..') !== false) {
+                $_SESSION['error_message'] = '新文件名不能包含路径分隔符';
+                header('Location: admin.php?action=media');
+                exit;
+            }
+
+            // 构建完整路径（$fullPath 已校验位于上传目录内，目标路径 = 同目录 + 净文件名）
             $directory = dirname($fullPath);
             $newPath = $directory . '/' . $newName;
             

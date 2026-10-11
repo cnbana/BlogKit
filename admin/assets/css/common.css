@@ -1010,6 +1010,28 @@ body.dark-theme .toast {
     border: 1px solid var(--border-color);
 }
 
+/* 配置导入/导出操作栏（插件配置页与主题设置页共用，结构同构）：
+   「返回（左）+ 导出/导入（右）」两端布局；卡片外观复用 .action-section，
+   文件名回显使用 forms.css 的 .upload-filename，此处仅补充布局与禁用态 */
+.config-import-export .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.config-import-export .row-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+/* 导入按钮初始置灰（未选择文件时不可用），选中文件后由页内 JS 移除禁用态 */
+.config-import-export .btn[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 /* 内容区块样式（编辑页表单卡片容器）：
    顶部间距统一由 CSS 提供，替代模板散布的内联 margin-top */
 .content-section {

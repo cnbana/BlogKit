@@ -115,12 +115,13 @@
                                 </a>
                                 <ul class="dropdown-menu">
                                     <li>
-                                        <a href="admin.php?action=role&sub=toggleStatus&id=<?php echo $role['id']; ?>&status=<?php echo $role['status'] == 1 ? 0 : 1; ?>">
+                                        <!-- 写操作链接改走 postLink：确认后以 POST + CSRF 令牌提交（原 GET 跳转；本链接原无确认弹窗） -->
+                                        <a href="admin.php?action=role&sub=toggleStatus&id=<?php echo $role['id']; ?>&status=<?php echo $role['status'] == 1 ? 0 : 1; ?>" onclick="return postLink(this, '确定要切换该角色的启用状态吗？', { confirmText: '确定' });">
                                             <?php echo $role['status'] == 1 ? '禁用' : '启用'; ?>
                                         </a>
                                     </li>
                                     <li>
-                                        <a href="admin.php?action=role&sub=delete&id=<?php echo $role['id']; ?>" onclick="return confirmLink(this, '确定要删除这个角色吗？', { type: 'danger', confirmText: '删除' });" class="menu-item-danger">删除</a>
+                                        <a href="admin.php?action=role&sub=delete&id=<?php echo $role['id']; ?>" onclick="return postLink(this, '确定要删除这个角色吗？', { type: 'danger', confirmText: '删除' });" class="menu-item-danger">删除</a>
                                     </li>
                                 </ul>
                             </div>

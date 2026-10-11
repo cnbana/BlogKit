@@ -2,6 +2,7 @@
             
             <div class="form-container">
                 <form action="admin.php?action=tag&sub=add" method="post">
+                    <?php echo Security::getCsrfField(); // CSRF 令牌：随统一校验层验证 ?>
                     <div class="form-group">
                         <label for="name">标签名称</label>
                         <input type="text" id="name" name="name" placeholder="请输入标签名称">

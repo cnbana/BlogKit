@@ -1,6 +1,7 @@
             <!-- 用户设置内容 -->
             <div class="form-container">
                 <form method="post" action="admin.php?action=<?php echo $currentAction; ?>&method=save">
+                    <?php echo Security::getCsrfField(); // CSRF 令牌：随统一校验层验证 ?>
                     <input type="hidden" name="sub_page" value="<?php echo $sub; ?>">
                     <!-- 用户基本设置 -->
                     <div class="form-section">

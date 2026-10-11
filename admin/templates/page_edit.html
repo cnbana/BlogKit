@@ -2,6 +2,7 @@
     
     <div class="form-container">
         <form method="POST">
+            <?php echo Security::getCsrfField(); // CSRF 令牌：随统一校验层验证 ?>
             <div class="form-group">
                 <label for="title">页面标题</label>
                 <input type="text" id="title" name="title" value="<?php echo $page['title']; ?>" required>

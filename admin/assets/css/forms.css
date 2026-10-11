@@ -230,88 +230,6 @@ textarea::placeholder {
     background-color: var(--hover-bg);
 }
 
-/* ============================================================
-   步进器（Stepper，common.js initSteppers 自动增强）
-   结构：.stepper-wrap（定位锚点）> input[type=number] + .stepper-btns
-   （「− / +」按钮组内嵌控件右侧）。原生 spin 小箭头在包裹内隐藏，
-   避免出现双 UI；边界禁用态由 JS 同步（到 min 禁 −、到 max 禁 +），
-   步进后派发 input + change，设置页的值快照 dirty 检测实时联动。
-   ============================================================ */
-.stepper-wrap {
-    position: relative;
-}
-
-/* 包裹内的 number 控件：右侧预留按钮组空间；隐藏原生 spinner（Firefox/WebKit）。
-   特异性说明（同 .input-narrow 先例）：元素级基础规则含 8 个 :not 属性选择器
-   （0,8,1）会压过普通类选择器，此处携带相同 :not 链并叠加 .stepper-input
-   标记类（JS 包裹时添加，0,10,1）确保 padding-right 能覆盖 width/padding 基线 */
-.stepper-wrap input.stepper-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="image"]) {
-    padding-right: 74px;
-    -moz-appearance: textfield;
-    appearance: textfield;
-}
-
-.stepper-wrap input[type="number"]::-webkit-outer-spin-button,
-.stepper-wrap input[type="number"]::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-/* 按钮组：内嵌控件右侧，浅底圆角胶囊，中缝 0.5px hairline */
-.stepper-btns {
-    position: absolute;
-    right: 4px;
-    top: 50%;
-    transform: translateY(-50%);
-    display: flex;
-    align-items: stretch;
-    border-radius: 6px;
-    background-color: var(--bg-subtle);
-    overflow: hidden;
-}
-
-.stepper-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 26px;
-    padding: 0;
-    border: none;
-    background: none;
-    color: var(--text-secondary);
-    font-size: var(--font-size-md);
-    cursor: pointer;
-    transition: color 0.15s ease, background-color 0.15s ease;
-}
-
-/* 中缝 hairline：box-shadow 模拟 0.5px 细线（1px 边框视觉偏重） */
-.stepper-btn + .stepper-btn {
-    box-shadow: 0.5px 0 0 var(--border-split);
-}
-
-.stepper-btn:hover {
-    color: var(--primary);
-    background-color: var(--hover-bg);
-}
-
-.stepper-btn:active {
-    background-color: var(--border-split);
-}
-
-/* 边界禁用态：弱化到占位灰，光标禁用 */
-.stepper-btn:disabled {
-    color: var(--text-tertiary);
-    opacity: 0.45;
-    cursor: not-allowed;
-    background: none;
-}
-
-/* 暗色主题：按钮组底色随变量加深 */
-body.dark-theme .stepper-btns {
-    background-color: var(--hover-bg);
-}
-
 /* .form-group 内控件沿用元素级规格（保留分组语义，样式已由上方元素级统一提供） */
 .form-group input,
 .form-group select,
@@ -1090,11 +1008,6 @@ body.dark-theme .config-content .form-container {
 
 /* ===== 文章描述区（字数计数悬浮在输入框内右下角） ===== */
 
-/* 相对定位容器：计数的 absolute 锚点 */
-.editor-desc-wrap {
-    position: relative;
-}
-
 /* 描述输入框与自动生成按钮的横向排布 */
 .editor-desc-row {
     display: flex;
@@ -1102,25 +1015,34 @@ body.dark-theme .config-content .form-container {
     align-items: flex-start;
 }
 
-/* 描述输入框（底部预留字数计数空间） */
-.editor-desc-textarea {
+/* 输入框区域：flex 伸缩主项（撑满按钮之外的剩余宽度），
+   同时作为字数计数的 absolute 定位锚点——锚点盒子恰好覆盖输入框
+   （common.js 的可清空输入增强会在加载时把 textarea 再包一层
+   .clearable-wrap，计数不能锚定 textarea 自身，必须锚定这层固定盒子） */
+.editor-desc-field {
+    position: relative;
     flex: 1;
+    min-width: 0; /* flex 子项默认 min-width:auto，允许收缩避免长内容撑破行 */
+}
+
+/* 描述输入框（宽度跟随容器；底部预留字数计数空间） */
+.editor-desc-textarea {
     padding-bottom: 28px;
 }
 
-/* 自动生成按钮（与三行输入框等高、不换行） */
+/* 自动生成按钮（常规按钮高度、顶部对齐，不随输入框拉伸成大块） */
 .editor-desc-btn {
     white-space: nowrap;
-    height: 72px;
 }
 
-/* 描述字数计数（悬浮在输入框右下角，避开按钮列） */
+/* 描述字数计数（悬浮在输入框右下角；right 预留纵向缩放拖拽手柄位置） */
 .editor-desc-counter {
     position: absolute;
-    right: 130px;
+    right: 24px;
     bottom: 8px;
     font-size: var(--font-size-xs);
     color: var(--text-tertiary);
+    pointer-events: none; /* 纯状态展示，不遮挡输入框点击与拖拽手柄 */
 }
 
 /* ===== 封面选图弹窗（从正文选择 / 从媒体库选择共用） ===== */
@@ -1201,7 +1123,7 @@ body.dark-theme .config-content .form-container {
     top: 0;
     right: 0;
     bottom: 0;
-    width: 380px;
+    width: 50%;
     max-width: 92vw;
     background: var(--bg-container);
     border-left: 1px solid var(--border-color);

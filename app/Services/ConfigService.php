@@ -37,24 +37,62 @@ class ConfigService {
         $configData = [];
         $errors = [];
 
-        // 依次收集各域名的配置
-        self::collectBasicConfig($postData, $fileData, $configData, $errors);
-        self::collectEmailConfig($postData, $configData, $errors);
-        self::collectUserConfig($postData, $configData);
-        self::collectCommentConfig($postData, $configData, $errors);
-        self::collectSearchConfig($postData, $configData, $errors);
-        self::collectLoginConfig($postData, $configData, $errors);
-        self::collectRegisterConfig($postData, $configData, $errors);
-        self::collectCaptchaConfig($postData, $configData, $errors);
-        self::collectSecurityConfig($postData, $configData, $errors);
-        self::collectImageConfig($postData, $configData, $errors);
-        self::collectIpWhitelistConfig($postData, $configData);
-        self::collectCacheConfig($postData, $configData, $errors);
-        self::collectRewriteConfig($postData, $configData);
-        self::collectSeoConfig($postData, $configData, $errors);
-        self::collectSitemapConfig($postData, $configData, $errors);
-        self::collectApiConfig($postData, $configData, $errors);
-        self::collectDebugConfig($postData, $configData, $errors);
+        // 当前保存的是哪个设置子页（各设置页模板中的隐藏域 sub_page 与之一一对应）
+        // 历史缺陷说明：此前 save() 不区分 sub_page，每次保存都会执行全部字段收集器；
+        // 而滑动开关（checkbox）采用「未提交即关闭」兜底，导致保存 A 设置页时
+        // B 设置页的所有开关字段因不在 POST 中而被强制重置为 0（跨页互踩丢配置）。
+        // 修复：按 sub_page 只收集当前页面实际提交的字段组，互不干扰。
+        $subPage = isset($postData['sub_page']) ? (string)$postData['sub_page'] : 'basic';
+
+        // sub_page → 字段收集器的映射关系
+        // 映射依据：各设置页模板（admin/templates/config/config_*.html）实际提交的字段
+        $pageCollectors = [
+            // 基本设置页：站点信息、备案、维护模式、RSS、隐私政策等
+            // 图片优化字段（image_*，全 isset 守卫）历史上随所有页面无条件收集，
+            // 现归入本页，保持原有保存行为不变
+            'basic'    => ['collectBasicConfig', 'collectImageConfig'],
+            // 邮箱配置页：SMTP 相关字段
+            'email'    => ['collectEmailConfig'],
+            // 用户设置页：登录/注册子页已并入本页（§4.4/§4.5 页面归并），
+            // 因此需同时收集用户、登录、注册三组字段
+            'user'     => ['collectUserConfig', 'collectLoginConfig', 'collectRegisterConfig'],
+            // 评论设置页：评论开关与反垃圾字段
+            'comment'  => ['collectCommentConfig'],
+            // 搜索设置页
+            'search'   => ['collectSearchConfig'],
+            // 验证码设置页：验证码总开关、图形参数、各场景启用开关
+            'captcha'  => ['collectCaptchaConfig'],
+            // 安全设置页：安全防护开关 + IP 白名单（IP 白名单子页已并入本页）
+            'security' => ['collectSecurityConfig', 'collectIpWhitelistConfig'],
+            // 缓存设置页
+            'cache'    => ['collectCacheConfig'],
+            // 伪静态设置页
+            'rewrite'  => ['collectRewriteConfig'],
+            // SEO 设置页：SEO 字段 + 站点地图（站点地图区块位于 SEO 页内）
+            'seo'      => ['collectSeoConfig', 'collectSitemapConfig'],
+            // API 设置页与调试设置页：当前导航未暴露 api 子页（无模板提交 api 字段，全 isset 守卫），
+            // 保留映射仅为兼容潜在的自定义页面调用，不影响现有页面；
+            // debug 子页虽不在导航中，但直链访问时渲染的是基本设置表单（config_default.html），
+            // 因此需同时收集基本设置字段，避免该页保存失效
+            'api'      => ['collectApiConfig'],
+            'debug'    => ['collectBasicConfig', 'collectImageConfig', 'collectDebugConfig'],
+        ];
+
+        // 依次执行当前子页对应的字段收集器（未列出的 sub_page 保持 basic 兜底行为）
+        $collectors = isset($pageCollectors[$subPage]) ? $pageCollectors[$subPage] : $pageCollectors['basic'];
+        foreach ($collectors as $collector) {
+            // 各收集器签名略有差异，按签名分发：
+            // - collectBasicConfig 多一个 $fileData 参数（LOGO 上传处理需要 $_FILES）
+            // - collectIpWhitelistConfig 无 $errors 参数
+            // - 其余收集器统一为 ($postData, &$configData, &$errors)
+            if ($collector === 'collectBasicConfig') {
+                self::collectBasicConfig($postData, $fileData, $configData, $errors);
+            } elseif ($collector === 'collectIpWhitelistConfig') {
+                self::collectIpWhitelistConfig($postData, $configData);
+            } else {
+                self::$collector($postData, $configData, $errors);
+            }
+        }
 
         // —— 插件扩展点：允许插件把自己的字段注入到 $configData ——
         // 插件钩子 callback 签名：function(array $postData): array { return ['field_name' => 'field_value', ...]; }

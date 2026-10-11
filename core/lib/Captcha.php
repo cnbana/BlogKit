@@ -291,6 +291,22 @@ class Captcha {
      * @return bool 是否验证通过
      */
     public static function check($code, $config = [], $clearAfterVerify = true) {
+        // 验证码校验过滤器（第三方验证码插件统一接入点）：
+        // 插件回调返回 true/false 表示接管本次校验裁决（如行为验证插件校验前端上传的
+        // gt4 载荷），返回 null 表示不接管（内置明文码、后台预览码等场景），
+        // 继续走下方内置校验逻辑；多个插件同时返回非 null 时以首个结果为准。
+        // 注意：本过滤器是全部验证码场景（前台登录/注册/评论/找回/重置、后台登录/找回/重置、
+        // 后台预览测试）的统一裁决单点，控制器侧无需逐点感知插件
+        $filterResults = Hook::triggerWithReturn(Hook::CAPTCHA_CHECK_FILTER, [
+            'code'   => $code,
+            'config' => $config
+        ]);
+        foreach ($filterResults as $filterResult) {
+            if ($filterResult !== null) {
+                return (bool)$filterResult;
+            }
+        }
+
         $captcha = new self($config);
         return $captcha->verify($code, $clearAfterVerify);
     }

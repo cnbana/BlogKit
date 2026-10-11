@@ -28,8 +28,9 @@ include 'components/page_wrapper.html';
             <?php echo admin_svg_icon('plus', ''); ?>添加模板
         </a>
 
-        <!-- 返回上级配置页：邮件模板是邮箱配置的子功能，提供上下文返回入口 -->
-        <a href="admin.php?action=config&sub=email" class="btn btn-secondary">返回邮箱配置</a>
+        <!-- 返回上级配置页：邮件模板是邮箱配置的子功能，提供上下文返回入口
+             （注意：必须指向 action=email 主入口，config&sub=email 为失效路由，会渲染出无默认值的空表单） -->
+        <a href="admin.php?action=email" class="btn btn-secondary">返回邮箱配置</a>
 
         <!-- 批量操作下拉：菜单项通过 data-batch 属性分发（见页面底部批量脚本），
              批量删除提交到 batchDelete（POST + ids[]），危险操作红色样式 -->
@@ -110,7 +111,7 @@ include 'components/page_wrapper.html';
                     <td>
                         <!-- 操作列：文字链接式（对齐文章/评论列表页）。
                              编辑为主操作直显；设为默认/删除收入「操作」下拉，保持列面整洁。
-                             编辑/删除跳转方式与原列表页保持一致（编辑整页跳转、删除 confirmLink 确认） -->
+                             编辑/删除跳转方式与原列表页保持一致（编辑整页跳转、删除 postLink POST+CSRF 确认） -->
                         <a href="admin.php?action=email_template&method=edit&id=<?php echo $template['id']; ?>" class="table-link">编辑</a>
                         <span class="table-action-divider"></span>
                         <div class="btn-group et-inline-group">
@@ -121,11 +122,12 @@ include 'components/page_wrapper.html';
                             <ul class="dropdown-menu">
                                 <?php if (!$template['is_default']): ?>
                                 <li>
-                                    <a href="admin.php?action=email_template&method=setDefault&id=<?php echo $template['id']; ?>">设为默认</a>
+                                    <!-- 写操作链接改走 postLink：确认后以 POST + CSRF 令牌提交（原 GET 跳转；本链接原无确认弹窗） -->
+                                    <a href="admin.php?action=email_template&method=setDefault&id=<?php echo $template['id']; ?>" onclick="return postLink(this, '确定将此模板设为默认吗？', { confirmText: '设为默认' });">设为默认</a>
                                 </li>
                                 <?php endif; ?>
                                 <li>
-                                    <a href="admin.php?action=email_template&method=delete&id=<?php echo $template['id']; ?>" onclick="return confirmLink(this, '确定要删除这个模板吗？', { type: 'danger', confirmText: '删除' });" class="menu-item-danger">
+                                    <a href="admin.php?action=email_template&method=delete&id=<?php echo $template['id']; ?>" onclick="return postLink(this, '确定要删除这个模板吗？', { type: 'danger', confirmText: '删除' });" class="menu-item-danger">
                                         删除
                                     </a>
                                 </li>

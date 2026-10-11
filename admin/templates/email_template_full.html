@@ -55,9 +55,10 @@
                                 <td>
                                     <a href="admin.php?action=email_template&method=edit&id=<?php echo $template['id']; ?>" class="btn btn-sm btn-info">编辑</a>
                                     <?php if (!$template['is_default']): ?>
-                                        <a href="admin.php?action=email_template&method=setDefault&id=<?php echo $template['id']; ?>" class="btn btn-sm btn-success">设为默认</a>
+                                        <!-- 写操作链接改走 postLink：确认后以 POST + CSRF 令牌提交（原 GET 跳转；本链接原无确认弹窗） -->
+                                        <a href="admin.php?action=email_template&method=setDefault&id=<?php echo $template['id']; ?>" class="btn btn-sm btn-success" onclick="return postLink(this, '确定将此模板设为默认吗？', { confirmText: '设为默认' });">设为默认</a>
                                     <?php endif; ?>
-                                    <a href="admin.php?action=email_template&method=delete&id=<?php echo $template['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirmLink(this, '确定要删除这个模板吗？', { type: 'danger', confirmText: '删除' });">删除</a>
+                                    <a href="admin.php?action=email_template&method=delete&id=<?php echo $template['id']; ?>" class="btn btn-sm btn-danger" onclick="return postLink(this, '确定要删除这个模板吗？', { type: 'danger', confirmText: '删除' });">删除</a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -78,6 +79,7 @@
             </h3>
             
             <form method="post" action="admin.php?action=email_template&method=save">
+                <?php echo Security::getCsrfField(); // CSRF 令牌：随统一校验层验证 ?>
                 <?php if (isset($template)): ?>
                     <input type="hidden" name="id" value="<?php echo $template['id']; ?>">
                 <?php endif; ?>

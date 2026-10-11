@@ -432,7 +432,8 @@
                             </a>
                             <ul class="dropdown-menu">
                                 <li>
-                                    <a href="admin.php?action=article&sub=delete&id=<?php echo $article['id']; ?>" onclick="return confirmLink(this, '确定要将这篇文章移至回收站吗？', { type: 'danger', confirmText: '移入回收站' });" class="menu-item-danger">
+                                    <!-- 写操作链接改走 postLink：确认后以 POST + CSRF 令牌提交（原 GET 跳转） -->
+                                    <a href="admin.php?action=article&sub=delete&id=<?php echo $article['id']; ?>" onclick="return postLink(this, '确定要将这篇文章移至回收站吗？', { type: 'danger', confirmText: '移入回收站' });" class="menu-item-danger">
                                         删除
                                     </a>
                                 </li>

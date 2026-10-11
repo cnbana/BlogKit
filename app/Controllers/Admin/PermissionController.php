@@ -362,6 +362,12 @@ class PermissionController {
      * 切换权限状态
      */
     public function toggleStatus() {
+        // 写操作仅接受 POST 提交（GET 链接已在前端统一改走 POST+CSRF 提交）
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: admin.php?action=permission');
+            exit;
+        }
+
         // 获取权限ID和状态
         $id = $_GET['id'] ?? 0;
         $status = $_GET['status'] ?? 0;
@@ -374,11 +380,13 @@ class PermissionController {
         // 更新权限状态
         $permission = PermissionModel::getPermissionById($id);
         $statusText = $status == 1 ? '启用' : '禁用';
+        // 权限可能查询不到（如传入无效 ID），日志中的名称做空值兜底，避免未定义索引告警
+        $permissionName = $permission['name'] ?? ('ID:' . $id);
         if (PermissionModel::updatePermission($id, ['status' => $status])) {
-            Log::info('权限管理 - 状态变更：成功' . $statusText . '权限: ' . $permission['name'] . ' (ID: ' . $id . ')', Log::CATEGORY_OPERATION);
+            Log::info('权限管理 - 状态变更：成功' . $statusText . '权限: ' . $permissionName . ' (ID: ' . $id . ')', Log::CATEGORY_OPERATION);
             $_SESSION['success'] = '权限状态更新成功';
         } else {
-            Log::error('权限管理 - 状态变更：' . $statusText . '权限失败: ' . $permission['name'] . ' (ID: ' . $id . ')', Log::CATEGORY_OPERATION);
+            Log::error('权限管理 - 状态变更：' . $statusText . '权限失败: ' . $permissionName . ' (ID: ' . $id . ')', Log::CATEGORY_OPERATION);
             $_SESSION['error'] = '权限状态更新失败';
         }
         

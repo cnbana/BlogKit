@@ -43,6 +43,7 @@
                                 foreach ($cacheTypes as $cacheType => $cacheInfo): ?>
                                 <form method="post" action="admin.php?action=<?php echo $currentAction; ?>&method=clear"
                                       onsubmit="return confirmForm(this, '<?php echo $cacheInfo[1]; ?>', { type: 'warning', title: '清理缓存', confirmText: '清理' });">
+                                    <?php echo Security::getCsrfField(); // CSRF 令牌：随统一校验层验证 ?>
                                     <input type="hidden" name="cache_clean_type" value="<?php echo $cacheType; ?>">
                                     <input type="hidden" name="back" value="<?php echo htmlspecialchars($_SERVER['REQUEST_URI'] ?? '', ENT_QUOTES); ?>">
                                     <button type="submit" class="header-dropdown-item"><?php echo $cacheInfo[0]; ?></button>
@@ -120,6 +121,7 @@
                  ConfigService 按「未提交即关闭」兜底保存 -->
             <div class="form-container cache-settings-gap">
                 <form method="post" action="admin.php?action=<?php echo $currentAction; ?>&method=save">
+                    <?php echo Security::getCsrfField(); // CSRF 令牌：随统一校验层验证 ?>
                     <input type="hidden" name="sub_page" value="<?php echo $sub; ?>">
 
                     <!-- 基本设置 -->

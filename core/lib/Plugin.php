@@ -1088,7 +1088,13 @@ class Plugin {
             }
         }
         
+        // —— 配置表单 ——
+        // 页面结构：顶部操作栏（.action-section，含返回/导出/导入）与表单卡片（.form-container）
+        // 均由模板 plugin_config.html 平级输出；本方法仅输出表单卡片内部内容
+        //（<form> + 配套 JS），表单提交与全后台写操作一致受 admin.php 全局 CSRF 强制校验保护
         $form = '<form action="admin.php?action=plugin&sub=saveConfig" method="post" enctype="multipart/form-data">';
+        // CSRF 令牌：admin.php 对所有非豁免 POST 强制校验，缺失将直接 403
+        $form .= Security::getCsrfField();
         $form .= '<input type="hidden" name="slug" value="' . $slug . '">';
         $form .= '<div class="plugin-config-form">';
         $form .= '<style>';
@@ -1136,29 +1142,8 @@ class Plugin {
         $form .= '.tab-content.active {';
         $form .= '    display: block;';
         $form .= '}';
-        // 导入/导出配置卡片：底色与描边引用主题 Token（原浅色渐变在暗色下呈白卡）
-        $form .= '.config-import-export {';
-        $form .= '    background: var(--bg-container);';
-        $form .= '    border: 1px solid var(--border-color);';
-        $form .= '    padding: 20px;';
-        $form .= '    border-radius: 8px;';
-        $form .= '    margin-top: 20px;';
-        $form .= '}';
-        $form .= '.config-import-export .row {';
-        $form .= '    display: flex;';
-        $form .= '    align-items: center;';
-        $form .= '    gap: 20px;';
-        $form .= '}';
-        $form .= '.config-import-export .btn {';
-        $form .= '    min-width: 120px;';
-        $form .= '}';
-        $form .= '.config-import-export .input-group {';
-        $form .= '    display: flex;';
-        $form .= '    gap: 10px;';
-        $form .= '}';
-        $form .= '.config-import-export input[type="file"] {';
-        $form .= '    max-width: 300px;';
-        $form .= '}';
+        // 导入/导出操作栏布局样式已全局化至 admin/assets/css/common.css
+        //（.config-import-export，与主题设置页顶部操作栏共用），此处不再重复定义
         $form .= '.form-group {';
         $form .= '    margin-bottom: 15px;';
         $form .= '}';
@@ -1186,17 +1171,7 @@ class Plugin {
         $form .= '}';
         $form .= '</style>';
         
-        // 添加导入/导出功能（移到顶部）
-        $form .= '<div class="form-group config-import-export">';
-        $form .= '<div class="row">';
-        $form .= '<div class="col-md-12">';
-        $form .= '<button type="button" class="btn btn-secondary" id="export-config">导出配置</button>';
-        $form .= '<span style="margin: 0 15px;"></span>';
-        $form .= '<input type="file" class="form-control" id="import-config" accept=".json" style="display: inline-block; width: auto; vertical-align: middle;">';
-        $form .= '<button type="button" class="btn btn-secondary" id="import-config-btn">导入配置</button>';
-        $form .= '</div>';
-        $form .= '</div>';
-        $form .= '</div>';
+        // （导入/导出操作栏已移至表单外顶部，见 getPluginConfigForm 开头的 .action-section 区块）
         
         // 生成标签页导航
         if ($hasTabs) {
@@ -1232,12 +1207,14 @@ class Plugin {
             $this->generateConfigFields($form, $defaultConfig);
         }
         
-        $form .= '<div class="form-group">';
+        // 保存行：与后台标准 .form-actions 一致的横排布局
+        //（返回插件列表链接已移至页面顶部操作栏，见 plugin_config.html）
+        $form .= '<div class="form-actions">';
         $form .= '<button type="submit" class="btn btn-primary">保存配置</button>';
         $form .= '</div>';
         $form .= '</div>';
         $form .= '</form>';
-        
+
         // 添加JavaScript代码
         $downloadFileName = "plugin-config-{$slug}.json";
         $jsCode = '<script>
@@ -1288,11 +1265,19 @@ class Plugin {
                 URL.revokeObjectURL(url);
             });
             
+            // 选择文件后回显文件名并激活导入按钮（原生 file input 已隐藏，作为回显数据源）
+            $("#import-config").change(function() {
+                var fileName = this.files.length > 0 ? this.files[0].name : "";
+                $("#import-config-name").text(fileName || "未选择文件");
+                $("#import-config-btn").prop("disabled", this.files.length === 0);
+            });
+
             // 导入配置
             $("#import-config-btn").click(function() {
                 var fileInput = document.getElementById("import-config");
                 if (fileInput.files.length === 0) {
-                    alert("请选择要导入的配置文件");
+                    // 统一 toast 提示（common.js showToast），替代原生 alert
+                    showToast("请选择要导入的配置文件", "warning");
                     return;
                 }
                 
@@ -1318,9 +1303,11 @@ class Plugin {
                             }
                         });
                         
-                        alert("配置导入成功");
+                        // 导入为前端填充行为（不直接入库），用页面内 toast 提示成功，
+                        // 不跳转不刷新以保留已填充的表单内容，待用户确认后再点「保存配置」入库
+                        showToast("配置导入成功，请检查字段后保存", "success");
                     } catch (error) {
-                        alert("配置文件格式错误");
+                        showToast("配置文件格式错误", "error");
                     }
                 };
                 reader.readAsText(file);
@@ -1359,7 +1346,8 @@ class Plugin {
                 
                 if (!isValid) {
                     e.preventDefault();
-                    alert(errorMessages.join("\n"));
+                    // 统一 toast 提示（common.js showToast），替代原生 alert
+                    showToast(errorMessages.join("；"), "error");
                 }
             });
         });

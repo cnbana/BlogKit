@@ -143,8 +143,8 @@ class PageController {
      * 编辑页面
      */
     public function edit() {
-        // 获取页面ID
-        $id = $_GET['id'];
+        // 获取页面ID（无 isset 兜底会报未定义索引，直接访问编辑页时不带 id 需走下方"页面不存在"分支）
+        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
         
         // 获取页面信息
         $page = $this->pageModel->getPageById($id);
@@ -231,8 +231,14 @@ class PageController {
      * 删除页面
      */
     public function delete() {
-        // 获取页面ID
-        $id = $_GET['id'];
+        // 写操作仅接受 POST 提交（GET 链接已在前端统一改走 POST+CSRF 提交）
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: admin.php?action=page');
+            exit;
+        }
+
+        // 获取页面ID（无 isset 兜底会报未定义索引，缺 id 时由下方"页面不存在"分支兜底）
+        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
         
         // 获取页面信息
         $page = $this->pageModel->getPageById($id);

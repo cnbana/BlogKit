@@ -335,7 +335,7 @@
 //   1. data-action="scroll-todo"  数据条「待处理」指标 → 平滑滚动到待办行（#todo-strip）
 //   2. data-action="approve"      最新评论中待审评论行内「通过」（AJAX，低风险免确认）
 //   3. data-action="delete"       最新评论中待审评论行内「删除」（确认弹层 + AJAX）
-// AJAX 接口与评论管理页完全同款（GET 兼容，返回 JSON：{code, msg}）：
+// AJAX 接口与评论管理页完全同款（POST + CSRF 令牌请求头，返回 JSON：{code, msg}）：
 //   通过 → admin.php?action=comment&sub=toggleStatus&id=X&status=1
 //   删除 → admin.php?action=comment&sub=delete&id=X
 // 处理成功后：右上 Toast 反馈 → 移除对应行（无需整页刷新）→
@@ -370,9 +370,12 @@
     }
 
     // ---- 工具：发送行内处理请求（toggleStatus / delete 接口均返回 JSON）----
+    // 写操作统一以 POST 发送（原 GET 已废弃）：URL 查询参数保留，另以
+    // X-CSRF-Token 请求头携带令牌（后台统一 CSRF 校验层验证）
     function request(url, done) {
         var xhr = new XMLHttpRequest();
-        xhr.open('GET', url, true);
+        xhr.open('POST', url, true);
+        xhr.setRequestHeader('X-CSRF-Token', (document.querySelector('meta[name="csrf-token"]') || {}).content || '');
         xhr.onreadystatechange = function() {
             if (xhr.readyState !== 4) return;
             var res = null;

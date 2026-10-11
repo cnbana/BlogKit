@@ -106,7 +106,6 @@ if (!is_dir($sessionPath)) {
 }
 session_save_path($sessionPath);
 
-// session 独立命名（BKSID）：官网（guanwangsite）与主系统同域部署时共用默认 PHPSESSID，
 // 任一系统登录时的 session_regenerate_id(true) 会作废另一系统的登录会话（互踢）。
 // 独立 cookie 名使两系统会话完全隔离，各自登录/退出互不影响。
 session_name('BKSID');
@@ -203,4 +202,45 @@ $_SESSION['csp_nonce'] = $cspNonce;
 // CSP 策略：CMS 主题模板中存在大量内联 style 属性和脚本，使用 'unsafe-inline'
 // 注意：当 CSP 含 nonce 时，浏览器会忽略 'unsafe-inline'——但 HTML 元素上的 style="..." 无法设 nonce
 // 因此仅使用 'unsafe-inline'，放弃 nonce 方案以确保兼容性
-header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self';");
+$cspDirectives = [
+    'default-src'     => "'self'",
+    'script-src'      => "'self' 'unsafe-inline' 'unsafe-eval'",
+    'style-src'       => "'self' 'unsafe-inline'",
+    'img-src'         => "'self' data: https:",
+    'font-src'        => "'self' data:",
+    'connect-src'     => "'self'",
+    'frame-ancestors' => "'self'",
+];
+
+// CSP 追加片段过滤器（脚本类插件扩展点：行为验证/统计/客服/支付 SDK 等）：
+// 插件按 directive 返回追加来源，核心归并到既有来源之后；无插件返回时 CSP 头
+// 与默认策略完全一致。首次触发会顺带完成插件加载（Plugin 为懒加载单例，
+// 此前在路由/模板渲染阶段才加载，CSP 头必须感知插件故提前到此处）。
+// 静态资产请求（入口文件直接 serve 的 /assets/ 资源）跳过过滤器以维持资产
+// 轻量路径——资产响应不执行页面脚本，CSP 追加对其无实际约束意义
+if (strpos($_SERVER['REQUEST_URI'] ?? '', '/assets/') === false) {
+    foreach (Hook::triggerWithReturn(Hook::SECURITY_CSP_EXTRA) as $cspExtra) {
+        if (!is_array($cspExtra)) {
+            continue;
+        }
+        foreach ($cspExtra as $cspDirective => $cspSources) {
+            // 过滤非法片段：directive 与来源须为非空字符串，
+            // 防止插件错误配置破坏整个 CSP 头（字段名统一转小写，CSP 不区分大小写）
+            $cspDirective = is_string($cspDirective) ? strtolower(trim($cspDirective)) : '';
+            if ($cspDirective === '' || !is_string($cspSources) || trim($cspSources) === '') {
+                continue;
+            }
+            $cspSources = trim($cspSources);
+            $cspDirectives[$cspDirective] = isset($cspDirectives[$cspDirective])
+                ? $cspDirectives[$cspDirective] . ' ' . $cspSources
+                : $cspSources;
+        }
+    }
+}
+
+// 组装并输出 CSP 头（尾部分号与既有硬编码格式保持一致）
+$cspParts = [];
+foreach ($cspDirectives as $cspDirective => $cspSources) {
+    $cspParts[] = $cspDirective . ' ' . $cspSources;
+}
+header('Content-Security-Policy: ' . implode('; ', $cspParts) . ';');

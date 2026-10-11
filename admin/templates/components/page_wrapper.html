@@ -132,6 +132,7 @@ include __DIR__ . '/sidebar.html';
                     foreach ($cacheTypes as $cacheType => $cacheInfo): ?>
                     <form method="post" action="admin.php?action=cache&method=clear"
                           onsubmit="return confirmForm(this, '<?php echo $cacheInfo[1]; ?>', { type: 'warning', title: '清理缓存', confirmText: '清理' });">
+                        <?php echo Security::getCsrfField(); // CSRF 令牌：随统一校验层验证 ?>
                         <input type="hidden" name="cache_clean_type" value="<?php echo $cacheType; ?>">
                         <input type="hidden" name="back" value="<?php echo htmlspecialchars($_SERVER['REQUEST_URI'] ?? '', ENT_QUOTES); ?>">
                         <button type="submit" class="header-dropdown-item"><?php echo $cacheInfo[0]; ?></button>

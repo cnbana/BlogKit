@@ -393,9 +393,11 @@ class TemplateParser
             $fullBlockLen = $closeEnd - $matchPos;
 
             // 保护嵌套 {if} 块，防止正文中的 {else} 拆分误命中嵌套块内部的 {else}
+            // 闭包两种风格等价识别：{/if}、{/endif} 与 {endif}（与 findMatchingCloseTag 口径一致），
+            // 否则内层以 {endif} 闭合的完整块不被整体保护，外层 {else} 切分会误命中内层 {else}
             $markers = [];
             $bodyProtected = preg_replace_callback(
-                '/\{if\s+.+?\}[\s\S]*?\{\/(?:if|endif)\}|\{endif\}/',
+                '/\{if\s+.+?\}[\s\S]*?(?:\{\/(?:if|endif)\}|\{endif\})|\{endif\}/',
                 function($nm) use (&$markers) {
                     $key = '__NESTC_' . count($markers) . '__';
                     $markers[$key] = $nm[0];
@@ -696,9 +698,12 @@ class TemplateParser
 
             $fullBlockLen = $closeEnd - $matchPos;
 
+            // 保护嵌套 {if} 块，防止正文中的 {else} 拆分误命中嵌套块内部的 {else}
+            // 闭包两种风格等价识别：{/if}、{/endif} 与 {endif}（与 findMatchingCloseTag 口径一致），
+            // 否则内层以 {endif} 闭合的完整块不被整体保护，外层 {else} 切分会误命中内层 {else}
             $markers = [];
             $bodyProtected = preg_replace_callback(
-                '/\{if\s+.+?\}[\s\S]*?\{\/(?:if|endif)\}|\{endif\}/',
+                '/\{if\s+.+?\}[\s\S]*?(?:\{\/(?:if|endif)\}|\{endif\})|\{endif\}/',
                 function($nm) use (&$markers) {
                     $key = '__NESTX_' . count($markers) . '__';
                     $markers[$key] = $nm[0];
@@ -1203,9 +1208,10 @@ class TemplateParser
             $fullBlockLen = $closeEnd - $matchPos;
 
             // 保护嵌套块中的 {else}，避免被误识别
+            // 闭包两种风格等价识别：{/if}、{/endif} 与 {endif}（与 findMatchingCloseTag 口径一致）
             $markers = [];
             $bodyProtected = preg_replace_callback(
-                '/\{if\s+.+?\}[\s\S]*?\{\/(?:if|endif)\}|\{endif\}/',
+                '/\{if\s+.+?\}[\s\S]*?(?:\{\/(?:if|endif)\}|\{endif\})|\{endif\}/',
                 function($nm) use (&$markers) {
                     $key = '__NESTS_' . count($markers) . '__';
                     $markers[$key] = $nm[0];

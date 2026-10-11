@@ -216,6 +216,7 @@
                     <!-- 行内表单：使删除按钮与前序按钮同排（原内联 display:inline 迁移至 components.css 的 .md-delete-form） -->
                     <form action="admin.php?action=media.delete" method="post" class="md-delete-form">
                         <input type="hidden" name="path" value="<?php echo $file['path']; ?>">
+                        <?php echo Security::getCsrfField(); // CSRF 令牌：随统一校验层验证 ?>
                         <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirmSubmit(this, '确定要删除这个文件吗？', { type: 'danger', confirmText: '删除' })" title="删除">
                             删除
                         </button>
@@ -265,6 +266,7 @@
                 <!-- 行内表单：使删除按钮与前序按钮同排（复用卡片视图的 .md-delete-form） -->
                 <form action="admin.php?action=media.delete" method="post" class="md-delete-form">
                     <input type="hidden" name="path" value="<?php echo $file['path']; ?>">
+                    <?php echo Security::getCsrfField(); // CSRF 令牌：随统一校验层验证 ?>
                     <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirmSubmit(this, '确定要删除这个文件吗？', { type: 'danger', confirmText: '删除' })" title="删除">
                         删除
                     </button>
@@ -354,6 +356,7 @@
             <div class="modal-body">
                 <form id="rename-form" action="admin.php?action=media.rename" method="post">
                     <input type="hidden" id="rename-path" name="path">
+                    <?php echo Security::getCsrfField(); // CSRF 令牌：随统一校验层验证 ?>
                     <div class="form-group">
                         <label for="new-name">新文件名</label>
                         <input type="text" id="new-name" name="new_name" class="form-control" required>
@@ -408,6 +411,13 @@
                     var form = document.createElement('form');
                     form.action = 'admin.php?action=media.batch_delete';
                     form.method = 'post';
+
+                    // CSRF 令牌：随表单一并提交（统一校验层验证）
+                    var tokenInput = document.createElement('input');
+                    tokenInput.type = 'hidden';
+                    tokenInput.name = 'csrf_token';
+                    tokenInput.value = '<?php echo $_SESSION['csrf_token']; ?>';
+                    form.appendChild(tokenInput);
 
                     paths.forEach(function(path) {
                         var input = document.createElement('input');

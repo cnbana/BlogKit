@@ -93,6 +93,14 @@ class TagController {
             }
             
             $tagModel = new TagModel();
+
+            // 重名预检：bk_tag.name 有唯一索引，不预检直接插入会因
+            // 唯一键冲突抛出 PDO 异常（表现为 500），这里先给出友好提示
+            if ($tagModel->getTagByName($name)) {
+                respondWithToast('标签名称已存在，请使用其他名称', 'back');
+                exit;
+            }
+
             if ($tagModel->createTag($name)) {
                 Log::info('标签管理 - 添加标签：成功添加标签: ' . $name, Log::CATEGORY_OPERATION);
                 respondWithToast('标签添加成功', 'admin.php?action=tag');
@@ -128,7 +136,14 @@ class TagController {
                 respondWithToast('标签名称不能为空', 'back');
                 exit;
             }
-            
+
+            // 重名预检（排除自身）：bk_tag.name 有唯一索引，不预检直接更新
+            // 会因唯一键冲突抛出 PDO 异常（表现为 500），这里先给出友好提示
+            if ($tagModel->getTagByName($name, $id)) {
+                respondWithToast('标签名称已存在，请使用其他名称', 'back');
+                exit;
+            }
+
             if ($tagModel->updateTag($id, $name)) {
                 Log::info('标签管理 - 编辑标签：成功编辑标签ID ' . $id . ': ' . $name, Log::CATEGORY_OPERATION);
                 respondWithToast('标签更新成功', 'admin.php?action=tag');
@@ -143,6 +158,11 @@ class TagController {
     }
     
     public function delete() {
+        // 写操作仅接受 POST 提交（GET 链接已在前端统一改走 POST+CSRF 提交）
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            respondFlash(false, '非法请求', 'admin.php?action=tag');
+        }
+
         // 行内删除链接操作：闪存 + 重定向（PRG），无中间提示页
         $id = $_GET['id'] ?? 0;
         if (empty($id)) {

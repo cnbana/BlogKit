@@ -50,6 +50,10 @@
     <!-- 插件钩子：页面头部 -->
     {plugin_hook name="page_header"}
 
+    <!-- 插件挂载点：向已启用插件提供本页 <head> 注入点（如验证码插件的脚本资源）。
+         无订阅者时零输出，页面结构与未埋点前完全一致 -->
+    {php}Plugin::slot('front.head');{/php}
+
 </head>
 <body>
 

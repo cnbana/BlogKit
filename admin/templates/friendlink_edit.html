@@ -13,6 +13,7 @@
             </div>
             <div class="card-body">
                 <form method="post" action="admin.php?action=friendlink&sub=save_edit">
+                    <?php echo Security::getCsrfField(); // CSRF 令牌：随统一校验层验证 ?>
                     <input type="hidden" name="id" value="<?php echo $friendlink['id']; ?>">
 
                     <div class="form-group">

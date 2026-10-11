@@ -62,6 +62,7 @@ testuser2,测试用户2,test2@example.com,password123,作者</pre>
 
             <h3>上传文件</h3>
             <form method="post" action="admin.php?action=user&sub=doImport" enctype="multipart/form-data" class="ui-upload-form">
+                <?php echo Security::getCsrfField(); // CSRF 令牌：随统一校验层验证 ?>
                 <div class="ui-upload-row">
                     <!-- 描边按钮式上传触发器：
                          点击触发隐藏 file input，选中后回显文件名 -->

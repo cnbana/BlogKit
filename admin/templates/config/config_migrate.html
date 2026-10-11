@@ -249,6 +249,8 @@ function doMigrate(action) {
         report.textContent = '网络请求失败，请检查后台是否正常运行。';
         report.classList.add('visible', 'has-errors');
     };
-    xhr.send('migrate_action=' + encodeURIComponent(action));
+    // POST 体携带迁移动作 + CSRF 令牌（统一校验层验证，防跨站伪造触发迁移）
+    xhr.send('migrate_action=' + encodeURIComponent(action)
+        + '&csrf_token=' + encodeURIComponent('<?php echo $_SESSION['csrf_token']; ?>'));
 }
 </script>

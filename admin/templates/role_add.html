@@ -2,6 +2,7 @@
 
     <div class="form-container">
         <form method="post" action="admin.php?action=role&sub=add">
+            <?php echo Security::getCsrfField(); // CSRF 令牌：随统一校验层验证 ?>
             <?php if (isset($error)): ?>
             <!-- rb-error-alert：danger 红色浅底错误提示框（components.css，角色/权限表单页共用） -->
             <div class="error-message rb-error-alert">

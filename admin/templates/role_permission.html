@@ -25,6 +25,7 @@
         </div>
         <?php else: ?>
         <form method="post" action="admin.php?action=role&sub=permission&id=<?php echo $role['id']; ?>">
+            <?php echo Security::getCsrfField(); // CSRF 令牌：随统一校验层验证 ?>
             <div class="permission-tree rb-perm-tree">
                 <?php 
                 function renderPermissionTree($permissions, $assignedIds, $level = 0) {

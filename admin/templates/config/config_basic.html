@@ -2,6 +2,7 @@
             <!-- 基本设置内容 -->
             <div class="form-container">
                 <form method="post" action="admin.php?action=<?php echo $currentAction; ?>&method=save" enctype="multipart/form-data">
+                    <?php echo Security::getCsrfField(); // CSRF 令牌：随统一校验层验证 ?>
                     <input type="hidden" name="sub_page" value="<?php echo $sub; ?>">
                     <!-- 站点基本信息 -->
                     <div class="form-section">

@@ -19,6 +19,7 @@
         </div>
         
         <form method="POST" id="comment-form">
+            <?php echo Security::getCsrfField(); // CSRF 令牌：随统一校验层验证 ?>
             <input type="hidden" name="id" value="<?php echo $comment['id']; ?>">
             
             <div class="form-group">

@@ -164,6 +164,12 @@ class RoleController {
      * 删除角色
      */
     public function delete() {
+        // 写操作仅接受 POST 提交（GET 链接已在前端统一改走 POST+CSRF 提交）
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: admin.php?action=role');
+            exit;
+        }
+
         // 获取角色ID
         $id = $_GET['id'] ?? 0;
         if (!$id) {
@@ -174,18 +180,20 @@ class RoleController {
         // 检查是否为系统保护角色
         if (in_array($id, [1, 2, 3])) {
             $role = RoleModel::getRoleById($id);
-            $_SESSION['error'] = $role['name'] . '角色无法删除';
+            // 角色可能查询不到（如传入无效 ID），名称做空值兜底，避免未定义索引告警
+            $_SESSION['error'] = ($role['name'] ?? '') . '角色无法删除';
             header('Location: admin.php?action=role');
             exit;
         }
-        
+
         // 删除角色
         $role = RoleModel::getRoleById($id);
+        $roleName = $role['name'] ?? ('ID:' . $id);
         if (RoleModel::deleteRole($id)) {
-            Log::info('角色管理 - 删除角色：成功删除角色: ' . $role['name'] . ' (ID: ' . $id . ')', Log::CATEGORY_OPERATION);
+            Log::info('角色管理 - 删除角色：成功删除角色: ' . $roleName . ' (ID: ' . $id . ')', Log::CATEGORY_OPERATION);
             $_SESSION['success'] = '角色删除成功';
         } else {
-            Log::error('角色管理 - 删除角色：删除角色失败: ' . $role['name'] . ' (ID: ' . $id . ')', Log::CATEGORY_OPERATION);
+            Log::error('角色管理 - 删除角色：删除角色失败: ' . $roleName . ' (ID: ' . $id . ')', Log::CATEGORY_OPERATION);
             $_SESSION['error'] = '角色删除失败，可能是因为该角色有子角色或默认角色无法删除';
         }
         
@@ -321,6 +329,12 @@ class RoleController {
      * 切换角色状态
      */
     public function toggleStatus() {
+        // 写操作仅接受 POST 提交（GET 链接已在前端统一改走 POST+CSRF 提交）
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: admin.php?action=role');
+            exit;
+        }
+
         // 获取角色ID和状态
         $id = $_GET['id'] ?? 0;
         $status = $_GET['status'] ?? 0;

@@ -110,7 +110,7 @@ class AdminCommentController {
      * 切换评论状态
      */
     public function toggleStatus() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $_SERVER['REQUEST_METHOD'] !== 'GET') {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['code' => 400, 'msg' => '请求方法错误']);
             return;
         }
@@ -162,7 +162,7 @@ class AdminCommentController {
      * 删除评论
      */
     public function delete() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $_SERVER['REQUEST_METHOD'] !== 'GET') {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['code' => 400, 'msg' => '请求方法错误']);
             return;
         }
@@ -206,30 +206,45 @@ class AdminCommentController {
         $commentIds = array_map('intval', $commentIds);
 
         $commentModel = new CommentModel();
+
+        // 更新前先记录各评论的旧状态：
+        // 通知逻辑需要判断「待审核 → 审核通过」这一状态跃迁，
+        // 若先更新再取值，旧状态判定永远不成立，通知将永不发送
+        $oldStatusMap = [];
+        foreach ($commentIds as $commentId) {
+            $comment = $commentModel->getCommentById($commentId);
+            if ($comment) {
+                $oldStatusMap[$commentId] = (int)$comment['status'];
+            }
+        }
+
         $result = $commentModel->batchUpdateStatus($commentIds, $status);
 
         if ($result) {
             $statusText = $status == 1 ? '启用' : '禁用';
             Log::info('评论管理 - 批量状态变更：成功批量' . $statusText . '评论: ' . count($commentIds) . ' 条', Log::CATEGORY_OPERATION);
-            
+
             // 如果是批量审核通过，发送通知：实际写入由通知插件监听事件完成
             if ($status == 1) {
                 $db = Database::getInstance();
-                
+
                 foreach ($commentIds as $commentId) {
-                    // 获取评论信息
-                    $comment = $commentModel->getCommentById($commentId);
-                    if ($comment && $comment['status'] == 0) { // 确保是从待审核变为审核通过
-                        // 获取文章信息
-                        $article = $db->fetch("SELECT title FROM {$db->table('article')} WHERE id = ?", [$comment['article_id']]);
-                        $articleTitle = $article['title'] ?? '未知文章';
-                        
-                        Hook::trigger(Hook::NOTIFICATION_SEND, [
-                            'user_id' => $comment['user_id'],
-                            'type' => 'comments',
-                            'title' => '评论审核通过',
-                            'content' => "您在文章《{$articleTitle}》的评论已通过审核"
-                        ]);
+                    // 仅对「更新前处于待审核状态」的评论发送通知，避免重复通知已审核评论
+                    if (isset($oldStatusMap[$commentId]) && $oldStatusMap[$commentId] === 0) {
+                        // 获取评论信息
+                        $comment = $commentModel->getCommentById($commentId);
+                        if ($comment) {
+                            // 获取文章信息
+                            $article = $db->fetch("SELECT title FROM {$db->table('article')} WHERE id = ?", [$comment['article_id']]);
+                            $articleTitle = $article['title'] ?? '未知文章';
+
+                            Hook::trigger(Hook::NOTIFICATION_SEND, [
+                                'user_id' => $comment['user_id'],
+                                'type' => 'comments',
+                                'title' => '评论审核通过',
+                                'content' => "您在文章《{$articleTitle}》的评论已通过审核"
+                            ]);
+                        }
                     }
                 }
             }
@@ -376,7 +391,7 @@ class AdminCommentController {
      * 恢复评论
      */
     public function restore() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $_SERVER['REQUEST_METHOD'] !== 'GET') {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['code' => 400, 'msg' => '请求方法错误']);
             return;
         }
@@ -434,7 +449,7 @@ class AdminCommentController {
      * 彻底删除评论
      */
     public function forceDelete() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $_SERVER['REQUEST_METHOD'] !== 'GET') {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['code' => 400, 'msg' => '请求方法错误']);
             return;
         }
@@ -555,7 +570,7 @@ class AdminCommentController {
      */
     public function toggleTop()
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $_SERVER['REQUEST_METHOD'] !== 'GET') {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->jsonResponse(['code' => 400, 'msg' => '请求方法错误']);
             return;
         }

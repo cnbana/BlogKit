@@ -6,6 +6,7 @@
         <?php endif; ?>
         
         <form method="post" action="admin.php?action=user&sub=edit&id=<?php echo $user['id']; ?>">
+            <?php echo Security::getCsrfField(); // CSRF 令牌：随统一校验层验证 ?>
             <div class="form-group">
                 <label for="username">用户名 *</label>
                 <input type="text" id="username" name="username" value="<?php echo $user['username']; ?>" required>

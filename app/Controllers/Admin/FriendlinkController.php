@@ -173,6 +173,11 @@ class FriendlinkController {
      * 删除友情链接
      */
     public function delete() {
+        // 写操作仅接受 POST 提交（GET 链接已在前端统一改走 POST+CSRF 提交）
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            respondFlash(false, '非法请求', 'admin.php?action=friendlink');
+        }
+
         // 行内删除链接操作：闪存 + 重定向（PRG），无中间提示页
         $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
